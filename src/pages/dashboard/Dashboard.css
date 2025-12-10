@@ -1,0 +1,379 @@
+.dashboard {
+  animation: fadeIn 0.3s ease-out;
+}
+
+.dashboard-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: var(--spacing-xl);
+}
+
+.dashboard-header-actions {
+  display: flex;
+  gap: var(--spacing-sm);
+}
+
+/* Stats Grid */
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: var(--spacing-lg);
+  margin-bottom: var(--spacing-xl);
+}
+
+@media (max-width: 1200px) {
+  .stats-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 600px) {
+  .stats-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Dashboard Grid */
+.dashboard-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: var(--spacing-lg);
+  margin-bottom: var(--spacing-xl);
+}
+
+@media (max-width: 1024px) {
+  .dashboard-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.card-link {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: var(--text-sm);
+  font-weight: 500;
+  color: var(--cvsu-green);
+}
+
+.card-link:hover {
+  text-decoration: underline;
+}
+
+/* Schedule List */
+.schedule-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-sm);
+}
+
+.schedule-item {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-md);
+  padding: var(--spacing-md);
+  background: var(--gray-50);
+  border-radius: var(--radius-md);
+  border-left: 3px solid var(--gray-300);
+  transition: all var(--transition);
+}
+
+.schedule-item.ongoing {
+  border-left-color: var(--success);
+  background: var(--success-light);
+}
+
+.schedule-item.upcoming {
+  border-left-color: var(--cvsu-green);
+}
+
+.schedule-item.completed {
+  opacity: 0.6;
+}
+
+.schedule-time {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: var(--text-sm);
+  font-weight: 500;
+  color: var(--gray-600);
+  min-width: 100px;
+}
+
+.schedule-details {
+  flex: 1;
+}
+
+.schedule-subject {
+  font-size: var(--text-sm);
+  font-weight: 600;
+  color: var(--gray-800);
+  margin-bottom: 2px;
+}
+
+.schedule-room {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: var(--text-xs);
+  color: var(--gray-500);
+}
+
+/* Announcement List */
+.announcement-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-sm);
+}
+
+.announcement-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--spacing-md);
+  background: var(--gray-50);
+  border-radius: var(--radius-md);
+  transition: all var(--transition);
+}
+
+.announcement-item:hover {
+  background: var(--gray-100);
+}
+
+.announcement-content {
+  flex: 1;
+}
+
+.announcement-title {
+  font-size: var(--text-sm);
+  font-weight: 600;
+  color: var(--gray-800);
+  margin-bottom: 4px;
+}
+
+.announcement-meta {
+  font-size: var(--text-xs);
+  color: var(--gray-500);
+}
+
+/* Quick Actions */
+.quick-actions {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: var(--spacing-md);
+}
+
+@media (max-width: 768px) {
+  .quick-actions {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+.quick-action-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--spacing-sm);
+  padding: var(--spacing-lg);
+  background: var(--gray-50);
+  border-radius: var(--radius-lg);
+  color: var(--gray-700);
+  transition: all var(--transition);
+  text-align: center;
+}
+
+.quick-action-btn:hover {
+  background: var(--primary-50);
+  color: var(--cvsu-green);
+  transform: translateY(-2px);
+}
+
+.quick-action-btn span {
+  font-size: var(--text-sm);
+  font-weight: 500;
+}
+
+/* Faculty Dashboard Specific */
+.booking-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--spacing-md);
+}
+
+@media (max-width: 1024px) {
+  .booking-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 600px) {
+  .booking-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.room-card {
+  background: var(--white);
+  border: 1px solid var(--gray-200);
+  border-radius: var(--radius-lg);
+  padding: var(--spacing-md);
+  transition: all var(--transition);
+}
+
+.room-card:hover {
+  border-color: var(--cvsu-green);
+  box-shadow: var(--shadow-md);
+}
+
+.room-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: var(--spacing-sm);
+}
+
+.room-name {
+  font-weight: 600;
+  color: var(--gray-800);
+}
+
+.room-building {
+  font-size: var(--text-xs);
+  color: var(--gray-500);
+}
+
+.room-capacity {
+  font-size: var(--text-xs);
+  color: var(--gray-500);
+  margin-top: var(--spacing-sm);
+}
+
+/* Guard Dispatch Dashboard */
+.dispatch-grid {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-md);
+}
+
+.dispatch-item {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-md);
+  padding: var(--spacing-md);
+  background: var(--white);
+  border: 1px solid var(--gray-200);
+  border-radius: var(--radius-lg);
+  transition: all var(--transition);
+}
+
+.dispatch-item.urgent {
+  border-left: 4px solid var(--error);
+  background: var(--error-light);
+}
+
+.dispatch-item.adhoc {
+  border-left: 4px solid var(--warning);
+  background: var(--warning-light);
+}
+
+.dispatch-item.standard {
+  border-left: 4px solid var(--cvsu-green);
+}
+
+.dispatch-icon {
+  width: 48px;
+  height: 48px;
+  border-radius: var(--radius-md);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--gray-100);
+}
+
+.dispatch-content {
+  flex: 1;
+}
+
+.dispatch-title {
+  font-weight: 600;
+  color: var(--gray-800);
+  margin-bottom: 4px;
+}
+
+.dispatch-meta {
+  font-size: var(--text-sm);
+  color: var(--gray-600);
+}
+
+.dispatch-time {
+  font-size: var(--text-xs);
+  color: var(--gray-500);
+  margin-top: 4px;
+}
+
+.dispatch-actions {
+  display: flex;
+  gap: var(--spacing-sm);
+}
+
+/* Admin Analytics */
+.analytics-grid {
+  display: grid;
+  grid-template-columns: 2fr 1fr;
+  gap: var(--spacing-lg);
+}
+
+@media (max-width: 1024px) {
+  .analytics-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.chart-placeholder {
+  height: 300px;
+  background: var(--gray-50);
+  border-radius: var(--radius-md);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--gray-400);
+}
+
+.moderation-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-sm);
+}
+
+.moderation-item {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--spacing-md);
+  padding: var(--spacing-md);
+  background: var(--error-light);
+  border-radius: var(--radius-md);
+}
+
+.moderation-content {
+  flex: 1;
+}
+
+.moderation-title {
+  font-weight: 600;
+  font-size: var(--text-sm);
+  color: var(--gray-800);
+  margin-bottom: 4px;
+}
+
+.moderation-reason {
+  font-size: var(--text-xs);
+  color: var(--error);
+}
+
+.moderation-meta {
+  font-size: var(--text-xs);
+  color: var(--gray-500);
+  margin-top: 4px;
+}

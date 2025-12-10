@@ -1,24 +1,125 @@
-import logo from './logo.svg';
-import './App.css';
+import React from 'react';
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { AuthProvider, useAuth } from './context/AuthContext';
+import { MainLayout } from './components/layout';
+
+// Pages
+import { Login } from './pages/auth';
+import { StudentDashboard, FacultyDashboard, GuardDashboard, AdminDashboard } from './pages/dashboard';
+import { Announcements } from './pages/announcements';
+import { Facilities } from './pages/facilities';
+import { Organizations } from './pages/organizations';
+import { Assistant } from './pages/assistant';
+import { Schedule } from './pages/schedule';
+import { EmergencyDirectory, BuildingDirectory } from './pages/directory';
+import { ReportIssue } from './pages/report';
+
+// Styles
+import './styles/theme.css';
+import './styles/components.css';
+import './styles/layouts.css';
+
+// Protected Route Component
+const ProtectedRoute = ({ children }) => {
+  const { isAuthenticated, loading } = useAuth();
+  
+  if (loading) {
+    return (
+      <div style={{ 
+        display: 'flex', 
+        alignItems: 'center', 
+        justifyContent: 'center', 
+        height: '100vh' 
+      }}>
+        <div className="loader loader-lg" />
+      </div>
+    );
+  }
+  
+  if (!isAuthenticated) {
+    return <Navigate to="/login" replace />;
+  }
+  
+  return children;
+};
+
+// Dashboard Router - redirects based on role
+const DashboardRouter = () => {
+  const { user } = useAuth();
+  
+  switch (user?.role) {
+    case 'admin':
+      return <AdminDashboard />;
+    case 'faculty':
+      return <FacultyDashboard />;
+    case 'guard':
+      return <GuardDashboard />;
+    default:
+      return <StudentDashboard />;
+  }
+};
+
+function AppContent() {
+  const { isAuthenticated } = useAuth();
+
+  return (
+    <Routes>
+      {/* Public Routes */}
+      <Route 
+        path="/login" 
+        element={
+          isAuthenticated ? <Navigate to="/dashboard" replace /> : <Login />
+        } 
+      />
+      
+      {/* Protected Routes */}
+      <Route 
+        path="/" 
+        element={
+          <ProtectedRoute>
+            <MainLayout />
+          </ProtectedRoute>
+        }
+      >
+        <Route index element={<Navigate to="/dashboard" replace />} />
+        <Route path="dashboard" element={<DashboardRouter />} />
+        <Route path="announcements" element={<Announcements />} />
+        <Route path="facilities" element={<Facilities />} />
+        <Route path="organizations" element={<Organizations />} />
+        <Route path="assistant" element={<Assistant />} />
+        <Route path="schedule" element={<Schedule />} />
+        <Route path="emergency" element={<EmergencyDirectory />} />
+        <Route path="directory" element={<BuildingDirectory />} />
+        <Route path="report" element={<ReportIssue />} />
+        
+        {/* Faculty Routes */}
+        <Route path="booking" element={<Facilities />} />
+        <Route path="my-bookings" element={<Schedule />} />
+        
+        {/* Guard Routes */}
+        <Route path="dispatch" element={<GuardDashboard />} />
+        <Route path="request-history" element={<Schedule />} />
+        
+        {/* Admin Routes */}
+        <Route path="analytics" element={<AdminDashboard />} />
+        <Route path="moderation" element={<AdminDashboard />} />
+        <Route path="users" element={<AdminDashboard />} />
+        <Route path="settings" element={<AdminDashboard />} />
+      </Route>
+      
+      {/* Catch all */}
+      <Route path="*" element={<Navigate to="/dashboard" replace />} />
+    </Routes>
+  );
+}
 
 function App() {
   return (
-    <div className="App">
-      <header className="App-header">
-        <img src={logo} className="App-logo" alt="logo" />
-        <p>
-          Edit <code>src/App.js</code> and save to reload.
-        </p>
-        <a
-          className="App-link"
-          href="https://reactjs.org"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          Learn React
-        </a>
-      </header>
-    </div>
+    <Router>
+      <AuthProvider>
+        <AppContent />
+      </AuthProvider>
+    </Router>
   );
 }
 
