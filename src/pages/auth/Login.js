@@ -262,10 +262,24 @@ const Login = () => {
               </button>
               <button 
                 className="demo-btn"
+                onClick={() => setFormData({ email: 'imus.guard@cvsu.edu.ph', password: 'password' })}
+              >
+                <Users size={14} />
+                Guard
+              </button>
+              <button 
+                className="demo-btn"
                 onClick={() => setFormData({ email: 'admin@cvsu.edu.ph', password: 'password' })}
               >
                 <Users size={14} />
-                Admin
+                Admin/MIS
+              </button>
+              <button 
+                className="demo-btn"
+                onClick={() => setFormData({ email: 'csg.officer@cvsu.edu.ph', password: 'password' })}
+              >
+                <Users size={14} />
+                Org Officer
               </button>
             </div>
 

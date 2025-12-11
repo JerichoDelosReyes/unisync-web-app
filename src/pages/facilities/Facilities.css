@@ -2,9 +2,20 @@
   animation: fadeIn 0.3s ease-out;
 }
 
-.status-summary {
+.header-actions {
+  display: flex;
+  gap: var(--spacing-sm);
+}
+
+/* Status Summary Bar */
+.status-summary-bar {
   display: flex;
   gap: var(--spacing-lg);
+  margin-bottom: var(--spacing-lg);
+  padding: var(--spacing-md);
+  background: var(--white);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
 }
 
 .status-item {
@@ -13,20 +24,35 @@
   gap: var(--spacing-sm);
   font-size: var(--text-sm);
   font-weight: 500;
+  padding: var(--spacing-xs) var(--spacing-md);
+  border-radius: var(--radius);
 }
 
-.status-dot {
-  width: 10px;
-  height: 10px;
-  border-radius: 50%;
+.status-item.vacant {
+  background: var(--success-light);
+  color: var(--success);
 }
 
-.status-item.vacant .status-dot {
-  background: var(--success);
+.status-item.occupied {
+  background: var(--error-light);
+  color: var(--error);
 }
 
-.status-item.occupied .status-dot {
-  background: var(--error);
+.status-item.maintenance {
+  background: var(--warning-light);
+  color: var(--warning);
+}
+
+@media (max-width: 600px) {
+  .status-summary-bar {
+    flex-wrap: wrap;
+    gap: var(--spacing-sm);
+  }
+  
+  .status-item {
+    font-size: var(--text-xs);
+    padding: var(--spacing-xs) var(--spacing-sm);
+  }
 }
 
 /* Building Tabs */
@@ -112,6 +138,11 @@
   border-left: 4px solid var(--error);
 }
 
+.room-tile.maintenance {
+  border-left: 4px solid var(--warning);
+  opacity: 0.7;
+}
+
 .room-tile-header {
   display: flex;
   justify-content: space-between;
@@ -123,6 +154,30 @@
   font-weight: 600;
   color: var(--gray-800);
   font-size: var(--text-sm);
+}
+
+.status-indicator {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.status-indicator.vacant {
+  background: var(--success-light);
+  color: var(--success);
+}
+
+.status-indicator.occupied {
+  background: var(--error-light);
+  color: var(--error);
+}
+
+.status-indicator.maintenance {
+  background: var(--warning-light);
+  color: var(--warning);
 }
 
 .room-tile-info {
@@ -176,6 +231,30 @@
   padding: var(--spacing-xs) var(--spacing-sm);
   background: var(--gray-100);
   border-radius: var(--radius);
+}
+
+.room-tile-class span {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.room-tile-next {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: var(--text-xs);
+  color: var(--info);
+  padding: var(--spacing-xs) var(--spacing-sm);
+  background: var(--info-light);
+  border-radius: var(--radius);
+  margin-top: var(--spacing-xs);
+}
+
+.room-tile-next span {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 /* Room Details Panel */
@@ -277,4 +356,91 @@
   font-size: var(--text-xs);
   color: var(--gray-500);
   margin-bottom: var(--spacing-sm);
+}
+
+/* Detail Row Variants */
+.detail-row.current {
+  color: var(--error);
+}
+
+.detail-row.current svg {
+  color: var(--error);
+}
+
+.detail-row.next {
+  color: var(--info);
+}
+
+.detail-row.next svg {
+  color: var(--info);
+}
+
+/* Instant Booking Form */
+.instant-book-form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-md);
+}
+
+.form-description {
+  font-size: var(--text-sm);
+  color: var(--gray-600);
+  line-height: 1.6;
+  margin-bottom: var(--spacing-sm);
+}
+
+/* Booking Success */
+.booking-success {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: var(--spacing-xl);
+  text-align: center;
+}
+
+.booking-success .success-icon {
+  color: var(--success);
+  margin-bottom: var(--spacing-md);
+  animation: scaleIn 0.3s ease-out;
+}
+
+.booking-success h3 {
+  font-size: var(--text-xl);
+  font-weight: 700;
+  color: var(--gray-800);
+  margin-bottom: var(--spacing-sm);
+}
+
+.booking-success p {
+  font-size: var(--text-base);
+  color: var(--gray-600);
+}
+
+.booked-room-details {
+  display: flex;
+  gap: var(--spacing-lg);
+  margin-top: var(--spacing-md);
+  padding: var(--spacing-md);
+  background: var(--gray-50);
+  border-radius: var(--radius-md);
+}
+
+.booked-room-details span {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+  font-size: var(--text-sm);
+  color: var(--gray-600);
+}
+
+@keyframes scaleIn {
+  from {
+    transform: scale(0);
+    opacity: 0;
+  }
+  to {
+    transform: scale(1);
+    opacity: 1;
+  }
 }
