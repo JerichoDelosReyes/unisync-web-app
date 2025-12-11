@@ -33,6 +33,7 @@ export const AuthProvider = ({ children }) => {
     if (email.includes('admin')) return 'admin';
     if (email.includes('faculty') || email.includes('prof')) return 'faculty';
     if (email.includes('guard') || email.includes('security')) return 'guard';
+    if (email.includes('class.rep') || email.includes('classrep')) return 'classrep';
     return 'student';
   };
 
@@ -44,11 +45,14 @@ export const AuthProvider = ({ children }) => {
 
     // Simulate authentication (replace with actual API call)
     const role = detectRole(email);
+    const isClassRep = email.includes('class.rep') || email.includes('classrep');
     const userData = {
       id: Date.now(),
       email,
-      name: email.split('@')[0].replace(/[._]/g, ' ').replace(/\b\w/g, c => c.toUpperCase()),
-      role,
+      name: isClassRep ? 'Class Representative' : email.split('@')[0].replace(/[._]/g, ' ').replace(/\b\w/g, c => c.toUpperCase()),
+      role: isClassRep ? 'student' : role, // Class reps are still students but with extra permissions
+      isClassRep: isClassRep,
+      section: isClassRep ? 'BSIT 4A' : null, // Default section for demo
       department: 'DIT', // Default department
       avatar: null,
     };

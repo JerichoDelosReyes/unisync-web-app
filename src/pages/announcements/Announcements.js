@@ -13,15 +13,22 @@ import {
   Globe,
   Building2,
   Users,
-  BookOpen
+  BookOpen,
+  Info
 } from 'lucide-react';
-import { Card, Button, Badge, Modal, Input, Select } from '../../components/common';
+import { Card, Button, Badge, Modal, Input, Select, Alert } from '../../components/common';
+import { useAuth } from '../../context/AuthContext';
 import './Announcements.css';
 
 const Announcements = () => {
+  const { user } = useAuth();
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [activeFilter, setActiveFilter] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
+
+  // Check if user can create announcements
+  // Only Admin, Faculty, and Class Representatives can create announcements
+  const canCreateAnnouncement = user?.role === 'admin' || user?.role === 'faculty' || user?.isClassRep;
 
   const filters = [
     { id: 'all', label: 'All', icon: Globe },
@@ -74,7 +81,7 @@ const Announcements = () => {
     {
       id: 4,
       title: 'Christmas Party Announcement',
-      content: 'CvSU Bacoor Campus will be holding its annual Christmas party on December 18, 2024. All students and faculty are invited to join the celebration. There will be games, prizes, and food!',
+      content: 'CvSU Imus Campus will be holding its annual Christmas party on December 18, 2024. All students and faculty are invited to join the celebration. There will be games, prizes, and food!',
       author: 'CSG - Central Student Government',
       authorRole: 'Organization',
       type: 'campus',
@@ -86,12 +93,31 @@ const Announcements = () => {
     },
   ];
 
-  const audienceOptions = [
-    { value: 'campus', label: 'Campus-wide (All Students & Faculty)' },
-    { value: 'department', label: 'Department Only' },
-    { value: 'organization', label: 'Organization Members Only' },
-    { value: 'section', label: 'Specific Section' },
-  ];
+  // Audience options based on user role
+  const getAudienceOptions = () => {
+    if (user?.role === 'admin') {
+      return [
+        { value: 'campus', label: 'Campus-wide (All Students & Faculty)' },
+        { value: 'department', label: 'Department Only' },
+        { value: 'organization', label: 'Organization Members Only' },
+        { value: 'section', label: 'Specific Section' },
+      ];
+    }
+    if (user?.role === 'faculty') {
+      return [
+        { value: 'department', label: 'Department Only' },
+        { value: 'section', label: 'Specific Section/Class' },
+      ];
+    }
+    if (user?.isClassRep) {
+      return [
+        { value: 'section', label: `Section Only (${user.section || 'Your Section'})` },
+      ];
+    }
+    return [];
+  };
+
+  const audienceOptions = getAudienceOptions();
 
   const filteredAnnouncements = announcements.filter(announcement => {
     if (activeFilter !== 'all' && announcement.type !== activeFilter) return false;
@@ -106,10 +132,19 @@ const Announcements = () => {
           <h1 className="page-title">Announcements</h1>
           <p className="page-subtitle">Stay updated with campus news and events</p>
         </div>
-        <Button variant="primary" icon={Plus} onClick={() => setShowCreateModal(true)}>
-          Create Announcement
-        </Button>
+        {canCreateAnnouncement && (
+          <Button variant="primary" icon={Plus} onClick={() => setShowCreateModal(true)}>
+            Create Announcement
+          </Button>
+        )}
       </div>
+
+      {/* Info for Class Reps */}
+      {user?.isClassRep && (
+        <Alert variant="info" style={{ marginBottom: '20px' }}>
+          <strong>Class Representative:</strong> You can create announcements for your section ({user.section}) and request room access on behalf of your class.
+        </Alert>
+      )}
 
       {/* Search and Filters */}
       <div className="announcements-toolbar">

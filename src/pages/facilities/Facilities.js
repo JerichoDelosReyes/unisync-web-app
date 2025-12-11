@@ -10,15 +10,24 @@ import {
   Dumbbell,
   BookOpen,
   UtensilsCrossed,
-  Home
+  Home,
+  Wind,
+  Fan,
+  Snowflake,
+  Info
 } from 'lucide-react';
-import { Card, Button, Badge, Modal } from '../../components/common';
+import { Card, Button, Badge, Modal, Alert } from '../../components/common';
+import { useAuth } from '../../context/AuthContext';
 import './Facilities.css';
 
 const Facilities = () => {
+  const { user } = useAuth();
   const [selectedBuilding, setSelectedBuilding] = useState('all');
   const [selectedRoom, setSelectedRoom] = useState(null);
   const [showBookingModal, setShowBookingModal] = useState(false);
+
+  // Check if user can request room access
+  const canRequestRoom = user?.role === 'admin' || user?.role === 'faculty' || user?.isClassRep;
 
   const buildings = [
     { id: 'all', name: 'All Buildings', icon: Building2 },
@@ -31,32 +40,55 @@ const Facilities = () => {
 
   const facilities = [
     // New Building
-    { id: 1, name: 'Room 101', building: 'new', floor: 1, type: 'Classroom', capacity: 40, status: 'vacant', currentClass: null },
-    { id: 2, name: 'Room 102', building: 'new', floor: 1, type: 'Classroom', capacity: 40, status: 'occupied', currentClass: 'IT Elective 3 - BSIT 4A' },
-    { id: 3, name: 'Room 201', building: 'new', floor: 2, type: 'Classroom', capacity: 35, status: 'vacant', currentClass: null },
-    { id: 4, name: 'Room 202', building: 'new', floor: 2, type: 'Classroom', capacity: 35, status: 'occupied', currentClass: 'Software Eng - BSIT 3B' },
-    { id: 5, name: 'Room 301', building: 'new', floor: 3, type: 'Classroom', capacity: 40, status: 'vacant', currentClass: null },
-    { id: 6, name: 'Room 302', building: 'new', floor: 3, type: 'Classroom', capacity: 40, status: 'occupied', currentClass: 'Database Systems - BSIT 2A' },
-    { id: 7, name: 'Room 401', building: 'new', floor: 4, type: 'Classroom', capacity: 35, status: 'vacant', currentClass: null },
-    { id: 8, name: 'DIT Office', building: 'new', floor: 2, type: 'Office', capacity: 10, status: 'occupied', currentClass: 'Department Office' },
+    { id: 1, name: 'Room 101', building: 'new', floor: 1, type: 'Classroom', capacity: 40, status: 'vacant', currentClass: null, hasAC: true, fans: 0 },
+    { id: 2, name: 'Room 102', building: 'new', floor: 1, type: 'Classroom', capacity: 40, status: 'occupied', currentClass: 'IT Elective 3 - BSIT 4A', hasAC: true, fans: 0 },
+    { id: 3, name: 'Room 201', building: 'new', floor: 2, type: 'Classroom', capacity: 35, status: 'vacant', currentClass: null, hasAC: true, fans: 0 },
+    { id: 4, name: 'Room 202', building: 'new', floor: 2, type: 'Classroom', capacity: 35, status: 'occupied', currentClass: 'Software Eng - BSIT 3B', hasAC: true, fans: 0 },
+    { id: 5, name: 'Room 301', building: 'new', floor: 3, type: 'Classroom', capacity: 40, status: 'vacant', currentClass: null, hasAC: true, fans: 0 },
+    { id: 6, name: 'Room 302', building: 'new', floor: 3, type: 'Classroom', capacity: 40, status: 'occupied', currentClass: 'Database Systems - BSIT 2A', hasAC: true, fans: 0 },
+    { id: 7, name: 'Room 401', building: 'new', floor: 4, type: 'Classroom', capacity: 35, status: 'vacant', currentClass: null, hasAC: true, fans: 0 },
+    { id: 8, name: 'DIT Office', building: 'new', floor: 2, type: 'Office', capacity: 10, status: 'occupied', currentClass: 'Department Office', hasAC: true, fans: 0 },
     
-    // Old Building
-    { id: 9, name: 'CompLab 1', building: 'old', floor: 2, type: 'Computer Lab', capacity: 30, status: 'occupied', currentClass: 'Programming 2 - BSIT 1A' },
-    { id: 10, name: 'CompLab 2', building: 'old', floor: 2, type: 'Computer Lab', capacity: 30, status: 'vacant', currentClass: null },
-    { id: 11, name: 'CompLab 3', building: 'old', floor: 2, type: 'Computer Lab', capacity: 30, status: 'vacant', currentClass: null },
-    { id: 12, name: 'Library', building: 'old', floor: 1, type: 'Library', capacity: 50, status: 'occupied', currentClass: 'Open for Students' },
-    { id: 13, name: 'Health Service', building: 'old', floor: 1, type: 'Service', capacity: 5, status: 'occupied', currentClass: 'Operating Hours' },
+    // Old Building - Computer Labs
+    { id: 9, name: 'CompLab 1', building: 'old', floor: 2, type: 'Computer Lab', capacity: 30, status: 'occupied', currentClass: 'Programming 2 - BSIT 1A', hasAC: true, fans: 0 },
+    { id: 10, name: 'CompLab 2', building: 'old', floor: 2, type: 'Computer Lab', capacity: 30, status: 'vacant', currentClass: null, hasAC: true, fans: 0 },
+    { id: 11, name: 'CompLab 3', building: 'old', floor: 2, type: 'Computer Lab', capacity: 30, status: 'vacant', currentClass: null, hasAC: true, fans: 0 },
+    
+    // Old Building - 2nd Floor Rooms
+    { id: 19, name: 'Room 201', building: 'old', floor: 2, type: 'Classroom', capacity: 35, status: 'occupied', currentClass: 'Business Math - BSE 2A', hasAC: false, fans: 2 },
+    { id: 20, name: 'Room 202', building: 'old', floor: 2, type: 'Classroom', capacity: 35, status: 'vacant', currentClass: null, hasAC: false, fans: 2 },
+    { id: 21, name: 'Room 203', building: 'old', floor: 2, type: 'Classroom', capacity: 35, status: 'occupied', currentClass: 'Gen Psychology - BSP 1A', hasAC: false, fans: 2 },
+    { id: 22, name: 'Room 204', building: 'old', floor: 2, type: 'Classroom', capacity: 35, status: 'vacant', currentClass: null, hasAC: false, fans: 2 },
+    { id: 23, name: 'Room 205', building: 'old', floor: 2, type: 'Classroom', capacity: 35, status: 'vacant', currentClass: null, hasAC: false, fans: 2 },
+    
+    // Old Building - 3rd Floor Rooms
+    { id: 24, name: 'Room 301', building: 'old', floor: 3, type: 'Classroom', capacity: 40, status: 'vacant', currentClass: null, hasAC: false, fans: 2 },
+    { id: 25, name: 'Room 302', building: 'old', floor: 3, type: 'Classroom', capacity: 40, status: 'occupied', currentClass: 'English Comm - BA 2A', hasAC: false, fans: 2 },
+    { id: 26, name: 'Room 303', building: 'old', floor: 3, type: 'Classroom', capacity: 40, status: 'vacant', currentClass: null, hasAC: false, fans: 2 },
+    { id: 27, name: 'Room 304', building: 'old', floor: 3, type: 'Classroom', capacity: 40, status: 'vacant', currentClass: null, hasAC: false, fans: 2 },
+    { id: 28, name: 'Room 305', building: 'old', floor: 3, type: 'Classroom', capacity: 40, status: 'occupied', currentClass: 'Statistics - BSA 1A', hasAC: false, fans: 2 },
+    
+    // Old Building - 4th Floor Rooms
+    { id: 29, name: 'Room 401', building: 'old', floor: 4, type: 'Classroom', capacity: 35, status: 'vacant', currentClass: null, hasAC: false, fans: 1 },
+    { id: 30, name: 'Room 402', building: 'old', floor: 4, type: 'Classroom', capacity: 35, status: 'vacant', currentClass: null, hasAC: false, fans: 1 },
+    { id: 31, name: 'Room 403', building: 'old', floor: 4, type: 'Classroom', capacity: 35, status: 'occupied', currentClass: 'PE 3 - BSIT 2A', hasAC: false, fans: 1 },
+    { id: 32, name: 'Room 404', building: 'old', floor: 4, type: 'Classroom', capacity: 35, status: 'vacant', currentClass: null, hasAC: false, fans: 1 },
+    { id: 33, name: 'Room 405', building: 'old', floor: 4, type: 'Classroom', capacity: 35, status: 'vacant', currentClass: null, hasAC: false, fans: 1 },
+    
+    // Old Building - Services
+    { id: 12, name: 'Library', building: 'old', floor: 1, type: 'Library', capacity: 50, status: 'occupied', currentClass: 'Open for Students', hasAC: true, fans: 0 },
+    { id: 13, name: 'Health Service', building: 'old', floor: 1, type: 'Service', capacity: 5, status: 'occupied', currentClass: 'Operating Hours', hasAC: true, fans: 0 },
     
     // Gym
-    { id: 14, name: 'Basketball Court', building: 'gym', floor: 1, type: 'Sports Facility', capacity: 100, status: 'vacant', currentClass: null },
-    { id: 15, name: 'Stage', building: 'gym', floor: 1, type: 'Event Venue', capacity: 200, status: 'vacant', currentClass: null },
+    { id: 14, name: 'Basketball Court', building: 'gym', floor: 1, type: 'Sports Facility', capacity: 100, status: 'vacant', currentClass: null, hasAC: false, fans: 4 },
+    { id: 15, name: 'Stage', building: 'gym', floor: 1, type: 'Event Venue', capacity: 200, status: 'vacant', currentClass: null, hasAC: false, fans: 6 },
     
     // Canteen
-    { id: 16, name: 'Main Dining Area', building: 'canteen', floor: 1, type: 'Dining', capacity: 150, status: 'occupied', currentClass: 'Open Hours' },
+    { id: 16, name: 'Main Dining Area', building: 'canteen', floor: 1, type: 'Dining', capacity: 150, status: 'occupied', currentClass: 'Open Hours', hasAC: false, fans: 8 },
     
     // HM Lab
-    { id: 17, name: 'Kitchen Lab 1', building: 'hm', floor: 1, type: 'Laboratory', capacity: 20, status: 'occupied', currentClass: 'Food Prep - BSHM 2A' },
-    { id: 18, name: 'Mock Hotel Room', building: 'hm', floor: 1, type: 'Laboratory', capacity: 10, status: 'vacant', currentClass: null },
+    { id: 17, name: 'Kitchen Lab 1', building: 'hm', floor: 1, type: 'Laboratory', capacity: 20, status: 'occupied', currentClass: 'Food Prep - BSHM 2A', hasAC: true, fans: 0 },
+    { id: 18, name: 'Mock Hotel Room', building: 'hm', floor: 1, type: 'Laboratory', capacity: 10, status: 'vacant', currentClass: null, hasAC: true, fans: 0 },
   ];
 
   const filteredFacilities = selectedBuilding === 'all' 
@@ -126,6 +158,18 @@ const Facilities = () => {
                 <span><MapPin size={12} /> {buildings.find(b => b.id === room.building)?.name}</span>
                 <span><Users size={12} /> {room.capacity}</span>
               </div>
+              <div className="room-tile-amenities">
+                {room.hasAC && (
+                  <span className="amenity-badge ac">
+                    <Snowflake size={12} /> AC
+                  </span>
+                )}
+                {room.fans > 0 && (
+                  <span className="amenity-badge fan">
+                    <Fan size={12} /> {room.fans}x Fan{room.fans > 1 ? 's' : ''}
+                  </span>
+                )}
+              </div>
               {room.currentClass && (
                 <div className="room-tile-class">
                   <Clock size={12} />
@@ -167,13 +211,48 @@ const Facilities = () => {
               )}
             </div>
 
+            <div className="room-amenities-section">
+              <h4>Amenities</h4>
+              <div className="amenities-list">
+                {selectedRoom.hasAC ? (
+                  <div className="amenity-item has">
+                    <Snowflake size={16} />
+                    <span>Air Conditioning</span>
+                    <Badge variant="success">Available</Badge>
+                  </div>
+                ) : (
+                  <div className="amenity-item none">
+                    <Snowflake size={16} />
+                    <span>Air Conditioning</span>
+                    <Badge variant="gray">Not Available</Badge>
+                  </div>
+                )}
+                <div className={`amenity-item ${selectedRoom.fans > 0 ? 'has' : 'none'}`}>
+                  <Fan size={16} />
+                  <span>Electric Fans</span>
+                  <Badge variant={selectedRoom.fans > 0 ? 'success' : 'gray'}>
+                    {selectedRoom.fans > 0 ? `${selectedRoom.fans}x` : 'None'}
+                  </Badge>
+                </div>
+              </div>
+            </div>
+
             <div className="room-details-actions">
               {selectedRoom.status === 'vacant' ? (
-                <>
+                canRequestRoom ? (
                   <Button variant="primary" onClick={handleBookRoom} style={{ flex: 1 }}>
                     Request Room Access
                   </Button>
-                </>
+                ) : (
+                  <div style={{ width: '100%' }}>
+                    <Button variant="outline" disabled style={{ width: '100%' }}>
+                      Request Room Access
+                    </Button>
+                    <p style={{ fontSize: '12px', color: 'var(--gray-500)', marginTop: '8px', textAlign: 'center' }}>
+                      Only Class Representatives can request room access
+                    </p>
+                  </div>
+                )
               ) : (
                 <Button variant="outline" disabled style={{ flex: 1 }}>
                   Currently Occupied
@@ -181,17 +260,24 @@ const Facilities = () => {
               )}
             </div>
 
-            {selectedRoom.status === 'occupied' && (
+            {selectedRoom.status === 'occupied' && user?.isClassRep && (
               <div className="mark-vacant-section">
                 <p className="mark-vacant-text">Is this room actually vacant?</p>
                 <Button variant="ghost" size="sm">
-                  Mark as Vacant (Class Rep Only)
+                  Mark as Vacant
                 </Button>
               </div>
             )}
           </Card>
         )}
       </div>
+
+      {/* Class Rep Info */}
+      {user?.isClassRep && (
+        <Alert variant="info" style={{ marginTop: '20px' }}>
+          <strong>Class Representative:</strong> You can request room access for your section ({user.section}) and mark rooms as vacant when they're incorrectly shown as occupied.
+        </Alert>
+      )}
 
       {/* Booking Modal */}
       <Modal
@@ -209,16 +295,42 @@ const Facilities = () => {
           </>
         }
       >
+        {user?.isClassRep && (
+          <div className="form-group">
+            <label className="form-label">Requesting for Section</label>
+            <input className="form-input" value={user.section || 'BSIT 4A'} disabled />
+          </div>
+        )}
         <div className="form-group">
           <label className="form-label">Reason for Access</label>
           <select className="form-input">
             <option>Select reason</option>
-            <option>Scheduled Class</option>
-            <option>Make-up Class</option>
-            <option>Thesis Defense</option>
-            <option>Emergency Meeting</option>
-            <option>Consultation</option>
-            <option>Other</option>
+            {user?.isClassRep ? (
+              <>
+                <option>Scheduled Class (Room Unlock)</option>
+                <option>Make-up Class</option>
+                <option>Group Study</option>
+                <option>Class Meeting</option>
+                <option>Review Session</option>
+              </>
+            ) : user?.role === 'faculty' ? (
+              <>
+                <option>Scheduled Class</option>
+                <option>Make-up Class</option>
+                <option>Thesis Defense</option>
+                <option>Consultation</option>
+                <option>Department Meeting</option>
+              </>
+            ) : (
+              <>
+                <option>Scheduled Class</option>
+                <option>Make-up Class</option>
+                <option>Thesis Defense</option>
+                <option>Emergency Meeting</option>
+                <option>Consultation</option>
+                <option>Other</option>
+              </>
+            )}
           </select>
         </div>
         <div className="form-group">

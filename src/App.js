@@ -2,6 +2,7 @@ import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { MainLayout } from './components/layout';
+import { FloatingChatbot } from './components/common';
 
 // Pages
 import { Login } from './pages/auth';
@@ -63,41 +64,42 @@ function AppContent() {
   const { isAuthenticated } = useAuth();
 
   return (
-    <Routes>
-      {/* Public Routes */}
-      <Route 
-        path="/login" 
-        element={
-          isAuthenticated ? <Navigate to="/dashboard" replace /> : <Login />
-        } 
-      />
-      
-      {/* Protected Routes */}
-      <Route 
-        path="/" 
-        element={
-          <ProtectedRoute>
-            <MainLayout />
-          </ProtectedRoute>
-        }
-      >
-        <Route index element={<Navigate to="/dashboard" replace />} />
-        <Route path="dashboard" element={<DashboardRouter />} />
-        <Route path="announcements" element={<Announcements />} />
-        <Route path="facilities" element={<Facilities />} />
-        <Route path="organizations" element={<Organizations />} />
-        <Route path="assistant" element={<Assistant />} />
-        <Route path="schedule" element={<Schedule />} />
-        <Route path="emergency" element={<EmergencyDirectory />} />
-        <Route path="directory" element={<BuildingDirectory />} />
-        <Route path="report" element={<ReportIssue />} />
+    <>
+      <Routes>
+        {/* Public Routes */}
+        <Route 
+          path="/login" 
+          element={
+            isAuthenticated ? <Navigate to="/dashboard" replace /> : <Login />
+          } 
+        />
         
-        {/* Faculty Routes */}
-        <Route path="booking" element={<Facilities />} />
-        <Route path="my-bookings" element={<Schedule />} />
-        
-        {/* Guard Routes */}
-        <Route path="dispatch" element={<GuardDashboard />} />
+        {/* Protected Routes */}
+        <Route 
+          path="/" 
+          element={
+            <ProtectedRoute>
+              <MainLayout />
+            </ProtectedRoute>
+          }
+        >
+          <Route index element={<Navigate to="/dashboard" replace />} />
+          <Route path="dashboard" element={<DashboardRouter />} />
+          <Route path="announcements" element={<Announcements />} />
+          <Route path="facilities" element={<Facilities />} />
+          <Route path="organizations" element={<Organizations />} />
+          <Route path="assistant" element={<Assistant />} />
+          <Route path="schedule" element={<Schedule />} />
+          <Route path="emergency" element={<EmergencyDirectory />} />
+          <Route path="directory" element={<BuildingDirectory />} />
+          <Route path="report" element={<ReportIssue />} />
+          
+          {/* Faculty Routes */}
+          <Route path="booking" element={<Facilities />} />
+          <Route path="my-bookings" element={<Schedule />} />
+          
+          {/* Guard Routes */}
+          <Route path="dispatch" element={<GuardDashboard />} />
         <Route path="request-history" element={<Schedule />} />
         
         {/* Admin Routes */}
@@ -110,6 +112,10 @@ function AppContent() {
       {/* Catch all */}
       <Route path="*" element={<Navigate to="/dashboard" replace />} />
     </Routes>
+    
+    {/* Floating Chatbot - visible when authenticated */}
+    {isAuthenticated && <FloatingChatbot />}
+    </>
   );
 }
 

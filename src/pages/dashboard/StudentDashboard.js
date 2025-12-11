@@ -8,7 +8,9 @@ import {
   TrendingUp,
   Clock,
   ChevronRight,
-  MapPin
+  MapPin,
+  LayoutDashboard,
+  Bot
 } from 'lucide-react';
 import { Card, Badge, Button } from '../../components/common';
 import { useAuth } from '../../context/AuthContext';
@@ -61,10 +63,30 @@ const StudentDashboard = () => {
 
   return (
     <div className="dashboard">
+      {/* Mobile Quick Actions - Only visible on mobile */}
+      <div className="mobile-quick-actions">
+        <Link to="/dashboard" className="mobile-quick-btn active">
+          <LayoutDashboard size={20} />
+          <span>Dashboard</span>
+        </Link>
+        <Link to="/announcements" className="mobile-quick-btn">
+          <Bell size={20} />
+          <span>Announcements</span>
+        </Link>
+        <Link to="/schedule" className="mobile-quick-btn">
+          <Calendar size={20} />
+          <span>My Schedule</span>
+        </Link>
+        <Link to="/facilities" className="mobile-quick-btn">
+          <DoorOpen size={20} />
+          <span>Facilities</span>
+        </Link>
+      </div>
+
       <div className="dashboard-header">
         <div>
           <h1 className="page-title">Welcome back, {user?.name?.split(' ')[0]}! 👋</h1>
-          <p className="page-subtitle">Here's what's happening at CvSU Bacoor today.</p>
+          <p className="page-subtitle">Here's what's happening at CvSU Imus today.</p>
         </div>
         <div className="dashboard-header-actions">
           <Button variant="secondary" icon={Calendar}>

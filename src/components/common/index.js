@@ -7,3 +7,4 @@ export { default as Input } from './Input';
 export { default as Select } from './Select';
 export { default as Loader, PageLoader } from './Loader';
 export { default as EmptyState } from './EmptyState';
+export { default as FloatingChatbot } from './FloatingChatbot';

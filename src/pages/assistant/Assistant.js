@@ -75,7 +75,7 @@ const Assistant = () => {
     }
     
     if (lowerQuery.includes('organization') || lowerQuery.includes('org')) {
-      return "**Campus Organizations at CvSU Bacoor:**\n\n• CSG - Central Student Government\n• BITS - IT Society\n• BMS - Business Management Society\n• Cavite Communicators\n• CHTS - Hospitality & Tourism Society\n• CYLE - Youth Leadership\n• Educators' Guild\n• Honor Society\n• And more!\n\nWhich organization would you like to know more about?";
+      return "**Campus Organizations at CvSU Imus:**\n\n• CSG - Central Student Government\n• BITS - IT Society\n• BMS - Business Management Society\n• Cavite Communicators\n• CHTS - Hospitality & Tourism Society\n• CYLE - Youth Leadership\n• Educators' Guild\n• Honor Society\n• And more!\n\nWhich organization would you like to know more about?";
     }
     
     // Room Booking

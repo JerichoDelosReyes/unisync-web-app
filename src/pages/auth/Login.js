@@ -1,8 +1,20 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Mail, Lock, Eye, EyeOff, Shield } from 'lucide-react';
+import { 
+  Mail, 
+  Lock, 
+  Eye, 
+  EyeOff, 
+  Sparkles,
+  Bell,
+  Calendar,
+  Users,
+  Building2,
+  ArrowRight,
+  CheckCircle2
+} from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
-import { Button, Input, Alert } from '../../components/common';
+import { Button, Alert } from '../../components/common';
 import './Login.css';
 
 const Login = () => {
@@ -16,6 +28,13 @@ const Login = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+
+  const features = [
+    { icon: Bell, text: 'Real-time Announcements', desc: 'Stay updated instantly' },
+    { icon: Calendar, text: 'Smart Scheduling', desc: 'Never miss a class' },
+    { icon: Building2, text: 'Room Finder', desc: 'Locate any facility' },
+    { icon: Users, text: 'Organization Hub', desc: 'Connect with peers' },
+  ];
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -31,7 +50,6 @@ const Login = () => {
     try {
       const user = await login(formData.email, formData.password);
       
-      // Redirect based on role
       switch (user.role) {
         case 'admin':
           navigate('/analytics');
@@ -53,129 +71,212 @@ const Login = () => {
   };
 
   return (
-    <div className="auth-layout">
-      <div className="auth-left">
-        <div className="auth-left-content">
-          <div className="auth-logo">
-            <div style={{ 
-              fontSize: '48px', 
-              fontWeight: 700, 
-              color: 'var(--cvsu-green)' 
-            }}>
-              U
+    <div className="login-page">
+      {/* Animated Background */}
+      <div className="login-bg-shapes">
+        <div className="shape shape-1"></div>
+        <div className="shape shape-2"></div>
+        <div className="shape shape-3"></div>
+      </div>
+
+      <div className="login-container">
+        {/* Left Side - Branding */}
+        <div className="login-branding">
+          <div className="branding-content">
+            <div className="login-logo-section">
+              <div className="login-logo">
+                <img src="/assets/images/logo.png" alt="UNISYNC Logo" />
+              </div>
+              <div className="logo-glow"></div>
             </div>
-          </div>
-          <h1 className="auth-title">UniSync</h1>
-          <p className="auth-subtitle">
-            Your unified campus management system. Access announcements, 
-            schedule rooms, manage organizations, and stay connected with 
-            CvSU Bacoor Campus.
-          </p>
-          
-          <div className="auth-features">
-            <div className="auth-feature">
-              <Shield size={24} />
-              <span>Secure institutional login</span>
+            
+            <h1 className="login-brand-title">
+              UNI<span>SYNC</span>
+            </h1>
+            <p className="login-brand-tagline">
+              Your Gateway to Campus Excellence
+            </p>
+            
+            <div className="login-hero-text">
+              <h2>Welcome to the Future of Campus Management</h2>
+            </div>
+
+            <div className="login-features">
+              {features.map((feature, index) => (
+                <div 
+                  key={index} 
+                  className="login-feature"
+                  style={{ animationDelay: `${index * 0.1}s` }}
+                >
+                  <div className="feature-icon">
+                    <feature.icon size={20} />
+                  </div>
+                  <div className="feature-text">
+                    <span className="feature-title">{feature.text}</span>
+                    <span className="feature-desc">{feature.desc}</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            <div className="login-stats">
+              <div className="stat-item">
+                <span className="stat-number">2,500+</span>
+                <span className="stat-label">Active Users</span>
+              </div>
+              <div className="stat-divider"></div>
+              <div className="stat-item">
+                <span className="stat-number">50+</span>
+                <span className="stat-label">Facilities</span>
+              </div>
+              <div className="stat-divider"></div>
+              <div className="stat-item">
+                <span className="stat-number">20+</span>
+                <span className="stat-label">Organizations</span>
+              </div>
             </div>
           </div>
         </div>
-      </div>
 
-      <div className="auth-right">
-        <div className="auth-form-container">
-          <div className="auth-form-header">
-            <h2 className="auth-form-title">Welcome back</h2>
-            <p className="auth-form-subtitle">
-              Sign in with your CvSU institutional email
-            </p>
-          </div>
+        {/* Right Side - Login Form */}
+        <div className="login-form-section">
+          <div className="login-form-wrapper">
+            <div className="mobile-logo">
+              <img src="/assets/images/logo.png" alt="UNISYNC" />
+              <span>UNISYNC</span>
+            </div>
 
-          {error && (
-            <Alert variant="error" style={{ marginBottom: '20px' }}>
-              {error}
-            </Alert>
-          )}
-
-          <form onSubmit={handleSubmit}>
-            <Input
-              label="Email Address"
-              type="email"
-              name="email"
-              placeholder="your.name@cvsu.edu.ph"
-              value={formData.email}
-              onChange={handleChange}
-              icon={Mail}
-              required
-            />
-
-            <div className="form-group">
-              <label className="form-label">Password</label>
-              <div style={{ position: 'relative' }}>
-                <Lock 
-                  size={18} 
-                  style={{ 
-                    position: 'absolute', 
-                    left: '12px', 
-                    top: '50%', 
-                    transform: 'translateY(-50%)',
-                    color: 'var(--gray-400)'
-                  }} 
-                />
-                <input
-                  type={showPassword ? 'text' : 'password'}
-                  name="password"
-                  className="form-input"
-                  placeholder="Enter your password"
-                  value={formData.password}
-                  onChange={handleChange}
-                  style={{ paddingLeft: '40px', paddingRight: '40px' }}
-                  required
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  style={{
-                    position: 'absolute',
-                    right: '12px',
-                    top: '50%',
-                    transform: 'translateY(-50%)',
-                    background: 'none',
-                    border: 'none',
-                    cursor: 'pointer',
-                    color: 'var(--gray-400)'
-                  }}
-                >
-                  {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
-                </button>
+            <div className="login-form-header">
+              <div className="welcome-badge">
+                <Sparkles size={14} />
+                <span>CvSU Imus Campus</span>
               </div>
+              <h2>Welcome Back! 👋</h2>
+              <p>Sign in to continue your journey</p>
             </div>
 
-            <div className="auth-options">
-              <label className="auth-checkbox">
-                <input type="checkbox" />
-                <span>Remember me</span>
-              </label>
-              <a href="/forgot-password" className="auth-link">
-                Forgot password?
-              </a>
+            {error && (
+              <Alert variant="error" style={{ marginBottom: '20px' }}>
+                {error}
+              </Alert>
+            )}
+
+            <form onSubmit={handleSubmit} className="login-form">
+              <div className="form-group">
+                <label className="form-label">
+                  <Mail size={14} />
+                  Institutional Email
+                </label>
+                <div className="input-wrapper">
+                  <input
+                    type="email"
+                    name="email"
+                    className="form-input-modern"
+                    placeholder="yourname@cvsu.edu.ph"
+                    value={formData.email}
+                    onChange={handleChange}
+                    required
+                  />
+                  {formData.email.includes('@cvsu.edu.ph') && (
+                    <CheckCircle2 className="input-valid-icon" size={18} />
+                  )}
+                </div>
+              </div>
+
+              <div className="form-group">
+                <label className="form-label">
+                  <Lock size={14} />
+                  Password
+                </label>
+                <div className="input-wrapper">
+                  <input
+                    type={showPassword ? 'text' : 'password'}
+                    name="password"
+                    className="form-input-modern"
+                    placeholder="Enter your password"
+                    value={formData.password}
+                    onChange={handleChange}
+                    required
+                  />
+                  <button
+                    type="button"
+                    className="password-toggle"
+                    onClick={() => setShowPassword(!showPassword)}
+                  >
+                    {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                  </button>
+                </div>
+              </div>
+
+              <div className="form-options">
+                <label className="remember-me">
+                  <input type="checkbox" />
+                  <span className="checkmark"></span>
+                  <span>Remember me</span>
+                </label>
+                <a href="/forgot-password" className="forgot-link">
+                  Forgot password?
+                </a>
+              </div>
+
+              <Button
+                type="submit"
+                variant="primary"
+                loading={loading}
+                className="login-submit-btn"
+              >
+                {loading ? 'Signing in...' : (
+                  <>
+                    Sign In
+                    <ArrowRight size={18} />
+                  </>
+                )}
+              </Button>
+            </form>
+
+            <div className="login-divider">
+              <span>Demo Accounts</span>
             </div>
 
-            <Button
-              type="submit"
-              variant="primary"
-              loading={loading}
-              style={{ width: '100%', marginTop: '24px' }}
-            >
-              Sign In
-            </Button>
-          </form>
+            <div className="demo-accounts">
+              <button 
+                className="demo-btn"
+                onClick={() => setFormData({ email: 'student@cvsu.edu.ph', password: 'password' })}
+              >
+                <Users size={14} />
+                Student
+              </button>
+              <button 
+                className="demo-btn"
+                onClick={() => setFormData({ email: 'class.rep@cvsu.edu.ph', password: 'password' })}
+              >
+                <Users size={14} />
+                Class Rep
+              </button>
+              <button 
+                className="demo-btn"
+                onClick={() => setFormData({ email: 'faculty@cvsu.edu.ph', password: 'password' })}
+              >
+                <Users size={14} />
+                Faculty
+              </button>
+              <button 
+                className="demo-btn"
+                onClick={() => setFormData({ email: 'admin@cvsu.edu.ph', password: 'password' })}
+              >
+                <Users size={14} />
+                Admin
+              </button>
+            </div>
 
-          <div className="auth-footer">
-            <p className="auth-footer-text">
-              This system is exclusively for CvSU Bacoor Campus community.
-              <br />
-              Need help? Contact <a href="mailto:support@cvsu.edu.ph">support@cvsu.edu.ph</a>
-            </p>
+            <div className="login-footer">
+              <p>
+                This system is exclusively for CvSU Imus Campus community.
+              </p>
+              <p>
+                Need help? <a href="mailto:support@cvsu.edu.ph">Contact Support</a>
+              </p>
+            </div>
           </div>
         </div>
       </div>

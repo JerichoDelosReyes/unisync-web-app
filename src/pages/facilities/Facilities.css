@@ -139,6 +139,34 @@
   gap: 4px;
 }
 
+/* Room Tile Amenities */
+.room-tile-amenities {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  margin-bottom: var(--spacing-sm);
+}
+
+.amenity-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 8px;
+  border-radius: var(--radius);
+  font-size: 10px;
+  font-weight: 600;
+}
+
+.amenity-badge.ac {
+  background: #e0f2fe;
+  color: #0369a1;
+}
+
+.amenity-badge.fan {
+  background: #f0fdf4;
+  color: #16a34a;
+}
+
 .room-tile-class {
   display: flex;
   align-items: center;
@@ -187,6 +215,50 @@
 
 .detail-row svg {
   color: var(--gray-400);
+}
+
+/* Room Amenities Section */
+.room-amenities-section {
+  margin-bottom: var(--spacing-lg);
+  padding: var(--spacing-md);
+  background: var(--gray-50);
+  border-radius: var(--radius-lg);
+}
+
+.room-amenities-section h4 {
+  font-size: var(--text-sm);
+  font-weight: 600;
+  color: var(--gray-700);
+  margin-bottom: var(--spacing-sm);
+}
+
+.amenities-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-sm);
+}
+
+.amenity-item {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  padding: var(--spacing-sm) var(--spacing-md);
+  background: var(--white);
+  border-radius: var(--radius-md);
+}
+
+.amenity-item svg {
+  color: var(--gray-400);
+}
+
+.amenity-item.has svg {
+  color: var(--cvsu-green);
+}
+
+.amenity-item span {
+  flex: 1;
+  font-size: var(--text-sm);
+  color: var(--gray-600);
 }
 
 .room-details-actions {

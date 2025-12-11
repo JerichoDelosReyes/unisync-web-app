@@ -19,7 +19,7 @@ const Organizations = () => {
       id: 1,
       name: 'CSG',
       fullName: 'Central Student Government',
-      description: 'The official student government body representing all students of CvSU Bacoor Campus.',
+      description: 'The official student government body representing all students of CvSU Imus Campus.',
       members: 15,
       type: 'Government',
       officers: [
