@@ -23,6 +23,12 @@
   }
 }
 
+@media (max-width: 480px) {
+  .mobile-quick-actions {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
 .mobile-quick-btn {
   display: flex;
   flex-direction: column;
@@ -65,6 +71,7 @@
   .dashboard-header {
     flex-direction: column;
     gap: var(--spacing-md);
+    margin-bottom: var(--spacing-md);
   }
   
   .dashboard-header-actions {
@@ -98,6 +105,8 @@
 @media (max-width: 600px) {
   .stats-grid {
     grid-template-columns: 1fr;
+    gap: var(--spacing-md);
+    margin-bottom: var(--spacing-md);
   }
 }
 
@@ -112,6 +121,8 @@
 @media (max-width: 1024px) {
   .dashboard-grid {
     grid-template-columns: 1fr;
+    gap: var(--spacing-md);
+    margin-bottom: var(--spacing-md);
   }
 }
 
@@ -146,6 +157,15 @@
   transition: all var(--transition);
 }
 
+@media (max-width: 600px) {
+  .schedule-item {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--spacing-sm);
+    padding: var(--spacing-sm);
+  }
+}
+
 .schedule-item.ongoing {
   border-left-color: var(--success);
   background: var(--success-light);
@@ -169,6 +189,13 @@
   min-width: 100px;
 }
 
+@media (max-width: 600px) {
+  .schedule-time {
+    min-width: auto;
+    font-size: var(--text-xs);
+  }
+}
+
 .schedule-details {
   flex: 1;
 }
@@ -178,6 +205,12 @@
   font-weight: 600;
   color: var(--gray-800);
   margin-bottom: 2px;
+}
+
+@media (max-width: 600px) {
+  .schedule-subject {
+    font-size: var(--text-xs);
+  }
 }
 
 .schedule-room {
@@ -205,6 +238,15 @@
   transition: all var(--transition);
 }
 
+@media (max-width: 600px) {
+  .announcement-item {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--spacing-sm);
+    padding: var(--spacing-sm);
+  }
+}
+
 .announcement-item:hover {
   background: var(--gray-100);
 }
@@ -218,6 +260,12 @@
   font-weight: 600;
   color: var(--gray-800);
   margin-bottom: 4px;
+}
+
+@media (max-width: 600px) {
+  .announcement-title {
+    font-size: var(--text-xs);
+  }
 }
 
 .announcement-meta {
@@ -235,6 +283,14 @@
 @media (max-width: 768px) {
   .quick-actions {
     grid-template-columns: repeat(2, 1fr);
+    gap: var(--spacing-sm);
+  }
+}
+
+@media (max-width: 480px) {
+  .quick-actions {
+    grid-template-columns: repeat(2, 1fr);
+    gap: var(--spacing-xs);
   }
 }
 
@@ -251,6 +307,13 @@
   text-align: center;
 }
 
+@media (max-width: 600px) {
+  .quick-action-btn {
+    padding: var(--spacing-md);
+    gap: var(--spacing-xs);
+  }
+}
+
 .quick-action-btn:hover {
   background: var(--primary-50);
   color: var(--cvsu-green);
@@ -260,6 +323,12 @@
 .quick-action-btn span {
   font-size: var(--text-sm);
   font-weight: 500;
+}
+
+@media (max-width: 600px) {
+  .quick-action-btn span {
+    font-size: var(--text-xs);
+  }
 }
 
 /* Faculty Dashboard Specific */
@@ -278,6 +347,7 @@
 @media (max-width: 600px) {
   .booking-grid {
     grid-template-columns: 1fr;
+    gap: var(--spacing-sm);
   }
 }
 
@@ -333,6 +403,20 @@
   border: 1px solid var(--gray-200);
   border-radius: var(--radius-lg);
   transition: all var(--transition);
+}
+
+@media (max-width: 600px) {
+  .dispatch-item {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--spacing-sm);
+    padding: var(--spacing-sm);
+  }
+  
+  .dispatch-actions {
+    width: 100%;
+    justify-content: flex-end;
+  }
 }
 
 .dispatch-item.urgent {

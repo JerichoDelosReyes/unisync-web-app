@@ -18,7 +18,7 @@ import {
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 
-const Sidebar = ({ collapsed, onToggle }) => {
+const Sidebar = ({ collapsed, open, onToggle, onClose }) => {
   const { user, logout } = useAuth();
 
   // Define navigation items based on user role
@@ -63,8 +63,14 @@ const Sidebar = ({ collapsed, onToggle }) => {
 
   const navItems = getNavItems();
 
+  const handleNavClick = () => {
+    if (onClose) {
+      onClose();
+    }
+  };
+
   return (
-    <aside className={`sidebar ${collapsed ? 'collapsed' : ''}`}>
+    <aside className={`sidebar ${collapsed ? 'collapsed' : ''} ${open ? 'open' : ''}`}>
       <div className="sidebar-header">
         <div className="sidebar-logo">
           <div className="sidebar-logo-icon">U</div>
@@ -84,6 +90,7 @@ const Sidebar = ({ collapsed, onToggle }) => {
               className={({ isActive }) =>
                 `sidebar-link ${isActive ? 'active' : ''}`
               }
+              onClick={handleNavClick}
             >
               <item.icon className="sidebar-link-icon" size={20} />
               <span className="sidebar-link-text">{item.label}</span>
@@ -100,6 +107,7 @@ const Sidebar = ({ collapsed, onToggle }) => {
               className={({ isActive }) =>
                 `sidebar-link ${isActive ? 'active' : ''}`
               }
+              onClick={handleNavClick}
             >
               <item.icon className="sidebar-link-icon" size={20} />
               <span className="sidebar-link-text">{item.label}</span>

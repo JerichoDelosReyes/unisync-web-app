@@ -86,6 +86,19 @@
   display: none;
 }
 
+/* Show labels on mobile even when sidebar appears collapsed-style */
+@media (max-width: 1024px) {
+  .sidebar .sidebar-logo-text,
+  .sidebar .sidebar-link-text,
+  .sidebar .sidebar-section-title {
+    display: block !important;
+  }
+  
+  .sidebar {
+    width: var(--sidebar-width) !important;
+  }
+}
+
 .sidebar-nav {
   flex: 1;
   overflow-y: auto;
@@ -577,9 +590,38 @@
 }
 
 /* ============ RESPONSIVE ============ */
+
+/* Mobile Overlay */
+.sidebar-overlay {
+  display: none;
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  z-index: 45;
+  opacity: 0;
+  transition: opacity var(--transition);
+}
+
+.sidebar-overlay.active {
+  opacity: 1;
+}
+
 @media (max-width: 1024px) {
+  .sidebar-overlay {
+    display: block;
+    pointer-events: none;
+  }
+
+  .sidebar-overlay.active {
+    pointer-events: auto;
+  }
+
   .sidebar {
     transform: translateX(-100%);
+    box-shadow: var(--shadow-xl);
   }
 
   .sidebar.open {
@@ -587,11 +629,19 @@
   }
 
   .app-main {
-    margin-left: 0;
+    margin-left: 0 !important;
+  }
+
+  .app-main.sidebar-collapsed {
+    margin-left: 0 !important;
   }
 
   .navbar {
-    left: 0;
+    left: 0 !important;
+  }
+
+  .navbar.sidebar-collapsed {
+    left: 0 !important;
   }
 
   .navbar-search {
@@ -604,8 +654,54 @@
     display: none;
   }
 
+  .navbar-title {
+    font-size: var(--text-base);
+  }
+
   .app-content {
+    padding: var(--spacing-sm);
+    padding-top: calc(var(--navbar-height) + var(--spacing-sm));
+  }
+
+  .page-title {
+    font-size: var(--text-xl);
+  }
+
+  .page-subtitle {
+    font-size: var(--text-xs);
+  }
+
+  .stat-card {
     padding: var(--spacing-md);
-    padding-top: calc(var(--navbar-height) + var(--spacing-md));
+  }
+
+  .stat-card-icon {
+    width: 40px;
+    height: 40px;
+  }
+
+  .stat-card-value {
+    font-size: var(--text-xl);
+  }
+}
+
+@media (max-width: 480px) {
+  .app-content {
+    padding: var(--spacing-xs);
+    padding-top: calc(var(--navbar-height) + var(--spacing-xs));
+  }
+
+  .navbar {
+    padding: 0 var(--spacing-sm);
+  }
+
+  .navbar-icon-btn {
+    width: 36px;
+    height: 36px;
+  }
+
+  .navbar-toggle {
+    width: 36px;
+    height: 36px;
   }
 }
