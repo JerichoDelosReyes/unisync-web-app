@@ -9,15 +9,37 @@ import {
   Users,
   Plus,
   CheckCircle,
-  AlertCircle
+  AlertCircle,
+  Key
 } from 'lucide-react';
-import { Card, Badge, Button, Modal } from '../../components/common';
+import { Card, Badge, Button, Modal, Alert } from '../../components/common';
 import { useAuth } from '../../context/AuthContext';
 import './Dashboard.css';
 
 const FacultyDashboard = () => {
   const { user } = useAuth();
   const [showBookingModal, setShowBookingModal] = useState(false);
+  const [showUnlockModal, setShowUnlockModal] = useState(false);
+  const [selectedClass, setSelectedClass] = useState(null);
+  const [unlockRequested, setUnlockRequested] = useState({});
+
+  const handleRequestUnlock = (item) => {
+    setSelectedClass(item);
+    setShowUnlockModal(true);
+  };
+
+  const submitUnlockRequest = () => {
+    if (selectedClass) {
+      setUnlockRequested(prev => ({ ...prev, [selectedClass.subject]: true }));
+      setShowUnlockModal(false);
+      setSelectedClass(null);
+    }
+  };
+
+  // Check if class is currently active (within 15 minutes before or during)
+  const isClassActive = (status) => {
+    return status === 'ongoing' || status === 'upcoming';
+  };
 
   const stats = [
     { icon: Calendar, label: 'Classes Today', value: '3', change: '1 remaining', color: 'primary' },
@@ -98,12 +120,36 @@ const FacultyDashboard = () => {
                     {item.room}
                   </p>
                 </div>
-                <Badge variant={
-                  item.status === 'completed' ? 'gray' :
-                  item.status === 'ongoing' ? 'success' : 'primary'
-                }>
-                  {item.status}
-                </Badge>
+                <div className="schedule-actions">
+                  <Badge variant={
+                    item.status === 'completed' ? 'gray' :
+                    item.status === 'ongoing' ? 'success' : 'primary'
+                  }>
+                    {item.status}
+                  </Badge>
+                  {unlockRequested[item.subject] ? (
+                    <Button 
+                      variant="ghost" 
+                      size="sm" 
+                      className="unlock-btn requested"
+                      disabled
+                    >
+                      <CheckCircle size={14} />
+                      <span className="unlock-text">Requested</span>
+                    </Button>
+                  ) : (
+                    <Button 
+                      variant={isClassActive(item.status) ? 'primary' : 'ghost'}
+                      size="sm"
+                      className={`unlock-btn ${!isClassActive(item.status) ? 'disabled' : ''}`}
+                      disabled={!isClassActive(item.status)}
+                      onClick={() => handleRequestUnlock(item)}
+                    >
+                      <Key size={14} />
+                      <span className="unlock-text">Request Unlock</span>
+                    </Button>
+                  )}
+                </div>
               </div>
             ))}
           </div>
@@ -180,6 +226,52 @@ const FacultyDashboard = () => {
           ))}
         </div>
       </Card>
+
+      {/* Unlock Request Modal */}
+      <Modal
+        isOpen={showUnlockModal}
+        onClose={() => setShowUnlockModal(false)}
+        title="Request Room Unlock"
+        footer={
+          <>
+            <Button variant="outline" onClick={() => setShowUnlockModal(false)}>
+              Cancel
+            </Button>
+            <Button variant="primary" onClick={submitUnlockRequest}>
+              Send Request to Guard
+            </Button>
+          </>
+        }
+      >
+        {selectedClass && (
+          <>
+            <Alert variant="success" style={{ marginBottom: '16px' }}>
+              <strong>Faculty Priority:</strong> Your unlock request will be processed immediately.
+            </Alert>
+            <div className="unlock-request-details">
+              <div className="unlock-detail-row">
+                <span className="unlock-label">Subject:</span>
+                <span className="unlock-value">{selectedClass.subject}</span>
+              </div>
+              <div className="unlock-detail-row">
+                <span className="unlock-label">Room:</span>
+                <span className="unlock-value">{selectedClass.room}</span>
+              </div>
+              <div className="unlock-detail-row">
+                <span className="unlock-label">Time:</span>
+                <span className="unlock-value">{selectedClass.time}</span>
+              </div>
+              <div className="unlock-detail-row">
+                <span className="unlock-label">Professor:</span>
+                <span className="unlock-value">{user?.name}</span>
+              </div>
+            </div>
+            <p style={{ fontSize: '13px', color: 'var(--gray-500)', marginTop: '16px' }}>
+              The guard will receive this request and unlock the room immediately.
+            </p>
+          </>
+        )}
+      </Modal>
 
       {/* Booking Modal */}
       <Modal

@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { 
   Bell, 
@@ -8,14 +8,37 @@ import {
   Clock,
   ChevronRight,
   MapPin,
-  LayoutDashboard
+  LayoutDashboard,
+  Key,
+  CheckCircle
 } from 'lucide-react';
-import { Card, Badge, Button } from '../../components/common';
+import { Card, Badge, Button, Modal, Alert } from '../../components/common';
 import { useAuth } from '../../context/AuthContext';
 import './Dashboard.css';
 
 const StudentDashboard = () => {
   const { user } = useAuth();
+  const [showUnlockModal, setShowUnlockModal] = useState(false);
+  const [selectedClass, setSelectedClass] = useState(null);
+  const [unlockRequested, setUnlockRequested] = useState({});
+
+  const handleRequestUnlock = (item) => {
+    setSelectedClass(item);
+    setShowUnlockModal(true);
+  };
+
+  const submitUnlockRequest = () => {
+    if (selectedClass) {
+      setUnlockRequested(prev => ({ ...prev, [selectedClass.subject]: true }));
+      setShowUnlockModal(false);
+      setSelectedClass(null);
+    }
+  };
+
+  // Check if class is currently active (within 15 minutes before or during)
+  const isClassActive = (status) => {
+    return status === 'ongoing' || status === 'upcoming';
+  };
 
   // Mock data
   const stats = [
@@ -134,12 +157,36 @@ const StudentDashboard = () => {
                     {item.room}
                   </p>
                 </div>
-                <Badge variant={
-                  item.status === 'completed' ? 'gray' :
-                  item.status === 'ongoing' ? 'success' : 'primary'
-                }>
-                  {item.status}
-                </Badge>
+                <div className="schedule-actions">
+                  <Badge variant={
+                    item.status === 'completed' ? 'gray' :
+                    item.status === 'ongoing' ? 'success' : 'primary'
+                  }>
+                    {item.status}
+                  </Badge>
+                  {unlockRequested[item.subject] ? (
+                    <Button 
+                      variant="ghost" 
+                      size="sm" 
+                      className="unlock-btn requested"
+                      disabled
+                    >
+                      <CheckCircle size={14} />
+                      <span className="unlock-text">Requested</span>
+                    </Button>
+                  ) : (
+                    <Button 
+                      variant={isClassActive(item.status) ? 'secondary' : 'ghost'}
+                      size="sm"
+                      className={`unlock-btn ${!isClassActive(item.status) ? 'disabled' : ''}`}
+                      disabled={!isClassActive(item.status)}
+                      onClick={() => handleRequestUnlock(item)}
+                    >
+                      <Key size={14} />
+                      <span className="unlock-text">Request Unlock</span>
+                    </Button>
+                  )}
+                </div>
               </div>
             ))}
           </div>
@@ -175,6 +222,56 @@ const StudentDashboard = () => {
           </div>
         </Card>
       </div>
+
+      {/* Unlock Request Modal */}
+      <Modal
+        isOpen={showUnlockModal}
+        onClose={() => setShowUnlockModal(false)}
+        title="Request Room Unlock"
+        footer={
+          <>
+            <Button variant="outline" onClick={() => setShowUnlockModal(false)}>
+              Cancel
+            </Button>
+            <Button variant="primary" onClick={submitUnlockRequest}>
+              Send Request to Guard
+            </Button>
+          </>
+        }
+      >
+        {selectedClass && (
+          <>
+            <Alert variant="info" style={{ marginBottom: '16px' }}>
+              {user?.isClassRep ? (
+                <span><strong>Class Representative:</strong> Your request will be prioritized.</span>
+              ) : (
+                <span>Only Class Representatives can officially request room unlocks. Your request will be noted.</span>
+              )}
+            </Alert>
+            <div className="unlock-request-details">
+              <div className="unlock-detail-row">
+                <span className="unlock-label">Subject:</span>
+                <span className="unlock-value">{selectedClass.subject}</span>
+              </div>
+              <div className="unlock-detail-row">
+                <span className="unlock-label">Room:</span>
+                <span className="unlock-value">{selectedClass.room}</span>
+              </div>
+              <div className="unlock-detail-row">
+                <span className="unlock-label">Time:</span>
+                <span className="unlock-value">{selectedClass.time}</span>
+              </div>
+              <div className="unlock-detail-row">
+                <span className="unlock-label">Requester:</span>
+                <span className="unlock-value">{user?.name} {user?.isClassRep ? '(Class Rep)' : '(Student)'}</span>
+              </div>
+            </div>
+            <p style={{ fontSize: '13px', color: 'var(--gray-500)', marginTop: '16px' }}>
+              The guard will receive this request and unlock the room. Please wait near the room.
+            </p>
+          </>
+        )}
+      </Modal>
 
       {/* Quick Actions */}
       <Card title="Quick Actions">
