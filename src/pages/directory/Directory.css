@@ -175,6 +175,10 @@
   margin-bottom: var(--spacing-xl);
 }
 
+.directory-search-card .card-body {
+  padding: var(--spacing-md);
+}
+
 .directory-search {
   display: flex;
   align-items: center;
@@ -186,10 +190,12 @@
   position: absolute;
   left: var(--spacing-md);
   color: var(--gray-400);
+  z-index: 1;
 }
 
 .directory-search-input {
   padding-left: 44px !important;
+  width: 100%;
 }
 
 .search-results {
