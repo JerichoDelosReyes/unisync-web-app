@@ -1,19 +1,17 @@
 import React from 'react';
-import { NavLink, useLocation } from 'react-router-dom';
+import { NavLink } from 'react-router-dom';
 import {
   Home,
   Bell,
   Calendar,
   DoorOpen,
   Users,
-  MessageSquare,
   FileText,
   Phone,
   BarChart3,
   Building2,
   Settings,
   LogOut,
-  Menu,
   Shield,
   BookOpen,
   ClipboardList
@@ -22,7 +20,6 @@ import { useAuth } from '../../context/AuthContext';
 
 const Sidebar = ({ collapsed, onToggle }) => {
   const { user, logout } = useAuth();
-  const location = useLocation();
 
   // Define navigation items based on user role
   const getNavItems = () => {
@@ -30,7 +27,6 @@ const Sidebar = ({ collapsed, onToggle }) => {
       { icon: Home, label: 'Dashboard', path: '/dashboard' },
       { icon: Bell, label: 'Announcements', path: '/announcements' },
       { icon: Building2, label: 'Facilities', path: '/facilities' },
-      { icon: MessageSquare, label: 'AI Assistant', path: '/assistant' },
     ];
 
     const roleSpecificItems = {

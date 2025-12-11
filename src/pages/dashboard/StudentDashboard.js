@@ -5,12 +5,10 @@ import {
   Calendar, 
   DoorOpen, 
   Users, 
-  TrendingUp,
   Clock,
   ChevronRight,
   MapPin,
-  LayoutDashboard,
-  Bot
+  LayoutDashboard
 } from 'lucide-react';
 import { Card, Badge, Button } from '../../components/common';
 import { useAuth } from '../../context/AuthContext';
@@ -193,9 +191,9 @@ const StudentDashboard = () => {
             <Users size={24} />
             <span>My Organizations</span>
           </Link>
-          <Link to="/assistant" className="quick-action-btn">
-            <TrendingUp size={24} />
-            <span>AI Assistant</span>
+          <Link to="/schedule" className="quick-action-btn">
+            <Calendar size={24} />
+            <span>My Schedule</span>
           </Link>
         </div>
       </Card>
