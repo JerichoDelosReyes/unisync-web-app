@@ -1,0 +1,269 @@
+.directory-page {
+  animation: fadeIn 0.3s ease-out;
+}
+
+/* Emergency Alert */
+.emergency-alert {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-md);
+  padding: var(--spacing-lg);
+  background: var(--error-light);
+  border-radius: var(--radius-lg);
+  margin-bottom: var(--spacing-xl);
+  border-left: 4px solid var(--error);
+}
+
+.emergency-alert svg {
+  color: var(--error);
+  flex-shrink: 0;
+}
+
+.emergency-alert strong {
+  color: var(--gray-800);
+  display: block;
+  margin-bottom: 4px;
+}
+
+.emergency-alert p {
+  font-size: var(--text-sm);
+  color: var(--gray-600);
+}
+
+/* Contacts Grid */
+.contacts-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: var(--spacing-lg);
+  margin-bottom: var(--spacing-xl);
+}
+
+.contact-card {
+  text-align: center;
+}
+
+.contact-icon {
+  width: 64px;
+  height: 64px;
+  border-radius: var(--radius-full);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto var(--spacing-md);
+}
+
+.contact-icon.primary {
+  background: var(--primary-100);
+  color: var(--cvsu-green);
+}
+
+.contact-icon.success {
+  background: var(--success-light);
+  color: var(--success);
+}
+
+.contact-icon.warning {
+  background: var(--warning-light);
+  color: var(--warning);
+}
+
+.contact-icon.error {
+  background: var(--error-light);
+  color: var(--error);
+}
+
+.contact-name {
+  font-size: var(--text-lg);
+  font-weight: 600;
+  color: var(--gray-800);
+  margin-bottom: var(--spacing-xs);
+}
+
+.contact-description {
+  font-size: var(--text-sm);
+  color: var(--gray-500);
+  margin-bottom: var(--spacing-md);
+}
+
+.contact-details {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-sm);
+  text-align: left;
+  padding: var(--spacing-md);
+  background: var(--gray-50);
+  border-radius: var(--radius-md);
+}
+
+.contact-detail {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  font-size: var(--text-sm);
+  color: var(--gray-600);
+}
+
+.contact-detail svg {
+  color: var(--gray-400);
+}
+
+/* Section Title */
+.section-title {
+  font-size: var(--text-xl);
+  font-weight: 600;
+  color: var(--gray-800);
+  margin-bottom: var(--spacing-lg);
+}
+
+/* Protocols Grid */
+.protocols-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: var(--spacing-lg);
+}
+
+.protocol-card {
+  border-top: 4px solid var(--cvsu-green);
+}
+
+.protocol-title {
+  font-size: var(--text-lg);
+  font-weight: 600;
+  color: var(--gray-800);
+  margin-bottom: var(--spacing-md);
+}
+
+.protocol-steps {
+  padding-left: var(--spacing-lg);
+}
+
+.protocol-steps li {
+  font-size: var(--text-sm);
+  color: var(--gray-600);
+  margin-bottom: var(--spacing-sm);
+  line-height: 1.5;
+}
+
+/* Campus Map */
+.campus-map {
+  margin-bottom: var(--spacing-xl);
+}
+
+.map-placeholder {
+  height: 200px;
+  background: var(--gray-50);
+  border-radius: var(--radius-md);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  color: var(--gray-400);
+}
+
+.map-placeholder p {
+  font-weight: 600;
+  color: var(--gray-600);
+  margin-top: var(--spacing-sm);
+}
+
+.map-placeholder span {
+  font-size: var(--text-sm);
+}
+
+/* Buildings List */
+.buildings-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-md);
+}
+
+.building-card {
+  overflow: hidden;
+}
+
+.building-header {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-md);
+  cursor: pointer;
+  padding: var(--spacing-md);
+  margin: calc(-1 * var(--spacing-lg));
+  transition: background var(--transition);
+}
+
+.building-header:hover {
+  background: var(--gray-50);
+}
+
+.building-icon {
+  width: 48px;
+  height: 48px;
+  background: var(--primary-100);
+  color: var(--cvsu-green);
+  border-radius: var(--radius-md);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.building-info {
+  flex: 1;
+}
+
+.building-name {
+  font-size: var(--text-base);
+  font-weight: 600;
+  color: var(--gray-800);
+  margin-bottom: 4px;
+}
+
+.building-description {
+  font-size: var(--text-sm);
+  color: var(--gray-500);
+}
+
+.building-meta {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  color: var(--gray-400);
+}
+
+.building-details {
+  margin-top: var(--spacing-lg);
+  padding-top: var(--spacing-lg);
+  border-top: 1px solid var(--gray-200);
+}
+
+.floor-section {
+  margin-bottom: var(--spacing-md);
+}
+
+.floor-section:last-child {
+  margin-bottom: 0;
+}
+
+.floor-title {
+  font-size: var(--text-sm);
+  font-weight: 600;
+  color: var(--gray-700);
+  margin-bottom: var(--spacing-sm);
+}
+
+.floor-rooms {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-sm);
+}
+
+.room-tag {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 6px 12px;
+  background: var(--gray-100);
+  border-radius: var(--radius);
+  font-size: var(--text-xs);
+  color: var(--gray-600);
+}
