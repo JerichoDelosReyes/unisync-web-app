@@ -14,7 +14,43 @@ import {
   serverTimestamp,
   onSnapshot
 } from 'firebase/firestore';
-import { db } from '../config/firebase';
+import { ref, uploadBytesResumable, getDownloadURL } from 'firebase/storage';
+import { db, storage } from '../config/firebase';
+
+// ============ IMAGE UPLOAD ============
+
+// Upload image to Firebase Storage
+export const uploadImage = async (file, folder = 'images', onProgress = null) => {
+  const timestamp = Date.now();
+  const fileName = `${timestamp}_${file.name.replace(/[^a-zA-Z0-9.]/g, '_')}`;
+  const storageRef = ref(storage, `${folder}/${fileName}`);
+  
+  return new Promise((resolve, reject) => {
+    const uploadTask = uploadBytesResumable(storageRef, file);
+    
+    uploadTask.on(
+      'state_changed',
+      (snapshot) => {
+        const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
+        if (onProgress) {
+          onProgress(progress);
+        }
+      },
+      (error) => {
+        console.error('Upload error:', error);
+        reject(error);
+      },
+      async () => {
+        try {
+          const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
+          resolve(downloadURL);
+        } catch (error) {
+          reject(error);
+        }
+      }
+    );
+  });
+};
 
 // ============ USER OPERATIONS ============
 
@@ -35,6 +71,18 @@ export const getUserProfile = async (uid) => {
   const userRef = doc(db, 'users', uid);
   const userSnap = await getDoc(userRef);
   return userSnap.exists() ? { id: userSnap.id, ...userSnap.data() } : null;
+};
+
+// Subscribe to user profile (real-time updates)
+export const subscribeToUserProfile = (uid, callback) => {
+  const userRef = doc(db, 'users', uid);
+  return onSnapshot(userRef, (docSnap) => {
+    if (docSnap.exists()) {
+      callback({ id: docSnap.id, ...docSnap.data() });
+    } else {
+      callback(null);
+    }
+  });
 };
 
 // Update user profile

@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { signIn, signUp, logOut, onAuthChange, resendVerificationEmail, reloadUser } from '../services/authService';
-import { getUserProfile, createUserProfile } from '../services/firestoreService';
+import { getUserProfile, createUserProfile, subscribeToUserProfile } from '../services/firestoreService';
 
 const AuthContext = createContext(null);
 
@@ -19,21 +19,33 @@ export const AuthProvider = ({ children }) => {
   const [emailVerified, setEmailVerified] = useState(false);
 
   useEffect(() => {
+    let unsubscribeProfile = null;
+    
     // Listen for Firebase auth state changes
     const unsubscribe = onAuthChange(async (firebaseUser) => {
+      // Cleanup previous profile subscription
+      if (unsubscribeProfile) {
+        unsubscribeProfile();
+        unsubscribeProfile = null;
+      }
+      
       if (firebaseUser) {
+        // Check if admin (admins bypass email verification)
+        const isAdmin = firebaseUser.email.toLowerCase().includes('admin');
+        const isVerified = firebaseUser.emailVerified || isAdmin;
+        
         // Check email verification status
-        setEmailVerified(firebaseUser.emailVerified);
+        setEmailVerified(isVerified);
         setUser(firebaseUser);
         
-        // Only create/fetch profile if email is verified
-        if (firebaseUser.emailVerified) {
+        // Only create/fetch profile if email is verified (or admin)
+        if (isVerified) {
           try {
-            // Get user profile from Firestore
+            // Check if profile exists
             let profile = await getUserProfile(firebaseUser.uid);
             
             if (!profile) {
-              // Create profile only when email is verified
+              // Create profile only when email is verified (or admin)
               const role = detectRole(firebaseUser.email);
               profile = {
                 uid: firebaseUser.uid,
@@ -42,13 +54,17 @@ export const AuthProvider = ({ children }) => {
                 role,
                 department: 'DIT',
                 avatar: firebaseUser.photoURL || null,
-                emailVerified: true,
+                emailVerified: isVerified,
                 createdAt: new Date(),
               };
               await createUserProfile(firebaseUser.uid, profile);
             }
             
-            setUserProfile(profile);
+            // Subscribe to real-time profile updates
+            unsubscribeProfile = subscribeToUserProfile(firebaseUser.uid, (updatedProfile) => {
+              setUserProfile(updatedProfile);
+            });
+            
           } catch (error) {
             console.error('Error fetching user profile:', error);
           }
@@ -66,7 +82,12 @@ export const AuthProvider = ({ children }) => {
     });
 
     // Cleanup subscription
-    return () => unsubscribe();
+    return () => {
+      unsubscribe();
+      if (unsubscribeProfile) {
+        unsubscribeProfile();
+      }
+    };
   }, []);
 
   // Validate CvSU email
@@ -76,10 +97,16 @@ export const AuthProvider = ({ children }) => {
 
   // Detect role from email
   const detectRole = (email) => {
-    if (email.includes('admin')) return 'admin';
-    if (email.includes('faculty') || email.includes('prof')) return 'faculty';
-    if (email.includes('guard') || email.includes('security')) return 'guard';
+    const emailLower = email.toLowerCase();
+    if (emailLower.includes('admin')) return 'admin';
+    if (emailLower.includes('faculty') || emailLower.includes('prof')) return 'faculty';
+    if (emailLower.includes('guard') || emailLower.includes('security')) return 'guard';
     return 'student';
+  };
+
+  // Check if admin (admins bypass email verification)
+  const isAdminEmail = (email) => {
+    return email.toLowerCase().includes('admin');
   };
 
   // Login with Firebase

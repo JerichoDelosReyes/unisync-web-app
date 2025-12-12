@@ -13,7 +13,7 @@ import { Assistant } from './pages/assistant';
 import { Schedule } from './pages/schedule';
 import { EmergencyDirectory, BuildingDirectory } from './pages/directory';
 import { ReportIssue } from './pages/report';
-import { SeedDatabase } from './pages/admin';
+import { SeedDatabase, AdminSetup } from './pages/admin';
 
 // Styles
 import './styles/theme.css';
@@ -49,11 +49,22 @@ const ProtectedRoute = ({ children }) => {
   return children;
 };
 
+// Admin Only Route Component
+const AdminRoute = ({ children }) => {
+  const { userProfile } = useAuth();
+  
+  if (userProfile?.role !== 'admin') {
+    return <Navigate to="/dashboard" replace />;
+  }
+  
+  return children;
+};
+
 // Dashboard Router - redirects based on role
 const DashboardRouter = () => {
-  const { user } = useAuth();
+  const { userProfile } = useAuth();
   
-  switch (user?.role) {
+  switch (userProfile?.role) {
     case 'admin':
       return <AdminDashboard />;
     case 'faculty':
@@ -112,6 +123,7 @@ function AppContent() {
         <Route path="emergency" element={<EmergencyDirectory />} />
         <Route path="directory" element={<BuildingDirectory />} />
         <Route path="report" element={<ReportIssue />} />
+        <Route path="admin-setup" element={<AdminSetup />} />
         
         {/* Faculty Routes */}
         <Route path="booking" element={<Facilities />} />
@@ -121,12 +133,12 @@ function AppContent() {
         <Route path="dispatch" element={<GuardDashboard />} />
         <Route path="request-history" element={<Schedule />} />
         
-        {/* Admin Routes */}
-        <Route path="analytics" element={<AdminDashboard />} />
-        <Route path="moderation" element={<AdminDashboard />} />
-        <Route path="users" element={<AdminDashboard />} />
-        <Route path="settings" element={<AdminDashboard />} />
-        <Route path="seed-database" element={<SeedDatabase />} />
+        {/* Admin Routes - Protected */}
+        <Route path="analytics" element={<AdminRoute><AdminDashboard /></AdminRoute>} />
+        <Route path="moderation" element={<AdminRoute><AdminDashboard /></AdminRoute>} />
+        <Route path="users" element={<AdminRoute><AdminDashboard /></AdminRoute>} />
+        <Route path="settings" element={<AdminRoute><AdminDashboard /></AdminRoute>} />
+        <Route path="seed-database" element={<AdminRoute><SeedDatabase /></AdminRoute>} />
       </Route>
       
       {/* Catch all */}

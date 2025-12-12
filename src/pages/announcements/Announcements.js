@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { 
   Plus, 
   Search, 
@@ -12,7 +12,9 @@ import {
   Building2,
   Users,
   BookOpen,
-  Loader
+  Loader,
+  X,
+  Upload
 } from 'lucide-react';
 import { Card, Button, Badge, Modal, Input, Select, Alert } from '../../components/common';
 import { getAnnouncements, createAnnouncement, subscribeToAnnouncements } from '../../services/firestoreService';
@@ -28,6 +30,10 @@ const Announcements = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [submitting, setSubmitting] = useState(false);
+  const [selectedImage, setSelectedImage] = useState(null);
+  const [imagePreview, setImagePreview] = useState(null);
+  const [uploadProgress, setUploadProgress] = useState(0);
+  const fileInputRef = useRef(null);
   const [newAnnouncement, setNewAnnouncement] = useState({
     title: '',
     content: '',
@@ -74,6 +80,43 @@ const Announcements = () => {
     return `${days} days ago`;
   };
 
+  const handleImageSelect = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      // Validate file type
+      if (!file.type.startsWith('image/')) {
+        setError('Please select an image file');
+        return;
+      }
+      // Validate file size (max 1MB for base64 storage)
+      if (file.size > 1 * 1024 * 1024) {
+        setError('Image size should be less than 1MB (for free storage)');
+        return;
+      }
+      setSelectedImage(file);
+      setImagePreview(URL.createObjectURL(file));
+      setError(null);
+    }
+  };
+
+  const handleRemoveImage = () => {
+    setSelectedImage(null);
+    setImagePreview(null);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+  };
+
+  // Convert image to base64
+  const convertToBase64 = (file) => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.readAsDataURL(file);
+      reader.onload = () => resolve(reader.result);
+      reader.onerror = (error) => reject(error);
+    });
+  };
+
   const handleCreateAnnouncement = async () => {
     if (!newAnnouncement.title || !newAnnouncement.content) {
       setError('Please fill in all required fields');
@@ -84,17 +127,37 @@ const Announcements = () => {
     setError(null);
 
     try {
+      let imageData = null;
+      
+      // Convert image to base64 if selected
+      if (selectedImage) {
+        try {
+          setUploadProgress(50);
+          imageData = await convertToBase64(selectedImage);
+          setUploadProgress(100);
+        } catch (uploadErr) {
+          console.error('Image conversion failed:', uploadErr);
+          setError('Image processing failed. Publishing without image.');
+          imageData = null;
+        }
+      }
+
       await createAnnouncement({
         ...newAnnouncement,
         author: userProfile?.name || 'Anonymous',
         authorRole: userProfile?.role || 'Student',
-        image: null
+        image: imageData
       });
       
       setShowCreateModal(false);
       setNewAnnouncement({ title: '', content: '', type: 'campus', priority: 'normal' });
+      setSelectedImage(null);
+      setImagePreview(null);
+      setUploadProgress(0);
+      setError(null);
     } catch (err) {
-      setError(err.message);
+      console.error('Create announcement error:', err);
+      setError('Failed to publish: ' + (err.message || 'Unknown error'));
     } finally {
       setSubmitting(false);
     }
@@ -281,10 +344,41 @@ const Announcements = () => {
 
           <div className="form-group">
             <label className="form-label">Attach Image (Optional)</label>
-            <div className="image-upload">
-              <Image size={24} />
-              <span>Click or drag to upload image</span>
-            </div>
+            <input
+              type="file"
+              ref={fileInputRef}
+              accept="image/*"
+              onChange={handleImageSelect}
+              style={{ display: 'none' }}
+            />
+            {imagePreview ? (
+              <div className="image-preview-container">
+                <img src={imagePreview} alt="Preview" className="image-preview" />
+                <button 
+                  type="button" 
+                  className="remove-image-btn"
+                  onClick={handleRemoveImage}
+                >
+                  <X size={16} />
+                </button>
+              </div>
+            ) : (
+              <div 
+                className="image-upload"
+                onClick={() => fileInputRef.current?.click()}
+                style={{ cursor: 'pointer' }}
+              >
+                <Upload size={24} />
+                <span>Click to upload image</span>
+                <small style={{ color: 'var(--gray-400)', marginTop: '4px' }}>Max 1MB - JPG, PNG, GIF</small>
+              </div>
+            )}
+            {submitting && uploadProgress > 0 && uploadProgress < 100 && (
+              <div className="upload-progress">
+                <div className="progress-bar" style={{ width: `${uploadProgress}%` }}></div>
+                <span>{Math.round(uploadProgress)}% uploaded</span>
+              </div>
+            )}
           </div>
 
           <div className="moderation-notice">
