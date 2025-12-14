@@ -109,8 +109,8 @@ function AppContent() {
         <Route path="settings" element={<AdminDashboard />} />
       </Route>
       
-      {/* Catch all */}
-      <Route path="*" element={<Navigate to="/dashboard" replace />} />
+      {/* Catch all - redirect to login if not authenticated */}
+      <Route path="*" element={<Navigate to="/login" replace />} />
     </Routes>
     
     {/* Floating Chatbot - visible when authenticated */}
