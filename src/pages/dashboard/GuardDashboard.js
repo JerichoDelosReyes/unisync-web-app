@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { 
   DoorOpen, 
   Clock,
@@ -16,7 +16,8 @@ import {
   Bell,
   Phone,
   Shield,
-  Search
+  Search,
+  X
 } from 'lucide-react';
 import { Card, Badge, Button, Input } from '../../components/common';
 import { useAuth } from '../../context/AuthContext';
@@ -24,10 +25,15 @@ import './styles/index.css';
 
 const GuardDashboard = () => {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [filter, setFilter] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [showProcessedModal, setShowProcessedModal] = useState(false);
   const [processedRequest, setProcessedRequest] = useState(null);
+  const [showSuccessToast, setShowSuccessToast] = useState(false);
+  const [successMessage, setSuccessMessage] = useState('');
+  const [showAlertsModal, setShowAlertsModal] = useState(false);
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
   const stats = [
     { icon: DoorOpen, label: 'Pending Requests', value: '5', change: 'Awaiting action', color: 'warning' },
@@ -145,6 +151,11 @@ const GuardDashboard = () => {
     setProcessedRequest({ ...request, action: 'approved' });
     setShowProcessedModal(true);
     setRequests(prev => prev.filter(r => r.id !== id));
+    
+    // Show toast
+    setSuccessMessage(`${request.room} has been approved and unlocked!`);
+    setShowSuccessToast(true);
+    setTimeout(() => setShowSuccessToast(false), 5000);
   };
 
   const handleDeny = (id) => {
@@ -152,7 +163,60 @@ const GuardDashboard = () => {
     setProcessedRequest({ ...request, action: 'denied' });
     setShowProcessedModal(true);
     setRequests(prev => prev.filter(r => r.id !== id));
+    
+    // Show toast
+    setSuccessMessage(`Request for ${request.room} has been denied.`);
+    setShowSuccessToast(true);
+    setTimeout(() => setShowSuccessToast(false), 5000);
   };
+
+  const handleRefresh = () => {
+    setIsRefreshing(true);
+    // Simulate refresh
+    setTimeout(() => {
+      setIsRefreshing(false);
+      setSuccessMessage('Dashboard refreshed! All data is up to date.');
+      setShowSuccessToast(true);
+      setTimeout(() => setShowSuccessToast(false), 3000);
+    }, 1000);
+  };
+
+  const handleEmergencyCall = (type) => {
+    const emergencyNumbers = {
+      health: 'Health Services: (046) 411-0775',
+      fire: 'Fire Emergency: 911',
+      police: 'Police: (046) 411-0666',
+      admin: 'Admin Office: (046) 411-0775'
+    };
+    setSuccessMessage(`Calling ${emergencyNumbers[type]}`);
+    setShowSuccessToast(true);
+    setTimeout(() => setShowSuccessToast(false), 3000);
+  };
+
+  // Handle stat card clicks
+  const handleStatClick = (label) => {
+    switch(label) {
+      case 'Pending Requests':
+        setFilter('all');
+        break;
+      case 'Approved Today':
+      case 'Active Unlocks':
+        navigate('/facilities');
+        break;
+      case 'Avg. Response':
+        // Scroll to activity section
+        break;
+      default:
+        break;
+    }
+  };
+
+  // System alerts data
+  const systemAlerts = [
+    { id: 1, type: 'warning', message: 'Room 305 has been unlocked for over 4 hours', time: '10 min ago' },
+    { id: 2, type: 'info', message: 'Scheduled maintenance for CompLab 1 at 5:00 PM', time: '1 hour ago' },
+    { id: 3, type: 'success', message: 'All emergency exits verified and clear', time: '2 hours ago' },
+  ];
 
   // Filter requests
   const filteredRequests = requests.filter(request => {
@@ -197,19 +261,51 @@ const GuardDashboard = () => {
           <p className="page-subtitle">Room Access Control • CvSU Imus Campus</p>
         </div>
         <div style={{ display: 'flex', gap: '8px' }}>
-          <Button variant="outline" size="sm" icon={RefreshCw}>
-            Refresh
+          <Button 
+            variant="outline" 
+            size="sm" 
+            icon={RefreshCw}
+            onClick={handleRefresh}
+            disabled={isRefreshing}
+          >
+            {isRefreshing ? 'Refreshing...' : 'Refresh'}
           </Button>
-          <Button variant="outline" size="sm" icon={Bell}>
+          <Button 
+            variant="outline" 
+            size="sm" 
+            icon={Bell}
+            onClick={() => setShowAlertsModal(true)}
+          >
             Alerts
+            {systemAlerts.length > 0 && (
+              <span style={{ 
+                background: 'var(--error)', 
+                color: 'white', 
+                borderRadius: '50%', 
+                padding: '2px 6px', 
+                fontSize: '10px',
+                marginLeft: '4px'
+              }}>
+                {systemAlerts.length}
+              </span>
+            )}
           </Button>
         </div>
       </div>
 
+      {/* Success Toast */}
+      {showSuccessToast && (
+        <div className="toast-notification success">
+          <CheckCircle size={20} />
+          <span>{successMessage}</span>
+          <button onClick={() => setShowSuccessToast(false)}><X size={16} /></button>
+        </div>
+      )}
+
       {/* Stats Grid */}
       <div className="stats-grid">
         {stats.map((stat, index) => (
-          <div className="stat-card" key={index}>
+          <div className="stat-card" key={index} onClick={() => handleStatClick(stat.label)}>
             <div className={`stat-card-icon ${stat.color}`}>
               <stat.icon size={24} />
             </div>
@@ -430,16 +526,16 @@ const GuardDashboard = () => {
             <strong>Emergency Quick Dial</strong>
           </div>
           <div className="emergency-buttons">
-            <button className="emergency-btn">
+            <button className="emergency-btn" onClick={() => handleEmergencyCall('health')}>
               <span>🏥</span> Health Services
             </button>
-            <button className="emergency-btn">
+            <button className="emergency-btn" onClick={() => handleEmergencyCall('fire')}>
               <span>🚒</span> Fire Emergency
             </button>
-            <button className="emergency-btn">
+            <button className="emergency-btn" onClick={() => handleEmergencyCall('police')}>
               <span>👮</span> Police
             </button>
-            <button className="emergency-btn">
+            <button className="emergency-btn" onClick={() => handleEmergencyCall('admin')}>
               <span>📞</span> Admin Office
             </button>
           </div>
@@ -460,6 +556,34 @@ const GuardDashboard = () => {
           </div>
         </div>
       </Card>
+
+      {/* Alerts Modal */}
+      {showAlertsModal && (
+        <div className="modal-overlay" onClick={() => setShowAlertsModal(false)}>
+          <div className="modal-content" onClick={e => e.stopPropagation()}>
+            <div className="modal-header">
+              <h3><Bell size={20} /> System Alerts</h3>
+              <button onClick={() => setShowAlertsModal(false)}><X size={20} /></button>
+            </div>
+            <div className="alerts-list">
+              {systemAlerts.map(alert => (
+                <div key={alert.id} className={`alert-item ${alert.type}`}>
+                  {alert.type === 'warning' && <AlertTriangle size={16} />}
+                  {alert.type === 'info' && <Bell size={16} />}
+                  {alert.type === 'success' && <CheckCircle size={16} />}
+                  <div className="alert-content">
+                    <p>{alert.message}</p>
+                    <span>{alert.time}</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+            <Button onClick={() => setShowAlertsModal(false)} style={{ width: '100%', marginTop: '16px' }}>
+              Close
+            </Button>
+          </div>
+        </div>
+      )}
 
       {/* Processed Modal */}
       {showProcessedModal && processedRequest && (

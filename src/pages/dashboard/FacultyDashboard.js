@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { 
   Calendar, 
   DoorOpen, 
@@ -10,7 +10,8 @@ import {
   Plus,
   CheckCircle,
   AlertCircle,
-  Key
+  Key,
+  X
 } from 'lucide-react';
 import { Card, Badge, Button, Modal, Alert } from '../../components/common';
 import { useAuth } from '../../context/AuthContext';
@@ -18,10 +19,22 @@ import './styles/index.css';
 
 const FacultyDashboard = () => {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [showBookingModal, setShowBookingModal] = useState(false);
   const [showUnlockModal, setShowUnlockModal] = useState(false);
   const [selectedClass, setSelectedClass] = useState(null);
-  const [activeRequest, setActiveRequest] = useState(null); // Track the single active request
+  const [activeRequest, setActiveRequest] = useState(null);
+  const [showSuccessToast, setShowSuccessToast] = useState(false);
+  const [successMessage, setSuccessMessage] = useState('');
+  
+  // Booking form state
+  const [bookingForm, setBookingForm] = useState({
+    room: '',
+    reason: '',
+    date: '',
+    duration: '',
+    notes: ''
+  });
 
   const handleRequestUnlock = (item) => {
     setSelectedClass(item);
@@ -38,7 +51,54 @@ const FacultyDashboard = () => {
         requestedAt: new Date().toISOString()
       });
       setShowUnlockModal(false);
+      
+      // Show success toast
+      setSuccessMessage(`Unlock request sent for ${selectedClass.room}! Guard has been notified.`);
+      setShowSuccessToast(true);
       setSelectedClass(null);
+      
+      // Simulate guard response
+      setTimeout(() => {
+        setShowSuccessToast(false);
+        setTimeout(() => {
+          setActiveRequest(null);
+          setSuccessMessage('Your room has been unlocked! You may now enter.');
+          setShowSuccessToast(true);
+          setTimeout(() => setShowSuccessToast(false), 5000);
+        }, 8000);
+      }, 5000);
+    }
+  };
+
+  const submitBookingRequest = () => {
+    if (bookingForm.room && bookingForm.reason && bookingForm.date && bookingForm.duration) {
+      setShowBookingModal(false);
+      setSuccessMessage(`Room booking request submitted for ${bookingForm.room}! Awaiting approval.`);
+      setShowSuccessToast(true);
+      setTimeout(() => setShowSuccessToast(false), 5000);
+      
+      // Reset form
+      setBookingForm({ room: '', reason: '', date: '', duration: '', notes: '' });
+    }
+  };
+
+  // Handle stat card clicks
+  const handleStatClick = (label) => {
+    switch(label) {
+      case 'Classes Today':
+        navigate('/schedule');
+        break;
+      case 'Active Bookings':
+        navigate('/facilities');
+        break;
+      case 'Total Students':
+        navigate('/directory/building');
+        break;
+      case 'Office Hours':
+        navigate('/schedule');
+        break;
+      default:
+        break;
     }
   };
 
@@ -123,10 +183,19 @@ const FacultyDashboard = () => {
         </div>
       </div>
 
+      {/* Success Toast */}
+      {showSuccessToast && (
+        <div className="toast-notification success">
+          <CheckCircle size={20} />
+          <span>{successMessage}</span>
+          <button onClick={() => setShowSuccessToast(false)}><X size={16} /></button>
+        </div>
+      )}
+
       {/* Stats Grid */}
       <div className="stats-grid">
         {stats.map((stat, index) => (
-          <div className="stat-card" key={index}>
+          <div className="stat-card" key={index} onClick={() => handleStatClick(stat.label)}>
             <div className={`stat-card-icon ${stat.color}`}>
               <stat.icon size={24} />
             </div>
@@ -336,7 +405,11 @@ const FacultyDashboard = () => {
             <Button variant="outline" onClick={() => setShowBookingModal(false)}>
               Cancel
             </Button>
-            <Button variant="primary" onClick={() => setShowBookingModal(false)}>
+            <Button 
+              variant="primary" 
+              onClick={submitBookingRequest}
+              disabled={!bookingForm.room || !bookingForm.reason || !bookingForm.date || !bookingForm.duration}
+            >
               Submit Request
             </Button>
           </>
@@ -344,41 +417,64 @@ const FacultyDashboard = () => {
       >
         <div className="form-group">
           <label className="form-label">Select Room</label>
-          <select className="form-input">
-            <option>Select a room</option>
-            <option>Room 302 - New Building</option>
-            <option>Room 401 - New Building</option>
-            <option>CompLab 3 - Old Building</option>
+          <select 
+            className="form-input"
+            value={bookingForm.room}
+            onChange={(e) => setBookingForm({...bookingForm, room: e.target.value})}
+          >
+            <option value="">Select a room</option>
+            <option value="Room 302 - New Building">Room 302 - New Building</option>
+            <option value="Room 401 - New Building">Room 401 - New Building</option>
+            <option value="CompLab 3 - Old Building">CompLab 3 - Old Building</option>
           </select>
         </div>
         <div className="form-group">
           <label className="form-label">Reason</label>
-          <select className="form-input">
-            <option>Select reason</option>
-            <option>Make-up Class</option>
-            <option>Thesis Defense</option>
-            <option>Emergency Meeting</option>
-            <option>Consultation</option>
-            <option>Other</option>
+          <select 
+            className="form-input"
+            value={bookingForm.reason}
+            onChange={(e) => setBookingForm({...bookingForm, reason: e.target.value})}
+          >
+            <option value="">Select reason</option>
+            <option value="Make-up Class">Make-up Class</option>
+            <option value="Thesis Defense">Thesis Defense</option>
+            <option value="Emergency Meeting">Emergency Meeting</option>
+            <option value="Consultation">Consultation</option>
+            <option value="Other">Other</option>
           </select>
         </div>
         <div className="form-group">
           <label className="form-label">Date</label>
-          <input type="date" className="form-input" />
+          <input 
+            type="date" 
+            className="form-input"
+            value={bookingForm.date}
+            onChange={(e) => setBookingForm({...bookingForm, date: e.target.value})}
+          />
         </div>
         <div className="form-group">
           <label className="form-label">Duration</label>
-          <select className="form-input">
-            <option>Select duration</option>
-            <option>1 hour</option>
-            <option>2 hours</option>
-            <option>3 hours</option>
-            <option>Half day (4 hours)</option>
+          <select 
+            className="form-input"
+            value={bookingForm.duration}
+            onChange={(e) => setBookingForm({...bookingForm, duration: e.target.value})}
+          >
+            <option value="">Select duration</option>
+            <option value="1 hour">1 hour</option>
+            <option value="2 hours">2 hours</option>
+            <option value="3 hours">3 hours</option>
+            <option value="Half day (4 hours)">Half day (4 hours)</option>
           </select>
         </div>
         <div className="form-group">
           <label className="form-label">Additional Notes</label>
-          <textarea className="form-input" rows="3" placeholder="Any additional information..."></textarea>
+          <textarea 
+            className="form-input" 
+            rows="3" 
+            placeholder="Any additional information..."
+            value={bookingForm.notes}
+            onChange={(e) => setBookingForm({...bookingForm, notes: e.target.value})}
+          ></textarea>
         </div>
       </Modal>
     </div>

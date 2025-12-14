@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { 
   Bell, 
   Calendar, 
@@ -10,7 +10,8 @@ import {
   MapPin,
   LayoutDashboard,
   Key,
-  CheckCircle
+  CheckCircle,
+  X
 } from 'lucide-react';
 import { Card, Badge, Button, Modal, Alert } from '../../components/common';
 import { useAuth } from '../../context/AuthContext';
@@ -18,9 +19,12 @@ import './styles/index.css';
 
 const StudentDashboard = () => {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [showUnlockModal, setShowUnlockModal] = useState(false);
   const [selectedClass, setSelectedClass] = useState(null);
-  const [activeRequest, setActiveRequest] = useState(null); // Track the single active request
+  const [activeRequest, setActiveRequest] = useState(null);
+  const [showSuccessToast, setShowSuccessToast] = useState(false);
+  const [successMessage, setSuccessMessage] = useState('');
 
   const handleRequestUnlock = (item) => {
     setSelectedClass(item);
@@ -38,6 +42,42 @@ const StudentDashboard = () => {
       });
       setShowUnlockModal(false);
       setSelectedClass(null);
+      
+      // Show success toast
+      setSuccessMessage(`Unlock request sent for ${selectedClass.room}! Guard has been notified.`);
+      setShowSuccessToast(true);
+      
+      // Auto-hide toast after 5 seconds and simulate guard response
+      setTimeout(() => {
+        setShowSuccessToast(false);
+        // Simulate guard approving the request after 10 seconds
+        setTimeout(() => {
+          setActiveRequest(null);
+          setSuccessMessage('Your room has been unlocked! You may now enter.');
+          setShowSuccessToast(true);
+          setTimeout(() => setShowSuccessToast(false), 5000);
+        }, 10000);
+      }, 5000);
+    }
+  };
+
+  // Handle stat card clicks - navigate to relevant pages
+  const handleStatClick = (label) => {
+    switch(label) {
+      case 'Announcements':
+        navigate('/announcements');
+        break;
+      case 'Classes Today':
+        navigate('/schedule');
+        break;
+      case 'Organizations':
+        navigate('/organizations');
+        break;
+      case 'Room Status':
+        navigate('/facilities');
+        break;
+      default:
+        break;
     }
   };
 
@@ -154,16 +194,30 @@ const StudentDashboard = () => {
           <p className="page-subtitle">Here's what's happening at CvSU Imus today.</p>
         </div>
         <div className="dashboard-header-actions">
-          <Button variant="secondary" icon={Calendar}>
+          <Button variant="secondary" icon={Calendar} onClick={() => navigate('/schedule')}>
             View Full Schedule
           </Button>
         </div>
       </div>
 
-      {/* Stats Grid */}
+      {/* Success Toast */}
+      {showSuccessToast && (
+        <div className="toast-notification success">
+          <CheckCircle size={20} />
+          <span>{successMessage}</span>
+          <button onClick={() => setShowSuccessToast(false)}><X size={16} /></button>
+        </div>
+      )}
+
+      {/* Stats Grid - Clickable */}
       <div className="stats-grid">
         {stats.map((stat, index) => (
-          <div className="stat-card" key={index}>
+          <div 
+            className="stat-card" 
+            key={index}
+            onClick={() => handleStatClick(stat.label)}
+            style={{ cursor: 'pointer' }}
+          >
             <div className={`stat-card-icon ${stat.color}`}>
               <stat.icon size={24} />
             </div>

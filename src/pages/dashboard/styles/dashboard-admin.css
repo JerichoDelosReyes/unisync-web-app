@@ -151,6 +151,27 @@
   color: var(--white);
 }
 
+/* ============ EMPTY MODERATION STATE ============ */
+.empty-moderation {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: var(--spacing-xl);
+  text-align: center;
+}
+
+.empty-moderation p {
+  font-weight: 600;
+  color: var(--gray-700);
+  margin-top: var(--spacing-md);
+}
+
+.empty-moderation span {
+  font-size: var(--text-sm);
+  color: var(--gray-500);
+}
+
 /* ============ RECENT ACTIVITY ============ */
 .activity-list {
   display: flex;
