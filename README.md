@@ -61,20 +61,6 @@ Report Issue module for equipment, schedule errors, and offensive content. Emerg
 
 ---
 
-## 🛠️ Tech Stack
-
-| Technology | Version | Purpose |
-|------------|---------|----------|
-| **React** | 19.2.1 | Frontend framework |
-| **React DOM** | 19.2.1 | DOM rendering |
-| **React Router DOM** | 7.10.1 | Client-side routing |
-| **Lucide React** | 0.559.0 | Icon library |
-| **React Icons** | 5.5.0 | Additional icons |
-| **CSS3** | - | Styling with CSS custom properties |
-| **Context API** | - | State management |
-
----
-
 ## 🚀 Installation
 
 ### Prerequisites
@@ -186,52 +172,13 @@ unisync-web-app/
 
 ---
 
-## 🎨 Design System
-
-### Color Palette
-
-| Color | Hex | Usage |
-|-------|-----|-------|
-| CvSU Green | `#0D5C2F` | Primary brand color |
-| CvSU Gold | `#FFD700` | Accent color |
-| Success | `#16a34a` | Positive states |
-| Warning | `#eab308` | Caution states |
-| Error | `#dc2626` | Error states |
-| Info | `#0ea5e9` | Informational |
-
-### Typography
-
-- **Font Family**: Inter, system-ui, sans-serif
-- **Headings**: 600-700 weight
-- **Body**: 400-500 weight
-
----
-
-## 🤝 Contributing
-
-Contributions are welcome! Please follow these steps:
-
-1. Fork the repository
-2. Create a feature branch (`git checkout -b feature/AmazingFeature`)
-3. Commit your changes (`git commit -m 'Add some AmazingFeature'`)
-4. Push to the branch (`git push origin feature/AmazingFeature`)
-5. Open a Pull Request
-
-### Coding Guidelines
-
-- Follow React best practices
-- Use functional components with hooks
-- Maintain consistent naming conventions
-- Write meaningful commit messages
-- Test your changes before submitting
-
----
-
-## 👨‍💻 Author
+## 👨‍💻 Authors
 
 **Jericho Delos Reyes**
-
 - GitHub: [@JerichoDelosReyes](https://github.com/JerichoDelosReyes)
+
+**Lee Adrian Norona**
+- GitHub: [@leeadriannorona](https://github.com/leeadriannorona)
 
 ---
 
