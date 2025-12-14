@@ -1,70 +1,278 @@
-# Getting Started with Create React App
+<div align="center">
+  <img src="public/assets/images/unisync-logo.png" alt="UNISYNC Logo" width="120" height="120">
+  
+  # UNISYNC - CvSU Imus Campus Portal
+  
+  [![React](https://img.shields.io/badge/React-19.0.0-61DAFB?style=for-the-badge&logo=react&logoColor=white)](https://reactjs.org/)
+  [![License](https://img.shields.io/badge/License-MIT-green?style=for-the-badge)](LICENSE)
+  [![Status](https://img.shields.io/badge/Status-In%20Development-yellow?style=for-the-badge)]()
+  
+  **A unified campus management system for Cavite State University - Imus Campus**
+  
+  [Demo](#demo) • [Features](#features) • [Installation](#installation) • [Usage](#usage) • [Contributing](#contributing)
+</div>
 
-This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
+---
 
-## Available Scripts
+## 📖 About
 
-In the project directory, you can run:
+**UNISYNC** is a comprehensive web application designed to streamline campus operations at CvSU Imus Campus. It provides a unified platform for students, faculty, guards, and administrators to manage announcements, room scheduling, organization activities, and campus facilities.
 
-### `npm start`
+### 🎯 Problem Statement
 
-Runs the app in the development mode.\
-Open [http://localhost:3000](http://localhost:3000) to view it in your browser.
+Campus communities often struggle with:
+- Fragmented communication channels
+- Inefficient room scheduling and access management
+- Lack of real-time facility status updates
+- Disconnected organization management
 
-The page will reload when you make changes.\
-You may also see any lint errors in the console.
+UNISYNC addresses these challenges by providing a single, integrated platform for all campus stakeholders.
 
-### `npm test`
+---
 
-Launches the test runner in the interactive watch mode.\
-See the section about [running tests](https://facebook.github.io/create-react-app/docs/running-tests) for more information.
+## ✨ Features
 
-### `npm run build`
+### 🔐 Role-Based Authentication
+- Institutional email validation (`@cvsu.edu.ph`)
+- Automatic role detection (Student, Faculty, Guard, Admin/MIS)
+- Specific dashboard routing based on user role
+- Guard-specific email authentication (`imus.guard@cvsu.edu.ph`)
 
-Builds the app for production to the `build` folder.\
-It correctly bundles React in production mode and optimizes the build for the best performance.
+### 📢 Announcement System
+- Campus-wide and section-specific announcements
+- Role-based posting privileges
+- Priority levels and audience targeting
+- Rich text formatting support
 
-The build is minified and the filenames include the hashes.\
-Your app is ready to be deployed!
+### 🚪 Room Scheduling & Access
+- Real-time room status indicators (Vacant/Occupied/Maintenance)
+- **Best-Fit Algorithm** for instant room booking
+- Room unlock requests for scheduled classes
+- Class Representative "Mark as Vacant" feature
+- Guard dispatch system for access requests
 
-See the section about [deployment](https://facebook.github.io/create-react-app/docs/deployment) for more information.
+### 🏢 Building Directory
+- Floor-by-floor mapping of all campus buildings
+- Searchable room and facility database
+- Detailed amenity information (AC, capacity, equipment)
+- 7 major buildings: New Building, Old Building, Gymnasium, Canteen, HM Lab, Covered Court, Administration
 
-### `npm run eject`
+### 👥 Organization Management
+- All 13 campus organizations
+- Tiered visibility (Campus-wide vs Members-only)
+- Officer privileges for announcements
+- Membership management
 
-**Note: this is a one-way operation. Once you `eject`, you can't go back!**
+### 🤖 AI Assistant (Chatbot)
+- Facility locator with natural language queries
+- Schedule assistance
+- Organization information
+- Campus navigation help
 
-If you aren't satisfied with the build tool and configuration choices, you can `eject` at any time. This command will remove the single build dependency from your project.
+### 📊 Role-Specific Dashboards
 
-Instead, it will copy all the configuration files and the transitive dependencies (webpack, Babel, ESLint, etc) right into your project so you have full control over them. All of the commands except `eject` will still work, but they will point to the copied scripts so you can tweak them. At this point you're on your own.
+| Role | Features |
+|------|----------|
+| **Student** | Schedule view, announcements feed, room status, organization updates |
+| **Faculty** | Teaching load, instant booking, ad-hoc room requests, unlock interface |
+| **Guard** | Dispatch dashboard, request verification, room unlock management |
+| **Admin** | System health, moderation logs, user management, override controls |
 
-You don't have to ever use `eject`. The curated feature set is suitable for small and middle deployments, and you shouldn't feel obligated to use this feature. However we understand that this tool wouldn't be useful if you couldn't customize it when you are ready for it.
+### 🔧 Additional Features
+- Report Issue module (equipment, schedule errors, offensive content)
+- Emergency directory with campus contacts
+- Mobile-responsive design
+- Real-time notifications
 
-## Learn More
+---
 
-You can learn more in the [Create React App documentation](https://facebook.github.io/create-react-app/docs/getting-started).
+## 🛠️ Tech Stack
 
-To learn React, check out the [React documentation](https://reactjs.org/).
+| Technology | Purpose |
+|------------|---------|
+| **React 19** | Frontend framework |
+| **React Router DOM** | Client-side routing |
+| **Lucide React** | Icon library |
+| **CSS3** | Styling with CSS custom properties |
+| **Context API** | State management |
 
-### Code Splitting
+---
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/code-splitting](https://facebook.github.io/create-react-app/docs/code-splitting)
+## 🚀 Installation
 
-### Analyzing the Bundle Size
+### Prerequisites
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size](https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size)
+- Node.js (v18 or higher)
+- npm or yarn
 
-### Making a Progressive Web App
+### Steps
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app](https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app)
+1. **Clone the repository**
+   ```bash
+   git clone https://github.com/JerichoDelosReyes/unisync-web-app.git
+   cd unisync-web-app
+   ```
 
-### Advanced Configuration
+2. **Install dependencies**
+   ```bash
+   npm install
+   ```
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/advanced-configuration](https://facebook.github.io/create-react-app/docs/advanced-configuration)
+3. **Start the development server**
+   ```bash
+   npm start
+   ```
 
-### Deployment
+4. **Open in browser**
+   ```
+   http://localhost:3000
+   ```
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/deployment](https://facebook.github.io/create-react-app/docs/deployment)
+---
 
-### `npm run build` fails to minify
+## 💻 Usage
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify](https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify)
+### Demo Accounts
+
+For testing purposes, use these demo credentials:
+
+| Role | Email | Password |
+|------|-------|----------|
+| Student | `student@cvsu.edu.ph` | `password123` |
+| Faculty | `faculty@cvsu.edu.ph` | `password123` |
+| Guard | `imus.guard@cvsu.edu.ph` | `password123` |
+| Admin | `admin@cvsu.edu.ph` | `password123` |
+
+### Available Scripts
+
+```bash
+# Development server
+npm start
+
+# Production build
+npm run build
+
+# Run tests
+npm test
+
+# Eject configuration (irreversible)
+npm run eject
+```
+
+---
+
+## 📁 Project Structure
+
+```
+unisync-web-app/
+├── public/
+│   ├── assets/images/          # Static images and logos
+│   ├── index.html
+│   └── manifest.json
+├── src/
+│   ├── components/
+│   │   ├── common/             # Reusable UI components
+│   │   │   ├── Alert.js
+│   │   │   ├── Badge.js
+│   │   │   ├── Button.js
+│   │   │   ├── Card.js
+│   │   │   ├── FloatingChatbot.js
+│   │   │   ├── Input.js
+│   │   │   ├── Loader.js
+│   │   │   ├── Modal.js
+│   │   │   └── Select.js
+│   │   └── layout/             # Layout components
+│   │       ├── MainLayout.js
+│   │       ├── Navbar.js
+│   │       └── Sidebar.js
+│   ├── context/
+│   │   └── AuthContext.js      # Authentication state management
+│   ├── pages/
+│   │   ├── announcements/      # Announcements module
+│   │   ├── assistant/          # AI Chatbot
+│   │   ├── auth/               # Login page
+│   │   ├── dashboard/          # Role-specific dashboards
+│   │   ├── directory/          # Building & Emergency directories
+│   │   ├── facilities/         # Room scheduling
+│   │   ├── organizations/      # Org management
+│   │   ├── report/             # Issue reporting
+│   │   └── schedule/           # Schedule viewer
+│   ├── styles/
+│   │   ├── components.css      # Component styles
+│   │   ├── layouts.css         # Layout styles
+│   │   └── theme.css           # Theme variables
+│   ├── App.js                  # Main application component
+│   └── index.js                # Entry point
+├── package.json
+└── README.md
+```
+
+---
+
+## 🎨 Design System
+
+### Color Palette
+
+| Color | Hex | Usage |
+|-------|-----|-------|
+| CvSU Green | `#0D5C2F` | Primary brand color |
+| CvSU Gold | `#FFD700` | Accent color |
+| Success | `#16a34a` | Positive states |
+| Warning | `#eab308` | Caution states |
+| Error | `#dc2626` | Error states |
+| Info | `#0ea5e9` | Informational |
+
+### Typography
+
+- **Font Family**: Inter, system-ui, sans-serif
+- **Headings**: 600-700 weight
+- **Body**: 400-500 weight
+
+---
+
+## 🤝 Contributing
+
+Contributions are welcome! Please follow these steps:
+
+1. Fork the repository
+2. Create a feature branch (`git checkout -b feature/AmazingFeature`)
+3. Commit your changes (`git commit -m 'Add some AmazingFeature'`)
+4. Push to the branch (`git push origin feature/AmazingFeature`)
+5. Open a Pull Request
+
+### Coding Guidelines
+
+- Follow React best practices
+- Use functional components with hooks
+- Maintain consistent naming conventions
+- Write meaningful commit messages
+- Test your changes before submitting
+
+---
+
+## 📄 License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+---
+
+## 👨‍💻 Author
+
+**Jericho Delos Reyes**
+
+- GitHub: [@JerichoDelosReyes](https://github.com/JerichoDelosReyes)
+
+---
+
+## 🙏 Acknowledgments
+
+- Cavite State University - Imus Campus
+- Department of Information Technology
+- All contributors and testers
+
+---
+
+<div align="center">
+  <p>Made with ❤️ for CvSU Imus Campus</p>
+  <p>© 2025 UNISYNC. All rights reserved.</p>
+</div>
