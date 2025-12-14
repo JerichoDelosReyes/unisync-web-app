@@ -1,0 +1,264 @@
+/* ============================================
+   SCHEDULE STYLES - Schedule List & Unlock
+   ============================================ */
+
+/* ============ SCHEDULE LIST ============ */
+.schedule-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-sm);
+}
+
+.schedule-item {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-md);
+  padding: var(--spacing-md);
+  background: var(--gray-50);
+  border-radius: var(--radius-lg);
+  transition: all var(--transition);
+}
+
+.schedule-item:hover {
+  background: var(--primary-50);
+}
+
+.schedule-item-time {
+  min-width: 70px;
+  padding: var(--spacing-sm);
+  background: var(--white);
+  border-radius: var(--radius-md);
+  text-align: center;
+  box-shadow: var(--shadow-xs);
+}
+
+.schedule-item-time .time {
+  font-size: var(--text-sm);
+  font-weight: 600;
+  color: var(--cvsu-green);
+}
+
+.schedule-item-time .period {
+  font-size: var(--text-xs);
+  color: var(--gray-500);
+}
+
+.schedule-item-details {
+  flex: 1;
+}
+
+.schedule-item-details h4 {
+  font-size: var(--text-sm);
+  font-weight: 600;
+  color: var(--gray-800);
+  margin-bottom: 2px;
+}
+
+.schedule-item-details p {
+  font-size: var(--text-xs);
+  color: var(--gray-500);
+}
+
+.schedule-item-status {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 4px;
+}
+
+/* ============ UNLOCK BUTTON ============ */
+.unlock-btn {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 6px 12px;
+  background: var(--cvsu-green);
+  color: var(--white);
+  border-radius: var(--radius-md);
+  font-size: var(--text-xs);
+  font-weight: 600;
+  transition: all var(--transition);
+}
+
+.unlock-btn:hover:not(:disabled) {
+  background: var(--cvsu-dark-green);
+  transform: translateY(-1px);
+}
+
+.unlock-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.unlock-btn.cooling-down {
+  background: var(--gray-400);
+  position: relative;
+  overflow: hidden;
+}
+
+.unlock-btn.cooling-down::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  height: 100%;
+  width: var(--cooldown-progress, 0%);
+  background: var(--gray-500);
+  transition: width 1s linear;
+}
+
+/* ============ UNLOCK MODAL ============ */
+.unlock-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  animation: fadeIn 0.2s ease-out;
+}
+
+.unlock-modal {
+  background: var(--white);
+  border-radius: var(--radius-xl);
+  padding: var(--spacing-xl);
+  max-width: 400px;
+  width: 90%;
+  text-align: center;
+  animation: scaleIn 0.2s ease-out;
+}
+
+.unlock-modal-icon {
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto var(--spacing-lg);
+  animation: pulse 2s infinite;
+}
+
+.unlock-modal-icon.pending {
+  background: var(--warning-light);
+  color: var(--warning);
+}
+
+.unlock-modal-icon.approved {
+  background: var(--success-light);
+  color: var(--success);
+  animation: none;
+}
+
+.unlock-modal h3 {
+  font-size: var(--text-xl);
+  font-weight: 600;
+  color: var(--gray-800);
+  margin-bottom: var(--spacing-sm);
+}
+
+.unlock-modal p {
+  color: var(--gray-600);
+  margin-bottom: var(--spacing-lg);
+}
+
+.unlock-modal-room {
+  background: var(--gray-50);
+  padding: var(--spacing-md);
+  border-radius: var(--radius-lg);
+  margin-bottom: var(--spacing-lg);
+}
+
+.unlock-modal-room h4 {
+  font-weight: 600;
+  color: var(--cvsu-green);
+}
+
+.unlock-modal-room p {
+  font-size: var(--text-sm);
+  color: var(--gray-500);
+  margin-bottom: 0;
+}
+
+.unlock-modal-status {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--spacing-sm);
+  padding: var(--spacing-md);
+  background: var(--warning-light);
+  border-radius: var(--radius-lg);
+  color: var(--warning);
+  font-weight: 500;
+}
+
+.unlock-modal-status.approved {
+  background: var(--success-light);
+  color: var(--success);
+}
+
+.unlock-modal-actions {
+  display: flex;
+  gap: var(--spacing-sm);
+  margin-top: var(--spacing-lg);
+}
+
+.unlock-modal-actions button {
+  flex: 1;
+  padding: var(--spacing-sm) var(--spacing-md);
+  border-radius: var(--radius-md);
+  font-weight: 500;
+  transition: all var(--transition);
+}
+
+.unlock-modal-actions .cancel-btn {
+  background: var(--gray-100);
+  color: var(--gray-700);
+}
+
+.unlock-modal-actions .cancel-btn:hover {
+  background: var(--gray-200);
+}
+
+/* ============ COOLDOWN STATE ============ */
+.schedule-item.cooldown-disabled {
+  opacity: 0.6;
+  pointer-events: none;
+  background: var(--gray-100);
+}
+
+.schedule-item.cooldown-disabled .unlock-btn {
+  background: var(--gray-400);
+  cursor: not-allowed;
+}
+
+.schedule-item.has-active-request {
+  border: 2px solid var(--cvsu-green);
+  background: var(--primary-50);
+}
+
+/* ============ RESPONSIVE ============ */
+@media (max-width: 480px) {
+  .schedule-item {
+    flex-wrap: wrap;
+    gap: var(--spacing-sm);
+  }
+  
+  .schedule-item-time {
+    min-width: auto;
+  }
+  
+  .schedule-item-status {
+    width: 100%;
+    flex-direction: row;
+    justify-content: space-between;
+  }
+  
+  .unlock-modal {
+    padding: var(--spacing-lg);
+  }
+}

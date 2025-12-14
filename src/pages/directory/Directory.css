@@ -525,18 +525,68 @@
   margin: 0;
 }
 
-/* Responsive */
+/* ============ RESPONSIVE ============ */
+@media (max-width: 1200px) {
+  .directory-stats {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  
+  .contacts-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  
+  .protocols-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 1024px) {
+  .floor-rooms-detailed {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
 @media (max-width: 768px) {
   .directory-stats {
     grid-template-columns: repeat(2, 1fr);
+    gap: var(--spacing-sm);
+  }
+  
+  .stat-card {
+    padding: var(--spacing-md);
+    flex-direction: column;
+    text-align: center;
+    gap: var(--spacing-sm);
   }
 
   .floor-rooms-detailed {
     grid-template-columns: 1fr;
   }
+  
+  .contacts-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .protocols-grid {
+    grid-template-columns: 1fr;
+  }
 
   .building-header {
     flex-wrap: wrap;
+    padding: var(--spacing-sm);
+  }
+  
+  .building-icon {
+    width: 40px;
+    height: 40px;
+  }
+  
+  .building-name {
+    font-size: var(--text-sm);
+  }
+  
+  .building-description {
+    font-size: var(--text-xs);
   }
 
   .building-meta {
@@ -549,5 +599,84 @@
     flex-direction: column;
     align-items: flex-start;
     gap: var(--spacing-sm);
+  }
+  
+  .emergency-alert {
+    flex-direction: column;
+    text-align: center;
+    padding: var(--spacing-md);
+  }
+  
+  .accessibility-notice {
+    flex-direction: column;
+    text-align: center;
+  }
+  
+  .section-title {
+    font-size: var(--text-lg);
+  }
+  
+  .contact-icon {
+    width: 48px;
+    height: 48px;
+  }
+  
+  .contact-name {
+    font-size: var(--text-base);
+  }
+}
+
+@media (max-width: 600px) {
+  .directory-stats {
+    grid-template-columns: 1fr;
+  }
+  
+  .stat-card {
+    flex-direction: row;
+    text-align: left;
+  }
+  
+  .floor-rooms {
+    gap: var(--spacing-xs);
+  }
+  
+  .room-tag {
+    padding: 4px 8px;
+    font-size: 10px;
+  }
+  
+  .room-card {
+    padding: var(--spacing-sm);
+  }
+  
+  .protocol-steps {
+    padding-left: var(--spacing-md);
+  }
+  
+  .protocol-steps li {
+    font-size: var(--text-xs);
+  }
+}
+
+@media (max-width: 480px) {
+  .directory-search-card .card-body {
+    padding: var(--spacing-sm);
+  }
+  
+  .directory-search-input {
+    font-size: var(--text-sm);
+    padding: var(--spacing-sm) var(--spacing-sm) var(--spacing-sm) 40px !important;
+  }
+  
+  .building-header {
+    gap: var(--spacing-sm);
+  }
+  
+  .floor-title {
+    font-size: var(--text-xs);
+  }
+  
+  .map-placeholder {
+    height: 150px;
   }
 }

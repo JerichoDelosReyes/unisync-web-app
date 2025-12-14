@@ -444,3 +444,133 @@
     opacity: 1;
   }
 }
+
+/* ============ RESPONSIVE ============ */
+@media (max-width: 1200px) {
+  .room-grid {
+    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  }
+}
+
+@media (max-width: 1024px) {
+  .facilities-layout {
+    grid-template-columns: 1fr;
+  }
+  
+  .room-details {
+    position: static;
+    margin-top: var(--spacing-lg);
+  }
+}
+
+@media (max-width: 768px) {
+  .building-tabs {
+    overflow-x: auto;
+    flex-wrap: nowrap;
+    padding-bottom: var(--spacing-sm);
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+  }
+  
+  .building-tabs::-webkit-scrollbar {
+    display: none;
+  }
+  
+  .building-tab {
+    flex-shrink: 0;
+    padding: 8px 14px;
+    font-size: var(--text-xs);
+  }
+  
+  .room-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: var(--spacing-sm);
+  }
+  
+  .room-tile {
+    padding: var(--spacing-sm);
+  }
+  
+  .room-tile-name {
+    font-size: var(--text-xs);
+  }
+  
+  .room-tile-info {
+    flex-direction: column;
+    gap: 4px;
+  }
+  
+  .room-details-header h3 {
+    font-size: var(--text-lg);
+  }
+  
+  .room-details-actions {
+    flex-direction: column;
+  }
+  
+  .room-details-actions button {
+    width: 100%;
+  }
+  
+  .booked-room-details {
+    flex-direction: column;
+    gap: var(--spacing-sm);
+  }
+  
+  .header-actions {
+    flex-direction: column;
+    width: 100%;
+  }
+  
+  .header-actions button {
+    width: 100%;
+  }
+}
+
+@media (max-width: 600px) {
+  .status-summary-bar {
+    flex-wrap: wrap;
+    gap: var(--spacing-sm);
+    padding: var(--spacing-sm);
+  }
+  
+  .status-item {
+    font-size: var(--text-xs);
+    padding: var(--spacing-xs) var(--spacing-sm);
+  }
+  
+  .room-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .room-amenities-section {
+    padding: var(--spacing-sm);
+  }
+  
+  .amenity-item {
+    padding: var(--spacing-xs) var(--spacing-sm);
+  }
+}
+
+@media (max-width: 480px) {
+  .room-tile-amenities {
+    gap: 4px;
+  }
+  
+  .amenity-badge {
+    padding: 2px 6px;
+    font-size: 9px;
+  }
+  
+  .room-info-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .booking-success {
+    padding: var(--spacing-lg);
+  }
+  
+  .booking-success h3 {
+    font-size: var(--text-lg);
+  }
+}

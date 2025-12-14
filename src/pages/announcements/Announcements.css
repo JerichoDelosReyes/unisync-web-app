@@ -410,3 +410,131 @@
   padding-top: var(--spacing-sm);
   border-top: 1px solid var(--gray-200);
 }
+
+/* ============ RESPONSIVE ============ */
+@media (max-width: 1024px) {
+  .announcement-image img {
+    max-height: 300px;
+  }
+}
+
+@media (max-width: 768px) {
+  .header-actions {
+    flex-direction: column;
+    width: 100%;
+  }
+  
+  .header-actions button {
+    width: 100%;
+  }
+  
+  .announcements-toolbar {
+    gap: var(--spacing-sm);
+  }
+  
+  .search-box {
+    max-width: 100%;
+  }
+  
+  .filter-tabs {
+    overflow-x: auto;
+    flex-wrap: nowrap;
+    padding-bottom: var(--spacing-xs);
+    -webkit-overflow-scrolling: touch;
+  }
+  
+  .filter-tab {
+    flex-shrink: 0;
+    white-space: nowrap;
+    padding: 6px 12px;
+    font-size: var(--text-xs);
+  }
+  
+  .announcement-header {
+    flex-direction: column;
+    gap: var(--spacing-sm);
+  }
+  
+  .announcement-badges {
+    align-self: flex-start;
+  }
+  
+  .announcement-title {
+    font-size: var(--text-base);
+  }
+  
+  .announcement-actions {
+    flex-wrap: wrap;
+    gap: var(--spacing-sm);
+  }
+  
+  .action-btn {
+    flex: 1;
+    justify-content: center;
+    min-width: calc(50% - var(--spacing-xs));
+  }
+  
+  .form-row {
+    grid-template-columns: 1fr;
+  }
+  
+  .image-upload {
+    padding: var(--spacing-lg);
+  }
+  
+  .history-header {
+    flex-direction: column;
+    gap: var(--spacing-sm);
+  }
+  
+  .history-meta {
+    flex-direction: column;
+    gap: var(--spacing-xs);
+  }
+}
+
+@media (max-width: 600px) {
+  .form-row {
+    grid-template-columns: 1fr;
+  }
+  
+  .announcement-image img {
+    max-height: 200px;
+  }
+  
+  .moderation-result {
+    padding: var(--spacing-lg);
+  }
+}
+
+@media (max-width: 480px) {
+  .announcement-card {
+    margin: 0 calc(-1 * var(--spacing-xs));
+    border-radius: var(--radius-md);
+  }
+  
+  .author-name {
+    font-size: var(--text-xs);
+  }
+  
+  .announcement-body {
+    font-size: var(--text-xs);
+  }
+  
+  .action-btn {
+    padding: 6px 10px;
+    font-size: var(--text-xs);
+  }
+  
+  .history-item {
+    padding: var(--spacing-sm);
+  }
+  
+  .history-actions {
+    flex-direction: column;
+  }
+  
+  .history-actions button {
+    width: 100%;
+  }
+}

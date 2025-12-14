@@ -14,14 +14,14 @@ import {
 } from 'lucide-react';
 import { Card, Badge, Button, Modal, Alert } from '../../components/common';
 import { useAuth } from '../../context/AuthContext';
-import './Dashboard.css';
+import './styles/index.css';
 
 const FacultyDashboard = () => {
   const { user } = useAuth();
   const [showBookingModal, setShowBookingModal] = useState(false);
   const [showUnlockModal, setShowUnlockModal] = useState(false);
   const [selectedClass, setSelectedClass] = useState(null);
-  const [unlockRequested, setUnlockRequested] = useState({});
+  const [activeRequest, setActiveRequest] = useState(null); // Track the single active request
 
   const handleRequestUnlock = (item) => {
     setSelectedClass(item);
@@ -30,15 +30,59 @@ const FacultyDashboard = () => {
 
   const submitUnlockRequest = () => {
     if (selectedClass) {
-      setUnlockRequested(prev => ({ ...prev, [selectedClass.subject]: true }));
+      // Set the active request - this will grey out all other rooms
+      setActiveRequest({
+        subject: selectedClass.subject,
+        room: selectedClass.room,
+        time: selectedClass.time,
+        requestedAt: new Date().toISOString()
+      });
       setShowUnlockModal(false);
       setSelectedClass(null);
     }
   };
 
-  // Check if class is currently active (within 15 minutes before or during)
-  const isClassActive = (status) => {
-    return status === 'ongoing' || status === 'upcoming';
+  // Check if class is eligible for unlock request
+  // - Ongoing classes can always request
+  // - Upcoming classes can request 5 minutes before scheduled time
+  const isClassEligible = (item) => {
+    if (item.status === 'ongoing') return true;
+    if (item.status === 'upcoming') {
+      // Parse the scheduled time and check if within 5 minutes
+      const now = new Date();
+      const [time, period] = item.time.split(' ');
+      const [hours, minutes] = time.split(':').map(Number);
+      let scheduledHour = hours;
+      if (period === 'PM' && hours !== 12) scheduledHour += 12;
+      if (period === 'AM' && hours === 12) scheduledHour = 0;
+      
+      const scheduledTime = new Date();
+      scheduledTime.setHours(scheduledHour, minutes, 0, 0);
+      
+      // Calculate minutes until class
+      const diffMs = scheduledTime - now;
+      const diffMins = diffMs / (1000 * 60);
+      
+      // Allow if within 5 minutes before class
+      return diffMins <= 5 && diffMins >= -60; // 5 min before to 60 min after start
+    }
+    return false;
+  };
+
+  // Check if unlock button should be disabled
+  // - Disabled if not eligible (not ongoing or not within 5 min window)
+  // - Disabled if there's already an active request (cooldown)
+  const isUnlockDisabled = (item) => {
+    // If there's an active request, disable all buttons
+    if (activeRequest) return true;
+    // Check if class is eligible
+    if (!isClassEligible(item)) return true;
+    return false;
+  };
+
+  // Check if this item has the active request
+  const hasActiveRequest = (item) => {
+    return activeRequest && activeRequest.subject === item.subject;
   };
 
   const stats = [
@@ -108,7 +152,7 @@ const FacultyDashboard = () => {
         >
           <div className="schedule-list">
             {schedule.map((item, index) => (
-              <div key={index} className={`schedule-item ${item.status}`}>
+              <div key={index} className={`schedule-item ${item.status} ${activeRequest && !hasActiveRequest(item) ? 'cooldown-disabled' : ''}`}>
                 <div className="schedule-time">
                   <Clock size={14} />
                   {item.time}
@@ -127,7 +171,7 @@ const FacultyDashboard = () => {
                   }>
                     {item.status}
                   </Badge>
-                  {unlockRequested[item.subject] ? (
+                  {hasActiveRequest(item) ? (
                     <Button 
                       variant="ghost" 
                       size="sm" 
@@ -139,14 +183,23 @@ const FacultyDashboard = () => {
                     </Button>
                   ) : (
                     <Button 
-                      variant={isClassActive(item.status) ? 'primary' : 'ghost'}
+                      variant={isClassEligible(item) && !activeRequest ? 'primary' : 'ghost'}
                       size="sm"
-                      className={`unlock-btn ${!isClassActive(item.status) ? 'disabled' : ''}`}
-                      disabled={!isClassActive(item.status)}
+                      className={`unlock-btn ${isUnlockDisabled(item) ? 'disabled' : ''}`}
+                      disabled={isUnlockDisabled(item)}
                       onClick={() => handleRequestUnlock(item)}
+                      title={
+                        activeRequest 
+                          ? 'Request cooldown active - wait for current request to be processed'
+                          : !isClassEligible(item) 
+                            ? 'Can only request 5 minutes before class or during ongoing class'
+                            : 'Request room unlock'
+                      }
                     >
                       <Key size={14} />
-                      <span className="unlock-text">Request Unlock</span>
+                      <span className="unlock-text">
+                        {activeRequest ? 'Cooldown' : 'Request Unlock'}
+                      </span>
                     </Button>
                   )}
                 </div>

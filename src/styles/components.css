@@ -589,3 +589,147 @@ select.form-input {
   opacity: 1;
   visibility: visible;
 }
+
+/* ============ RESPONSIVE ============ */
+@media (max-width: 768px) {
+  .btn {
+    padding: 0.5rem 1rem;
+    font-size: var(--text-xs);
+  }
+  
+  .btn-lg {
+    padding: 0.75rem 1.5rem;
+    font-size: var(--text-sm);
+  }
+  
+  .btn-icon {
+    width: 36px;
+    height: 36px;
+  }
+  
+  .card-header,
+  .card-body,
+  .card-footer {
+    padding: var(--spacing-md);
+  }
+  
+  .card-title {
+    font-size: var(--text-base);
+  }
+  
+  .modal {
+    max-width: 95%;
+    margin: var(--spacing-sm);
+  }
+  
+  .modal-header,
+  .modal-body,
+  .modal-footer {
+    padding: var(--spacing-md);
+  }
+  
+  .modal-footer {
+    flex-direction: column;
+  }
+  
+  .modal-footer button {
+    width: 100%;
+  }
+  
+  .tabs {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+  }
+  
+  .tabs::-webkit-scrollbar {
+    display: none;
+  }
+  
+  .tab {
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+  
+  .table th,
+  .table td {
+    padding: var(--spacing-sm);
+    font-size: var(--text-xs);
+  }
+  
+  .alert {
+    padding: var(--spacing-sm);
+    font-size: var(--text-xs);
+  }
+  
+  .empty-state {
+    padding: var(--spacing-xl);
+  }
+  
+  .empty-state-icon {
+    width: 60px;
+    height: 60px;
+  }
+  
+  .empty-state-title {
+    font-size: var(--text-base);
+  }
+  
+  .dropdown-menu {
+    min-width: 160px;
+  }
+  
+  .avatar {
+    width: 36px;
+    height: 36px;
+  }
+  
+  .avatar-lg {
+    width: 48px;
+    height: 48px;
+  }
+  
+  .avatar-xl {
+    width: 64px;
+    height: 64px;
+  }
+}
+
+@media (max-width: 480px) {
+  .btn {
+    padding: 0.5rem 0.875rem;
+    gap: var(--spacing-xs);
+  }
+  
+  .card-header,
+  .card-body,
+  .card-footer {
+    padding: var(--spacing-sm);
+  }
+  
+  .modal {
+    border-radius: var(--radius-lg);
+  }
+  
+  .modal-header {
+    padding: var(--spacing-sm) var(--spacing-md);
+  }
+  
+  .modal-title {
+    font-size: var(--text-base);
+  }
+  
+  .badge {
+    padding: 0.2rem 0.5rem;
+    font-size: 10px;
+  }
+  
+  .form-input {
+    padding: 0.5rem 0.75rem;
+    font-size: var(--text-sm);
+  }
+  
+  textarea.form-input {
+    min-height: 80px;
+  }
+}

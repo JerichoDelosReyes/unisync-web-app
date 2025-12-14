@@ -252,3 +252,117 @@
   background: var(--cvsu-green-light);
   transform: scale(1.05);
 }
+
+/* ============ RESPONSIVE ============ */
+@media (max-width: 768px) {
+  .assistant-page {
+    height: calc(100vh - var(--navbar-height) - var(--spacing-lg));
+  }
+  
+  .assistant-container {
+    border-radius: var(--radius-lg);
+  }
+  
+  .assistant-header {
+    padding: var(--spacing-md);
+  }
+  
+  .bot-avatar {
+    width: 40px;
+    height: 40px;
+  }
+  
+  .assistant-title h1 {
+    font-size: var(--text-base);
+  }
+  
+  .assistant-title p {
+    font-size: var(--text-xs);
+  }
+  
+  .assistant-status {
+    font-size: var(--text-xs);
+    padding: 4px 10px;
+  }
+  
+  .messages-container {
+    padding: var(--spacing-md);
+  }
+  
+  .message {
+    max-width: 90%;
+  }
+  
+  .message-avatar {
+    width: 28px;
+    height: 28px;
+  }
+  
+  .message-text {
+    padding: var(--spacing-sm) var(--spacing-md);
+    font-size: var(--text-xs);
+  }
+  
+  .quick-queries {
+    padding: var(--spacing-sm) var(--spacing-md);
+    gap: var(--spacing-xs);
+    overflow-x: auto;
+    flex-wrap: nowrap;
+    -webkit-overflow-scrolling: touch;
+  }
+  
+  .quick-query-btn {
+    flex-shrink: 0;
+    padding: 6px 10px;
+    font-size: 10px;
+  }
+  
+  .chat-input-container {
+    padding: var(--spacing-md);
+    gap: var(--spacing-xs);
+  }
+  
+  .chat-input {
+    padding: var(--spacing-sm) var(--spacing-md);
+    font-size: var(--text-sm);
+  }
+  
+  .send-btn {
+    width: 42px;
+    height: 42px;
+  }
+}
+
+@media (max-width: 480px) {
+  .assistant-page {
+    height: calc(100vh - var(--navbar-height) - var(--spacing-sm));
+  }
+  
+  .assistant-header {
+    flex-direction: column;
+    gap: var(--spacing-sm);
+    text-align: center;
+  }
+  
+  .assistant-title {
+    flex-direction: column;
+    gap: var(--spacing-xs);
+  }
+  
+  .message {
+    max-width: 95%;
+  }
+  
+  .quick-queries {
+    padding: var(--spacing-xs) var(--spacing-sm);
+  }
+  
+  .chat-input-container {
+    padding: var(--spacing-sm);
+  }
+  
+  .send-btn {
+    width: 38px;
+    height: 38px;
+  }
+}

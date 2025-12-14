@@ -20,7 +20,7 @@ import {
 } from 'lucide-react';
 import { Card, Badge, Button, Input } from '../../components/common';
 import { useAuth } from '../../context/AuthContext';
-import './Dashboard.css';
+import './styles/index.css';
 
 const GuardDashboard = () => {
   const { user } = useAuth();

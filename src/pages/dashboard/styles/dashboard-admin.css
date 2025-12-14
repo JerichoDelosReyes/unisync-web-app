@@ -1,0 +1,266 @@
+/* ============================================
+   ADMIN DASHBOARD - Analytics & Moderation
+   ============================================ */
+
+/* ============ ANALYTICS GRID ============ */
+.analytics-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: var(--spacing-lg);
+  margin-bottom: var(--spacing-xl);
+}
+
+.analytics-card {
+  background: var(--white);
+  border-radius: var(--radius-xl);
+  padding: var(--spacing-lg);
+  box-shadow: var(--shadow-sm);
+}
+
+.analytics-card h3 {
+  font-size: var(--text-base);
+  font-weight: 600;
+  color: var(--gray-800);
+  margin-bottom: var(--spacing-md);
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+}
+
+.analytics-chart {
+  height: 200px;
+  display: flex;
+  align-items: flex-end;
+  gap: var(--spacing-sm);
+  padding: var(--spacing-md) 0;
+}
+
+.chart-bar {
+  flex: 1;
+  background: linear-gradient(to top, var(--cvsu-green), var(--primary-100));
+  border-radius: var(--radius-sm) var(--radius-sm) 0 0;
+  transition: all var(--transition);
+  min-height: 20px;
+}
+
+.chart-bar:hover {
+  opacity: 0.8;
+}
+
+/* ============ SYSTEM HEALTH ============ */
+.system-health-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--spacing-md);
+}
+
+.health-item {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  padding: var(--spacing-md);
+  background: var(--gray-50);
+  border-radius: var(--radius-lg);
+}
+
+.health-indicator {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  animation: pulse 2s infinite;
+}
+
+.health-indicator.good { background: var(--success); }
+.health-indicator.warning { background: var(--warning); }
+.health-indicator.error { background: var(--error); }
+
+.health-item-content h4 {
+  font-size: var(--text-sm);
+  font-weight: 600;
+  color: var(--gray-800);
+}
+
+.health-item-content p {
+  font-size: var(--text-xs);
+  color: var(--gray-500);
+}
+
+/* ============ MODERATION LIST ============ */
+.moderation-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-sm);
+}
+
+.moderation-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: var(--spacing-md);
+  background: var(--gray-50);
+  border-radius: var(--radius-lg);
+  border-left: 3px solid var(--warning);
+  transition: all var(--transition);
+}
+
+.moderation-item:hover {
+  background: var(--warning-light);
+}
+
+.moderation-item-info h4 {
+  font-size: var(--text-sm);
+  font-weight: 600;
+  color: var(--gray-800);
+  margin-bottom: 2px;
+}
+
+.moderation-item-info p {
+  font-size: var(--text-xs);
+  color: var(--gray-500);
+}
+
+.moderation-actions {
+  display: flex;
+  gap: var(--spacing-xs);
+}
+
+.moderation-actions button {
+  padding: var(--spacing-xs) var(--spacing-sm);
+  border-radius: var(--radius-md);
+  font-size: var(--text-xs);
+  font-weight: 500;
+  transition: all var(--transition);
+}
+
+.approve-mod-btn {
+  background: var(--success);
+  color: var(--white);
+}
+
+.reject-mod-btn {
+  background: var(--gray-200);
+  color: var(--gray-700);
+}
+
+.approve-mod-btn:hover {
+  background: #0a8a4a;
+}
+
+.reject-mod-btn:hover {
+  background: var(--error);
+  color: var(--white);
+}
+
+/* ============ RECENT ACTIVITY ============ */
+.activity-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-sm);
+}
+
+.activity-item {
+  display: flex;
+  gap: var(--spacing-md);
+  padding: var(--spacing-sm) 0;
+  border-bottom: 1px solid var(--gray-100);
+}
+
+.activity-item:last-child {
+  border-bottom: none;
+}
+
+.activity-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.activity-icon.user { background: var(--primary-100); color: var(--cvsu-green); }
+.activity-icon.unlock { background: var(--success-light); color: var(--success); }
+.activity-icon.report { background: var(--warning-light); color: var(--warning); }
+.activity-icon.system { background: var(--gray-100); color: var(--gray-600); }
+
+.activity-content {
+  flex: 1;
+}
+
+.activity-content p {
+  font-size: var(--text-sm);
+  color: var(--gray-700);
+}
+
+.activity-content span {
+  font-size: var(--text-xs);
+  color: var(--gray-400);
+}
+
+/* ============ ADMIN QUICK ACTIONS ============ */
+.admin-quick-actions {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: var(--spacing-md);
+}
+
+.admin-action-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--spacing-sm);
+  padding: var(--spacing-lg);
+  background: var(--gray-50);
+  border-radius: var(--radius-lg);
+  color: var(--gray-700);
+  transition: all var(--transition);
+}
+
+.admin-action-btn:hover {
+  background: var(--cvsu-green);
+  color: var(--white);
+  transform: translateY(-2px);
+}
+
+.admin-action-btn span {
+  font-size: var(--text-sm);
+  font-weight: 500;
+}
+
+/* ============ RESPONSIVE ============ */
+@media (max-width: 1024px) {
+  .analytics-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 768px) {
+  .system-health-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .admin-quick-actions {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  
+  .moderation-item {
+    flex-direction: column;
+    gap: var(--spacing-sm);
+    align-items: flex-start;
+  }
+  
+  .moderation-actions {
+    width: 100%;
+  }
+  
+  .moderation-actions button {
+    flex: 1;
+  }
+}
+
+@media (max-width: 480px) {
+  .admin-quick-actions {
+    grid-template-columns: 1fr;
+  }
+}
