@@ -16,10 +16,12 @@ import {
   Calendar,
   Zap,
   RefreshCw,
-  Filter
+  Filter,
+  Info
 } from 'lucide-react';
 import { Card, Button, Badge, Modal, Alert, Select } from '../../components/common';
 import { useAuth } from '../../context/AuthContext';
+import { findBestFitRoom, markRoomVacant, ROOMS_DATABASE } from '../../utils/bestFit';
 import './Facilities.css';
 
 const Facilities = () => {
@@ -96,40 +98,85 @@ const Facilities = () => {
   ];
 
   // Best-Fit Algorithm for Instant Booking
-  const findBestFitRoom = (params) => {
-    const { facilityType, capacity } = params;
+  const findBestFitRoomLocal = (params) => {
+    const { facilityType, capacity, date, time } = params;
     const requiredCapacity = parseInt(capacity) || 0;
     
-    // Filter rooms that match criteria
+    // Use the Best-Fit algorithm from utils
+    const result = findBestFitRoom({
+      capacity: requiredCapacity,
+      type: facilityType === 'any' ? undefined : facilityType?.toLowerCase(),
+      amenities: [],
+      day: new Date(date).toLocaleDateString('en-US', { weekday: 'long' }),
+      startTime: time || '08:00',
+      endTime: time ? `${parseInt(time.split(':')[0]) + 1}:30` : '09:30'
+    });
+    
+    console.log('Best-Fit Algorithm Result:', result); // For debugging
+    
+    if (result.success) {
+      // Map the result to our facility format
+      const matchedFacility = facilities.find(f => 
+        f.name.toLowerCase().includes(result.bestMatch.name.toLowerCase()) ||
+        result.bestMatch.name.toLowerCase().includes(f.name.toLowerCase())
+      );
+      
+      return {
+        ...matchedFacility,
+        algorithmResult: result,
+        wastedSeats: result.criteria?.wastedSeats,
+        matchPercentage: result.criteria?.matchPercentage
+      };
+    }
+    
+    // Fallback to local filter if algorithm fails
     let candidates = facilities.filter(room => {
-      // Must be vacant
       if (room.status !== 'vacant') return false;
-      // Must match facility type or be 'Classroom' if looking for general space
       if (facilityType && facilityType !== 'any') {
         if (room.type !== facilityType) return false;
       }
-      // Must have enough capacity
       if (room.capacity < requiredCapacity) return false;
       return true;
     });
     
-    // Sort by capacity (smallest that fits - Best-Fit)
+    // Sort by capacity (smallest that fits - Best-Fit principle)
     candidates.sort((a, b) => a.capacity - b.capacity);
     
     return candidates[0] || null;
   };
 
   const handleInstantBook = () => {
-    const bestRoom = findBestFitRoom(instantBookParams);
+    const bestRoom = findBestFitRoomLocal(instantBookParams);
     if (bestRoom) {
       setSelectedRoom(bestRoom);
       setBookingSuccess(true);
+      
+      // Show algorithm details
+      if (bestRoom.algorithmResult) {
+        console.log('Booking via Best-Fit Algorithm:', {
+          room: bestRoom.name,
+          capacity: bestRoom.capacity,
+          wastedSeats: bestRoom.wastedSeats,
+          matchPercentage: bestRoom.matchPercentage
+        });
+      }
+    } else {
+      alert('No suitable room found. Try adjusting your requirements.');
     }
   };
 
   const handleMarkVacant = (room) => {
-    // In real implementation, this would update the database
-    alert(`Room ${room.name} has been marked as vacant. Guard will be notified.`);
+    // Use the markRoomVacant function from bestFit.js
+    const currentTime = new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false });
+    const currentDay = new Date().toLocaleDateString('en-US', { weekday: 'long' });
+    
+    const result = markRoomVacant(room.id || `NB-${room.name.split(' ')[1]}`, currentDay, currentTime, 'Class dismissed early');
+    
+    if (result.success) {
+      alert(`Room ${room.name} has been marked as vacant. Guard will be notified for unlocking.`);
+    } else {
+      alert(result.message || `Room ${room.name} marked as vacant.`);
+    }
   };
 
   const filteredFacilities = selectedBuilding === 'all' 

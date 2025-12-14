@@ -316,6 +316,8 @@ select.form-input {
   max-height: 90vh;
   overflow: hidden;
   animation: slideUp var(--transition);
+  display: flex;
+  flex-direction: column;
 }
 
 .modal-header {
@@ -324,6 +326,7 @@ select.form-input {
   justify-content: space-between;
   padding: var(--spacing-lg);
   border-bottom: 1px solid var(--gray-200);
+  flex-shrink: 0;
 }
 
 .modal-title {
@@ -350,6 +353,8 @@ select.form-input {
 .modal-body {
   padding: var(--spacing-lg);
   overflow-y: auto;
+  flex: 1;
+  min-height: 0;
 }
 
 .modal-footer {
@@ -360,6 +365,7 @@ select.form-input {
   padding: var(--spacing-lg);
   border-top: 1px solid var(--gray-200);
   background: var(--gray-50);
+  flex-shrink: 0;
 }
 
 /* ============ TABLES ============ */

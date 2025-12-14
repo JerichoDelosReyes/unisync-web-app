@@ -23,6 +23,7 @@ import {
 } from 'lucide-react';
 import { Card, Button, Badge, Modal, Input, Select, Alert } from '../../components/common';
 import { useAuth } from '../../context/AuthContext';
+import { moderateContent } from '../../utils/naiveBayes';
 import './Announcements.css';
 
 const Announcements = () => {
@@ -36,13 +37,45 @@ const Announcements = () => {
     content: '',
     audience: '',
     priority: 'normal',
-    image: null
+    image: null,
+    imageName: ''
   });
   const [moderationStatus, setModerationStatus] = useState(null);
 
   // Check if user can create announcements based on new privilege system
   const userCanPost = canPostAnnouncement();
   const userScope = getAnnouncementScope();
+  
+  // Handle file upload
+  const handleFileChange = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      // Validate file type
+      if (!file.type.startsWith('image/')) {
+        alert('Please select an image file');
+        return;
+      }
+      // Validate file size (max 5MB)
+      if (file.size > 5 * 1024 * 1024) {
+        alert('Image size should be less than 5MB');
+        return;
+      }
+      setNewAnnouncement(prev => ({ 
+        ...prev, 
+        image: file,
+        imageName: file.name 
+      }));
+    }
+  };
+  
+  // Remove uploaded file
+  const handleRemoveFile = () => {
+    setNewAnnouncement(prev => ({ 
+      ...prev, 
+      image: null,
+      imageName: '' 
+    }));
+  };
 
   const filters = [
     { id: 'all', label: 'All', icon: Globe },
@@ -266,18 +299,28 @@ const Announcements = () => {
       return;
     }
 
-    // Run through Naive Bayes moderation
+    // Run through Naive Bayes moderation algorithm
     const moderationResult = moderateContent(newAnnouncement.title, newAnnouncement.content);
     
-    if (moderationResult.safe) {
+    console.log('Naive Bayes Moderation Result:', moderationResult); // For debugging
+    
+    if (moderationResult.approved) {
       setModerationStatus({ 
         type: 'success', 
-        message: 'Your announcement has been published successfully!' 
+        message: `Your announcement has been published successfully! (Confidence: ${(moderationResult.confidence * 100).toFixed(1)}%)` 
       });
-    } else {
+    } else if (moderationResult.status === 'pending_review') {
       setModerationStatus({ 
         type: 'warning', 
-        message: `Your announcement has been flagged for admin review. Reason: ${moderationResult.reason}` 
+        message: `Your announcement needs manual review. It will be checked by an administrator. (Confidence: ${(moderationResult.confidence * 100).toFixed(1)}%)` 
+      });
+    } else {
+      const flaggedWordsText = moderationResult.flaggedWords?.length > 0 
+        ? ` Flagged terms: ${moderationResult.flaggedWords.map(w => w.word).join(', ')}`
+        : '';
+      setModerationStatus({ 
+        type: 'warning', 
+        message: `Your announcement has been flagged for admin review.${flaggedWordsText}` 
       });
     }
 
@@ -285,7 +328,7 @@ const Announcements = () => {
     setTimeout(() => {
       setShowCreateModal(false);
       setModerationStatus(null);
-      setNewAnnouncement({ title: '', content: '', audience: '', priority: 'normal', image: null });
+      setNewAnnouncement({ title: '', content: '', audience: '', priority: 'normal', image: null, imageName: '' });
     }, 3000);
   };
 
@@ -442,6 +485,14 @@ const Announcements = () => {
         onClose={() => {
           setShowCreateModal(false);
           setModerationStatus(null);
+          setNewAnnouncement({
+            title: '',
+            content: '',
+            audience: '',
+            priority: 'normal',
+            image: null,
+            imageName: ''
+          });
         }}
         title="Create Announcement"
         size="lg"
@@ -513,10 +564,25 @@ const Announcements = () => {
 
             <div className="form-group">
               <label className="form-label">Attach Image (Optional)</label>
-              <div className="image-upload">
+              <div className={`image-upload ${newAnnouncement.imageName ? 'has-file' : ''}`}>
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={handleFileChange}
+                  id="announcement-image"
+                />
                 <Image size={24} />
-                <span>Click or drag to upload image</span>
+                <span>{newAnnouncement.imageName || 'Click or drag to upload image'}</span>
               </div>
+              {newAnnouncement.imageName && (
+                <div className="uploaded-preview">
+                  <Image size={16} />
+                  <span>{newAnnouncement.imageName}</span>
+                  <button type="button" onClick={handleRemoveFile}>
+                    <XCircle size={16} />
+                  </button>
+                </div>
+              )}
             </div>
 
             <div className="moderation-notice">
