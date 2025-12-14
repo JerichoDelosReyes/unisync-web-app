@@ -1,15 +1,12 @@
 <div align="center">
-  <img src="public/assets/images/unisync-logo.png" alt="UNISYNC Logo" width="120" height="120">
+  <img src="public/assets/images/logo.png" alt="UNISYNC Logo" width="120" height="120">
   
   # UNISYNC - CvSU Imus Campus Portal
   
   [![React](https://img.shields.io/badge/React-19.0.0-61DAFB?style=for-the-badge&logo=react&logoColor=white)](https://reactjs.org/)
-  [![License](https://img.shields.io/badge/License-MIT-green?style=for-the-badge)](LICENSE)
   [![Status](https://img.shields.io/badge/Status-In%20Development-yellow?style=for-the-badge)]()
   
   **A unified campus management system for Cavite State University - Imus Campus**
-  
-  [Demo](#demo) • [Features](#features) • [Installation](#installation) • [Usage](#usage) • [Contributing](#contributing)
 </div>
 
 ---
@@ -33,41 +30,22 @@ UNISYNC addresses these challenges by providing a single, integrated platform fo
 ## ✨ Features
 
 ### 🔐 Role-Based Authentication
-- Institutional email validation (`@cvsu.edu.ph`)
-- Automatic role detection (Student, Faculty, Guard, Admin/MIS)
-- Specific dashboard routing based on user role
-- Guard-specific email authentication (`imus.guard@cvsu.edu.ph`)
+Institutional email validation (`@cvsu.edu.ph`) with automatic role detection for Students, Faculty, Guards, and Admin/MIS. Features specific dashboard routing based on user role and guard-specific email authentication (`imus.guard@cvsu.edu.ph`).
 
 ### 📢 Announcement System
-- Campus-wide and section-specific announcements
-- Role-based posting privileges
-- Priority levels and audience targeting
-- Rich text formatting support
+Campus-wide and section-specific announcements with role-based posting privileges. Includes priority levels, audience targeting, and rich text formatting support.
 
 ### 🚪 Room Scheduling & Access
-- Real-time room status indicators (Vacant/Occupied/Maintenance)
-- **Best-Fit Algorithm** for instant room booking
-- Room unlock requests for scheduled classes
-- Class Representative "Mark as Vacant" feature
-- Guard dispatch system for access requests
+Real-time room status indicators (Vacant/Occupied/Maintenance) with **Best-Fit Algorithm** for instant room booking. Includes room unlock requests for scheduled classes, Class Representative "Mark as Vacant" feature, and guard dispatch system for access requests.
 
 ### 🏢 Building Directory
-- Floor-by-floor mapping of all campus buildings
-- Searchable room and facility database
-- Detailed amenity information (AC, capacity, equipment)
-- 7 major buildings: New Building, Old Building, Gymnasium, Canteen, HM Lab, Covered Court, Administration
+Floor-by-floor mapping of all campus buildings with searchable room and facility database. Includes detailed amenity information (AC, capacity, equipment) for 7 major buildings: New Building, Old Building, Gymnasium, Canteen, HM Lab, Covered Court, and Administration.
 
 ### 👥 Organization Management
-- All 13 campus organizations
-- Tiered visibility (Campus-wide vs Members-only)
-- Officer privileges for announcements
-- Membership management
+All 13 campus organizations with tiered visibility (Campus-wide vs Members-only). Features officer privileges for announcements and membership management.
 
 ### 🤖 AI Assistant (Chatbot)
-- Facility locator with natural language queries
-- Schedule assistance
-- Organization information
-- Campus navigation help
+Facility locator with natural language queries, schedule assistance, organization information, and campus navigation help.
 
 ### 📊 Role-Specific Dashboards
 
@@ -79,22 +57,21 @@ UNISYNC addresses these challenges by providing a single, integrated platform fo
 | **Admin** | System health, moderation logs, user management, override controls |
 
 ### 🔧 Additional Features
-- Report Issue module (equipment, schedule errors, offensive content)
-- Emergency directory with campus contacts
-- Mobile-responsive design
-- Real-time notifications
+Report Issue module for equipment, schedule errors, and offensive content. Emergency directory with campus contacts, mobile-responsive design, and real-time notifications.
 
 ---
 
 ## 🛠️ Tech Stack
 
-| Technology | Purpose |
-|------------|---------|
-| **React 19** | Frontend framework |
-| **React Router DOM** | Client-side routing |
-| **Lucide React** | Icon library |
-| **CSS3** | Styling with CSS custom properties |
-| **Context API** | State management |
+| Technology | Version | Purpose |
+|------------|---------|----------|
+| **React** | 19.2.1 | Frontend framework |
+| **React DOM** | 19.2.1 | DOM rendering |
+| **React Router DOM** | 7.10.1 | Client-side routing |
+| **Lucide React** | 0.559.0 | Icon library |
+| **React Icons** | 5.5.0 | Additional icons |
+| **CSS3** | - | Styling with CSS custom properties |
+| **Context API** | - | State management |
 
 ---
 
@@ -250,25 +227,11 @@ Contributions are welcome! Please follow these steps:
 
 ---
 
-## 📄 License
-
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
-
----
-
 ## 👨‍💻 Author
 
 **Jericho Delos Reyes**
 
 - GitHub: [@JerichoDelosReyes](https://github.com/JerichoDelosReyes)
-
----
-
-## 🙏 Acknowledgments
-
-- Cavite State University - Imus Campus
-- Department of Information Technology
-- All contributors and testers
 
 ---
 
