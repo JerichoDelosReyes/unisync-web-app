@@ -13,7 +13,7 @@
 
 ## 📖 About
 
-**UNISYNC** is a comprehensive web application designed to streamline campus operations at CvSU Imus Campus. It provides a unified platform for students, faculty, guards, and administrators to manage announcements, room scheduling, organization activities, and campus facilities.
+**UNISYNC** i`s a comprehensive web application designed to streamline campus operations at CvSU Imus Campus. It provides a unified platform for students, faculty, guards, and administrators to manage announcements, room scheduling, organization activities, and campus facilities.
 
 ### 🎯 Problem Statement
 
