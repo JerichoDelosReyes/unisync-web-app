@@ -242,8 +242,9 @@ class NaiveBayesClassifier {
    * In production, this would use a larger dataset from a database
    */
   train() {
-    // SAFE content examples (typical announcements)
+    // SAFE content examples (typical school announcements - more examples = better accuracy)
     const safeExamples = [
+      // Academic announcements
       "Final examination schedule for first semester",
       "Class suspension due to weather conditions",
       "General assembly this Friday at the gymnasium",
@@ -273,10 +274,42 @@ class NaiveBayesClassifier {
       "Internship opportunities available",
       "Thesis defense schedule posted",
       "Holiday break announcement",
-      "Welcome back to school activities"
+      "Welcome back to school activities",
+      // Additional safe examples for better training
+      "Midterm exam results are now available",
+      "Please check your grades online",
+      "Meeting for all student leaders",
+      "Clearance signing schedule",
+      "ID validation at the registrar office",
+      "Request for official transcript",
+      "Certificate of enrollment available",
+      "Dean's list announcement",
+      "Graduation ceremony details",
+      "Commencement exercises schedule",
+      "Faculty development program",
+      "Workshop on research methodology",
+      "Training for student assistants",
+      "Blood donation drive this week",
+      "Mental health awareness seminar",
+      "Career fair next month",
+      "Job placement orientation",
+      "Alumni homecoming event",
+      "Foundation day celebration",
+      "Recognition day program",
+      "Orientation for freshmen",
+      "Campus tour for visitors",
+      "Parent teacher conference",
+      "Report card distribution",
+      "Submission of project requirements",
+      "Laboratory equipment maintenance",
+      "WiFi password update notice",
+      "Email account activation",
+      "Student portal is now online",
+      "Class schedule adjustment",
+      "Room transfer notification"
     ];
     
-    // UNSAFE content examples (inappropriate, spam, offensive)
+    // UNSAFE content examples (spam, harassment, inappropriate)
     const unsafeExamples = [
       "Buy cheap products click here now",
       "You are stupid and worthless",
@@ -297,7 +330,18 @@ class NaiveBayesClassifier {
       "Spam advertisement for products",
       "Phishing attempt steal password",
       "Malware download click here",
-      "Offensive language and cursing"
+      "Offensive language and cursing",
+      // Additional unsafe examples
+      "Make money from home easy cash",
+      "You will regret this threat",
+      "Worst school ever avoid this place",
+      "Free iPhone giveaway click now",
+      "Hot singles in your area",
+      "Crypto investment guaranteed returns",
+      "Hack any account tutorial",
+      "Cheat on exams method works",
+      "Teachers are corrupt here",
+      "This is a scam university"
     ];
     
     // Train on safe examples
@@ -494,17 +538,33 @@ export const moderateContent = (title, content) => {
   const result = moderationClassifier.classify(fullText);
   
   // Determine action based on classification
+  // Lower thresholds to reduce false "pending review" cases
   let status, message;
   
-  if (result.category === 'safe' && result.confidence > 0.7) {
-    status = 'approved';
-    message = 'Content approved! Your announcement is now published.';
-  } else if (result.category === 'unsafe' && result.confidence > 0.8) {
-    status = 'rejected';
-    message = 'Content flagged as potentially inappropriate. It will be reviewed by an administrator.';
+  if (result.category === 'safe') {
+    // If classified as safe with any reasonable confidence, approve it
+    // Most legitimate announcements should pass through
+    if (result.confidence >= 0.5) {
+      status = 'approved';
+      message = 'Content approved! Your announcement is now published.';
+    } else {
+      // Very low confidence = needs review (rare edge case)
+      status = 'pending_review';
+      message = 'Content sent for manual review. An administrator will review it shortly.';
+    }
   } else {
-    status = 'pending_review';
-    message = 'Content sent for manual review. An administrator will review it shortly.';
+    // Classified as unsafe
+    if (result.confidence > 0.75) {
+      status = 'rejected';
+      message = 'Content flagged as potentially inappropriate. It will be reviewed by an administrator.';
+    } else if (result.confidence > 0.6) {
+      status = 'pending_review';
+      message = 'Content sent for manual review. An administrator will review it shortly.';
+    } else {
+      // Low confidence unsafe = probably safe, approve it
+      status = 'approved';
+      message = 'Content approved! Your announcement is now published.';
+    }
   }
   
   return {

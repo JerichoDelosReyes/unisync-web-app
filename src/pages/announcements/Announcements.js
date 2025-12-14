@@ -85,8 +85,8 @@ const Announcements = () => {
     { id: 'section', label: 'Section', icon: BookOpen },
   ];
 
-  // Sample announcements with different sources
-  const announcements = [
+  // Sample announcements with different sources (now as state so we can add new ones)
+  const [announcements, setAnnouncements] = useState([
     {
       id: 1,
       title: 'Final Examination Schedule for First Semester A.Y. 2024-2025',
@@ -215,7 +215,7 @@ const Announcements = () => {
       moderationStatus: 'approved',
       scope: 'Section Only (BSCS 3-1)'
     },
-  ];
+  ]);
 
   // User's announcement history
   const myAnnouncements = [
@@ -274,62 +274,63 @@ const Announcements = () => {
     return [];
   };
 
-  // Simulate Naive Bayes moderation
-  const moderateContent = (title, content) => {
-    // List of potentially unsafe keywords (simplified simulation)
-    const unsafePatterns = [
-      /\b(spam|scam|fake|fraud)\b/i,
-      /\b(inappropriate|offensive|vulgar)\b/i,
-      /\b(buy now|click here|limited offer)\b/i,
-    ];
-
-    const combinedText = `${title} ${content}`;
-    
-    for (const pattern of unsafePatterns) {
-      if (pattern.test(combinedText)) {
-        return { safe: false, reason: 'Content flagged for review - potential policy violation' };
-      }
-    }
-    
-    return { safe: true, reason: null };
-  };
+  // Using imported moderateContent from naiveBayes.js (removed local duplicate)
 
   const handlePublish = () => {
     if (!newAnnouncement.title || !newAnnouncement.content || !newAnnouncement.audience) {
       return;
     }
 
-    // Run through Naive Bayes moderation algorithm
+    // Run through Naive Bayes moderation algorithm (imported from naiveBayes.js)
     const moderationResult = moderateContent(newAnnouncement.title, newAnnouncement.content);
     
     console.log('Naive Bayes Moderation Result:', moderationResult); // For debugging
     
     if (moderationResult.approved) {
+      // Content is safe - publish immediately
       setModerationStatus({ 
         type: 'success', 
-        message: `Your announcement has been published successfully! (Confidence: ${(moderationResult.confidence * 100).toFixed(1)}%)` 
+        message: `✅ Your announcement has been published successfully! (Confidence: ${(moderationResult.confidence * 100).toFixed(1)}%)` 
       });
+      
+      // Add to announcements list (in real app, this would go to database)
+      const newPost = {
+        id: Date.now(),
+        title: newAnnouncement.title,
+        content: newAnnouncement.content,
+        author: user?.name || 'Anonymous',
+        role: user?.role || 'Student',
+        date: new Date().toISOString(),
+        audience: newAnnouncement.audience,
+        status: 'published'
+      };
+      setAnnouncements(prev => [newPost, ...prev]);
+      
     } else if (moderationResult.status === 'pending_review') {
+      // Needs admin review
       setModerationStatus({ 
         type: 'warning', 
-        message: `Your announcement needs manual review. It will be checked by an administrator. (Confidence: ${(moderationResult.confidence * 100).toFixed(1)}%)` 
+        message: `⏳ ${moderationResult.message}` 
       });
     } else {
-      const flaggedWordsText = moderationResult.flaggedWords?.length > 0 
-        ? ` Flagged terms: ${moderationResult.flaggedWords.map(w => w.word).join(', ')}`
+      // Rejected - show reason
+      const flaggedTerms = moderationResult.flaggedWords?.length > 0 
+        ? ` Detected: ${moderationResult.flaggedWords.slice(0, 3).join(', ')}`
         : '';
       setModerationStatus({ 
-        type: 'warning', 
-        message: `Your announcement has been flagged for admin review.${flaggedWordsText}` 
+        type: 'error', 
+        message: `❌ ${moderationResult.message}${flaggedTerms}` 
       });
     }
 
-    // Reset form after 3 seconds
-    setTimeout(() => {
-      setShowCreateModal(false);
-      setModerationStatus(null);
-      setNewAnnouncement({ title: '', content: '', audience: '', priority: 'normal', image: null, imageName: '' });
-    }, 3000);
+    // Reset form after 2 seconds if successful
+    if (moderationResult.approved) {
+      setTimeout(() => {
+        setShowCreateModal(false);
+        setModerationStatus(null);
+        setNewAnnouncement({ title: '', content: '', audience: '', priority: 'normal', image: null, imageName: '' });
+      }, 2000);
+    }
   };
 
   const audienceOptions = getAudienceOptions();
