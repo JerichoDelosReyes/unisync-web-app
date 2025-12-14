@@ -67,9 +67,17 @@ let scheduleDatabase = [
  * Check if a time slot overlaps with an existing schedule
  */
 const hasTimeConflict = (schedule, day, startTime, endTime) => {
+  // Handle undefined or invalid time values
+  if (!startTime || !endTime || !day) {
+    return false;
+  }
+  
   const toMinutes = (time) => {
-    const [hours, minutes] = time.split(':').map(Number);
-    return hours * 60 + minutes;
+    if (!time || typeof time !== 'string') return 0;
+    const parts = time.split(':');
+    if (parts.length < 2) return 0;
+    const [hours, minutes] = parts.map(Number);
+    return (hours || 0) * 60 + (minutes || 0);
   };
   
   const newStart = toMinutes(startTime);
@@ -77,6 +85,7 @@ const hasTimeConflict = (schedule, day, startTime, endTime) => {
   
   return schedule.some(slot => {
     if (slot.day !== day) return false;
+    if (!slot.startTime || !slot.endTime) return false;
     
     const slotStart = toMinutes(slot.startTime);
     const slotEnd = toMinutes(slot.endTime);
@@ -90,9 +99,17 @@ const hasTimeConflict = (schedule, day, startTime, endTime) => {
  * Get room availability status
  */
 export const getRoomStatus = (roomId, day, time) => {
+  // Handle undefined or invalid time values
+  if (!time || !day || !roomId) {
+    return { status: 'available' };
+  }
+  
   const toMinutes = (t) => {
-    const [hours, minutes] = t.split(':').map(Number);
-    return hours * 60 + minutes;
+    if (!t || typeof t !== 'string') return 0;
+    const parts = t.split(':');
+    if (parts.length < 2) return 0;
+    const [hours, minutes] = parts.map(Number);
+    return (hours || 0) * 60 + (minutes || 0);
   };
   
   const currentTime = toMinutes(time);
