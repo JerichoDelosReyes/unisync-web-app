@@ -1,0 +1,112 @@
+import { Navigate, useLocation } from 'react-router-dom'
+import { useAuth, ROLES } from '../../contexts/AuthContext'
+
+/**
+ * ProtectedRoute Component
+ * 
+ * Guards routes based on authentication and role requirements.
+ * Redirects to login if not authenticated.
+ * Redirects to unauthorized page if role requirement not met.
+ * 
+ * @param {React.ReactNode} children - The component to render if authorized
+ * @param {string} requiredRole - Minimum role required (optional)
+ * @param {string[]} allowedRoles - Specific roles allowed (optional)
+ */
+export default function ProtectedRoute({ 
+  children, 
+  requiredRole = null,
+  allowedRoles = null 
+}) {
+  const { user, userProfile, loading, isEmailVerified, hasMinRole, hasRole } = useAuth()
+  const location = useLocation()
+
+  // Show loading state while checking auth
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="flex flex-col items-center gap-4">
+          <div className="w-12 h-12 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
+          <p className="text-gray-600 text-sm">Loading...</p>
+        </div>
+      </div>
+    )
+  }
+
+  // Not logged in - redirect to login
+  if (!user) {
+    return <Navigate to="/auth" state={{ from: location }} replace />
+  }
+
+  // Email not verified - redirect to auth page
+  if (!isEmailVerified) {
+    return <Navigate to="/auth" state={{ from: location, message: 'Please verify your email first.' }} replace />
+  }
+
+  // No user profile yet - might still be loading or registration incomplete
+  if (!userProfile) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="text-center">
+          <h2 className="text-xl font-semibold text-gray-900 mb-2">Setting up your account...</h2>
+          <p className="text-gray-600">Please wait while we load your profile.</p>
+        </div>
+      </div>
+    )
+  }
+
+  // Check if specific roles are allowed
+  if (allowedRoles && allowedRoles.length > 0) {
+    const hasAllowedRole = allowedRoles.some(role => hasRole(role))
+    if (!hasAllowedRole) {
+      return <Navigate to="/unauthorized" replace />
+    }
+  }
+
+  // Check minimum role requirement
+  if (requiredRole && !hasMinRole(requiredRole)) {
+    return <Navigate to="/unauthorized" replace />
+  }
+
+  // All checks passed - render the protected content
+  return children
+}
+
+/**
+ * Role-specific route guard components for convenience
+ */
+
+// Only Super Admin
+export function SuperAdminRoute({ children }) {
+  return (
+    <ProtectedRoute allowedRoles={[ROLES.SUPER_ADMIN]}>
+      {children}
+    </ProtectedRoute>
+  )
+}
+
+// Admin and above (Super Admin, Admin)
+export function AdminRoute({ children }) {
+  return (
+    <ProtectedRoute requiredRole={ROLES.ADMIN}>
+      {children}
+    </ProtectedRoute>
+  )
+}
+
+// Faculty and above (Super Admin, Admin, Faculty)
+export function FacultyRoute({ children }) {
+  return (
+    <ProtectedRoute requiredRole={ROLES.FACULTY}>
+      {children}
+    </ProtectedRoute>
+  )
+}
+
+// Any authenticated user
+export function AuthenticatedRoute({ children }) {
+  return (
+    <ProtectedRoute>
+      {children}
+    </ProtectedRoute>
+  )
+}

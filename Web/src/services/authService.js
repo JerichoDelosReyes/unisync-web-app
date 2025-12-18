@@ -23,10 +23,18 @@ import {
 // CvSU-Imus domain restriction
 export const ALLOWED_DOMAIN = 'cvsu.edu.ph';
 
-// User roles
+// User roles (matches AuthContext ROLES)
 export const USER_ROLES = {
+  SUPER_ADMIN: 'super_admin',
+  ADMIN: 'admin',
+  FACULTY: 'faculty',
+  YEAR_REP: 'year_rep',
+  CLASS_REP: 'class_rep',
   STUDENT: 'student'
 };
+
+// Default role for new registrations
+export const DEFAULT_ROLE = USER_ROLES.STUDENT;
 
 // ============================================
 // VALIDATION FUNCTIONS
@@ -201,7 +209,7 @@ export const completeRegistration = async (userData) => {
       return { success: true, message: 'Account already exists.' };
     }
 
-    // Store user data in Firestore with Student role
+    // Store user data in Firestore with default Student role
     console.log('Creating user document in Firestore...');
     await setDoc(doc(db, 'users', user.uid), {
       uid: user.uid,
@@ -209,7 +217,8 @@ export const completeRegistration = async (userData) => {
       givenName,
       lastName,
       displayName: `${givenName} ${lastName}`,
-      role: USER_ROLES.STUDENT,
+      role: DEFAULT_ROLE, // Default: student (per ruleset)
+      tags: [], // Empty tags array (tags are labels, not permissions)
       isVerified: true,
       emailVerified: true,
       createdAt: serverTimestamp(),
