@@ -1,12 +1,136 @@
 import { useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import BrandLogo from '../components/BrandLogo.jsx'
 import TextInput from '../components/forms/TextInput.jsx'
 import PasswordInput from '../components/forms/PasswordInput.jsx'
 import Button from '../components/ui/Button.jsx'
+import Toast from '../components/ui/Toast.jsx'
 import logo from '../assets/cvsu-logo.png'
 
 export default function AuthPage() {
   const [activeTab, setActiveTab] = useState('signup')
+  const navigate = useNavigate()
+  
+  // Sign In State
+  const [signInEmail, setSignInEmail] = useState('')
+  const [signInPassword, setSignInPassword] = useState('')
+  
+  // Sign Up State
+  const [givenName, setGivenName] = useState('')
+  const [lastName, setLastName] = useState('')
+  const [signUpEmail, setSignUpEmail] = useState('')
+  const [signUpPassword, setSignUpPassword] = useState('')
+  const [confirmPassword, setConfirmPassword] = useState('')
+  
+  // Toast State
+  const [toast, setToast] = useState({ show: false, message: '', kind: 'info' })
+  
+  // Helper function to show toast
+  const showToast = (message, kind = 'info') => {
+    setToast({ show: true, message, kind })
+    setTimeout(() => setToast({ show: false, message: '', kind: 'info' }), 4000)
+  }
+  
+  // Validate CvSU email
+  const isValidCvsuEmail = (email) => {
+    return email.toLowerCase().endsWith('@cvsu.edu.ph')
+  }
+  
+  // Handle Sign In
+  const handleSignIn = (e) => {
+    e.preventDefault()
+    
+    // Validation
+    if (!signInEmail || !signInPassword) {
+      showToast('Please fill in all fields', 'warning')
+      return
+    }
+    
+    if (!isValidCvsuEmail(signInEmail)) {
+      showToast('Please use your CvSU email (@cvsu.edu.ph)', 'warning')
+      return
+    }
+    
+    // Check if user exists in localStorage
+    const users = JSON.parse(localStorage.getItem('unisync_users') || '[]')
+      const user = users.find(u => u.email === signInEmail && u.password === signInPassword)
+    
+    if (!user) {
+      showToast('Invalid email or password', 'warning')
+      return
+    }
+    
+    if (!user.isVerified) {
+      showToast('Please verify your email first', 'warning')
+      return
+    }
+    
+    // Store current user session
+    localStorage.setItem('unisync_current_user', JSON.stringify({ email: signInEmail, name: user.name }))
+    showToast('Sign in successful!', 'success')
+    
+    // TODO: Navigate to dashboard
+    setTimeout(() => {
+      showToast('Dashboard coming soon...', 'info')
+    }, 1500)
+  }
+  
+  // Handle Sign Up
+  const handleSignUp = (e) => {
+    e.preventDefault()
+    
+    // Validation
+    if (!givenName || !lastName || !signUpEmail || !signUpPassword || !confirmPassword) {
+      showToast('Please fill in all fields', 'warning')
+      return
+    }
+    
+    if (!isValidCvsuEmail(signUpEmail)) {
+      showToast('Please use your CvSU email (@cvsu.edu.ph)', 'warning')
+      return
+    }
+    
+    if (signUpPassword.length < 6) {
+      showToast('Password must be at least 6 characters', 'warning')
+      return
+    }
+    
+    if (signUpPassword !== confirmPassword) {
+      showToast('Passwords do not match', 'warning')
+      return
+    }
+    
+    // Check if email already exists
+    const users = JSON.parse(localStorage.getItem('unisync_users') || '[]')
+    if (users.some(u => u.email === signUpEmail)) {
+      showToast('Email already registered', 'warning')
+      return
+    }
+    
+    // Generate 6-digit OTP
+    const otp = Math.floor(100000 + Math.random() * 900000).toString()
+    
+    // Store temporary user data for OTP verification
+    const tempUser = {
+      givenName,
+      lastName,
+      email: signUpEmail,
+      password: signUpPassword,
+      otp,
+      otpExpiry: Date.now() + 10 * 60 * 1000 // 10 minutes
+    }
+    
+    localStorage.setItem('unisync_temp_user', JSON.stringify(tempUser))
+    
+    // Show OTP in console and toast for demo
+    console.log('🔐 OTP Code:', otp)
+    showToast(`OTP sent! Check console for demo code: ${otp}`, 'success')
+    
+    // Navigate to OTP verification page
+    setTimeout(() => {
+      navigate('/otp-verification', { state: { email: signUpEmail } })
+    }, 2000)
+  }
 
   return (
     <div className="min-h-screen grid grid-cols-1 lg:grid-cols-2">
@@ -103,6 +227,13 @@ export default function AuthPage() {
               <span className="text-sm font-medium text-primary">CvSU Imus Campus</span>
             </div>
           </div>
+          
+          {/* Toast Notification */}
+          {toast.show && (
+            <div className="mb-4">
+              <Toast kind={toast.kind} message={toast.message} />
+            </div>
+          )}
 
           {/* Tabs */}
           <div className="flex gap-2 mb-6 border-b border-gray-200">
@@ -130,7 +261,7 @@ export default function AuthPage() {
 
           {/* Sign In Form */}
           {activeTab === 'signin' && (
-            <div className="space-y-6">
+            <form onSubmit={handleSignIn} className="space-y-6">
               <div>
                 <h2 className="text-2xl font-bold text-gray-900">Welcome back</h2>
                 <p className="mt-1 text-sm text-gray-600">Sign in to your CVSU account</p>
@@ -141,11 +272,15 @@ export default function AuthPage() {
                   id="signin-email" 
                   label="CvSU Email" 
                   placeholder="yourname@cvsu.edu.ph" 
-                  type="email" 
+                  type="email"
+                  value={signInEmail}
+                  onChange={(e) => setSignInEmail(e.target.value)}
                 />
                 <PasswordInput 
                   id="signin-password" 
-                  label="Password" 
+                  label="Password"
+                  value={signInPassword}
+                  onChange={(e) => setSignInPassword(e.target.value)}
                 />
                 <div className="flex items-center justify-between">
                   <label className="inline-flex items-center gap-2 text-sm text-gray-700">
@@ -156,18 +291,18 @@ export default function AuthPage() {
                 </div>
               </div>
 
-              <Button disabled className="w-full">Sign in</Button>
+              <Button type="submit" className="w-full">Sign in</Button>
 
               <p className="text-center text-xs text-gray-500">
                 This system is exclusively for CvSU Imus Campus community.<br />
                 Need help? <a href="#" className="text-primary hover:underline">Contact Support</a>
               </p>
-            </div>
+            </form>
           )}
 
           {/* Sign Up Form */}
           {activeTab === 'signup' && (
-            <div className="space-y-6">
+            <form onSubmit={handleSignUp} className="space-y-6">
               <div>
                 <h2 className="text-2xl font-bold text-gray-900">Create your account</h2>
                 <p className="mt-1 text-sm text-gray-600">Join the CvSU community portal</p>
@@ -179,12 +314,16 @@ export default function AuthPage() {
                   <TextInput 
                     id="given-name" 
                     label="Given Name" 
-                    placeholder="Juan" 
+                    placeholder="Juan Miguel"
+                    value={givenName}
+                    onChange={(e) => setGivenName(e.target.value)}
                   />
                   <TextInput 
                     id="last-name" 
                     label="Last Name" 
-                    placeholder="Dela Cruz" 
+                    placeholder="Dela Cruz"
+                    value={lastName}
+                    onChange={(e) => setLastName(e.target.value)}
                   />
                 </div>
 
@@ -192,21 +331,26 @@ export default function AuthPage() {
                   id="signup-email" 
                   label="CvSU Email" 
                   placeholder="yourname@cvsu.edu.ph" 
-                  type="email" 
+                  type="email"
+                  value={signUpEmail}
+                  onChange={(e) => setSignUpEmail(e.target.value)}
                 />
                 <PasswordInput 
                   id="signup-password" 
                   label="Password"
                   hint="At least 6 characters"
+                  value={signUpPassword}
+                  onChange={(e) => setSignUpPassword(e.target.value)}
                 />
                 <PasswordInput 
                   id="confirm-password" 
                   label="Confirm Password"
-                  placeholder="Re-enter password"
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
                 />
               </div>
 
-              <Button disabled className="w-full">
+              <Button type="submit" className="w-full">
                 Send OTP & Register →
               </Button>
 
@@ -214,7 +358,7 @@ export default function AuthPage() {
                 This system is exclusively for CvSU Imus Campus community.<br />
                 Need help? <a href="#" className="text-primary hover:underline">Contact Support</a>
               </p>
-            </div>
+            </form>
           )}
         </div>
       </div>

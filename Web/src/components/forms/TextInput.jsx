@@ -1,4 +1,4 @@
-export default function TextInput({ id, label, placeholder = '', type = 'text', hint }) {
+export default function TextInput({ id, label, placeholder = '', type = 'text', hint, value, onChange }) {
   return (
     <div>
       {label && (
@@ -16,9 +16,12 @@ export default function TextInput({ id, label, placeholder = '', type = 'text', 
       )}
       <input
         id={id}
-        name={id}
+        name={`user-${id}`}
         type={type}
         placeholder={placeholder}
+        value={value}
+        onChange={onChange}
+        autoComplete="off"
         className="block w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring-primary text-sm"
       />
       {hint && <p id={`${id}-hint`} className="mt-1 text-xs text-gray-500">{hint}</p>}
