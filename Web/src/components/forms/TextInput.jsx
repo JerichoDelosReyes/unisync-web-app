@@ -1,4 +1,4 @@
-export default function TextInput({ id, label, placeholder = '', type = 'text', hint, value, onChange }) {
+export default function TextInput({ id, label, placeholder = '', type = 'text', hint, value, onChange, error }) {
   return (
     <div>
       {label && (
@@ -22,9 +22,14 @@ export default function TextInput({ id, label, placeholder = '', type = 'text', 
         value={value}
         onChange={onChange}
         autoComplete="off"
-        className="block w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring-primary text-sm"
+        className={`block w-full rounded-md shadow-sm text-sm ${
+          error 
+            ? 'border-red-500 focus:border-red-500 focus:ring-red-500' 
+            : 'border-gray-300 focus:border-primary focus:ring-primary'
+        }`}
       />
-      {hint && <p id={`${id}-hint`} className="mt-1 text-xs text-gray-500">{hint}</p>}
+      {error && <p className="mt-1 text-xs text-red-600">{error}</p>}
+      {hint && !error && <p id={`${id}-hint`} className="mt-1 text-xs text-gray-500">{hint}</p>}
     </div>
   )
 }

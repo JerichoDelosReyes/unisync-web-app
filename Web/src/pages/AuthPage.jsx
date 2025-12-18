@@ -5,6 +5,7 @@ import TextInput from '../components/forms/TextInput.jsx'
 import PasswordInput from '../components/forms/PasswordInput.jsx'
 import Button from '../components/ui/Button.jsx'
 import Toast from '../components/ui/Toast.jsx'
+import OTPModal from '../components/ui/OTPModal.jsx'
 import logo from '../assets/cvsu-logo.png'
 
 export default function AuthPage() {
@@ -24,6 +25,11 @@ export default function AuthPage() {
   
   // Toast State
   const [toast, setToast] = useState({ show: false, message: '', kind: 'info' })
+  
+  // OTP Modal State
+  const [showOTPModal, setShowOTPModal] = useState(false)
+  const [otpEmail, setOtpEmail] = useState('')
+  const [otpType, setOtpType] = useState('signup') // 'signup' or 'login'
   
   // Helper function to show toast
   const showToast = (message, kind = 'info') => {
@@ -122,14 +128,123 @@ export default function AuthPage() {
     
     localStorage.setItem('unisync_temp_user', JSON.stringify(tempUser))
     
-    // Show OTP in console and toast for demo
+    // Show OTP in console for demo
     console.log('🔐 OTP Code:', otp)
-    showToast(`OTP sent! Check console for demo code: ${otp}`, 'success')
     
-    // Navigate to OTP verification page
-    setTimeout(() => {
-      navigate('/otp-verification', { state: { email: signUpEmail } })
-    }, 2000)
+    // Show OTP modal overlay
+    setOtpEmail(signUpEmail)
+    setOtpType('signup')
+    setShowOTPModal(true)
+  }
+  
+  // Handle OTP verification
+  const handleVerifyOTP = async (enteredOtp) => {
+    if (otpType === 'signup') {
+      const tempUserData = localStorage.getItem('unisync_temp_user')
+      
+      if (!tempUserData) {
+        return { success: false, error: 'Session expired. Please try again.' }
+      }
+
+      const tempUser = JSON.parse(tempUserData)
+
+      if (Date.now() > tempUser.otpExpiry) {
+        localStorage.removeItem('unisync_temp_user')
+        return { success: false, error: 'OTP expired. Please try again.' }
+      }
+
+      if (enteredOtp !== tempUser.otp) {
+        return { success: false, error: 'Invalid OTP. Please try again.' }
+      }
+
+      // OTP verified - create user account
+      const users = JSON.parse(localStorage.getItem('unisync_users') || '[]')
+      const newUser = {
+        name: `${tempUser.givenName} ${tempUser.lastName}`,
+        givenName: tempUser.givenName,
+        lastName: tempUser.lastName,
+        email: tempUser.email,
+        password: tempUser.password,
+        isVerified: true,
+        createdAt: new Date().toISOString()
+      }
+
+      users.push(newUser)
+      localStorage.setItem('unisync_users', JSON.stringify(users))
+      localStorage.removeItem('unisync_temp_user')
+
+      setShowOTPModal(false)
+      showToast('Account created successfully! Please sign in.', 'success')
+      
+      // Switch to sign in tab
+      setActiveTab('signin')
+      
+      // Reset form
+      setGivenName('')
+      setLastName('')
+      setSignUpEmail('')
+      setSignUpPassword('')
+      setConfirmPassword('')
+      
+      return { success: true }
+    } else {
+      // Login OTP verification
+      const loginData = localStorage.getItem('unisync_login_otp')
+      
+      if (!loginData) {
+        return { success: false, error: 'Session expired. Please try again.' }
+      }
+
+      const data = JSON.parse(loginData)
+
+      if (Date.now() > data.otpExpiry) {
+        localStorage.removeItem('unisync_login_otp')
+        return { success: false, error: 'OTP expired. Please try again.' }
+      }
+
+      if (enteredOtp !== data.otp) {
+        return { success: false, error: 'Invalid OTP. Please try again.' }
+      }
+
+      // Login successful
+      const users = JSON.parse(localStorage.getItem('unisync_users') || '[]')
+      const user = users.find(u => u.email === data.email)
+      
+      if (user) {
+        localStorage.setItem('unisync_current_user', JSON.stringify(user))
+        localStorage.removeItem('unisync_login_otp')
+        setShowOTPModal(false)
+        showToast('Login successful!', 'success')
+        // TODO: Navigate to dashboard
+      }
+      
+      return { success: true }
+    }
+  }
+  
+  // Handle resend OTP
+  const handleResendOTP = async () => {
+    const newOtp = Math.floor(100000 + Math.random() * 900000).toString()
+    
+    if (otpType === 'signup') {
+      const tempUserData = localStorage.getItem('unisync_temp_user')
+      if (tempUserData) {
+        const tempUser = JSON.parse(tempUserData)
+        tempUser.otp = newOtp
+        tempUser.otpExpiry = Date.now() + 10 * 60 * 1000
+        localStorage.setItem('unisync_temp_user', JSON.stringify(tempUser))
+      }
+    } else {
+      const loginData = localStorage.getItem('unisync_login_otp')
+      if (loginData) {
+        const data = JSON.parse(loginData)
+        data.otp = newOtp
+        data.otpExpiry = Date.now() + 10 * 60 * 1000
+        localStorage.setItem('unisync_login_otp', JSON.stringify(data))
+      }
+    }
+    
+    console.log('🔐 New OTP Code:', newOtp)
   }
 
   return (
@@ -362,6 +477,16 @@ export default function AuthPage() {
           )}
         </div>
       </div>
+      
+      {/* OTP Verification Modal */}
+      <OTPModal
+        isOpen={showOTPModal}
+        onClose={() => setShowOTPModal(false)}
+        email={otpEmail}
+        onVerify={handleVerifyOTP}
+        onResend={handleResendOTP}
+        verificationType={otpType}
+      />
     </div>
   )
 }

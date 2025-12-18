@@ -3,11 +3,13 @@ import { useNavigate, useLocation } from 'react-router-dom'
 import Button from '../components/ui/Button.jsx'
 import Toast from '../components/ui/Toast.jsx'
 import logo from '../assets/cvsu-logo.png'
+import { verifyLoginOTP, createLoginOTP } from '../services/authService.js'
 
 export default function OTPVerification() {
   const navigate = useNavigate()
   const location = useLocation()
   const email = location.state?.email || ''
+  const verificationType = location.state?.type || 'signup' // 'login' or 'signup'
   
   const [otp, setOtp] = useState(['', '', '', '', '', ''])
   const [toast, setToast] = useState({ show: false, message: '', kind: 'info' })
@@ -85,17 +87,44 @@ export default function OTPVerification() {
     inputRefs.current[nextIndex]?.focus()
   }
   
-  // Verify OTP
-  const handleVerifyOTP = (e) => {
-    e.preventDefault()
+  // Verify OTP for Login
+  const handleVerifyLoginOTP = (enteredOtp) => {
+    const result = verifyLoginOTP(email, enteredOtp)
     
-    const enteredOtp = otp.join('')
-    
-    if (enteredOtp.length !== 6) {
-      showToast('Please enter the complete 6-digit OTP', 'warning')
+    if (!result.valid) {
+      showToast(result.error, 'warning')
+      setOtp(['', '', '', '', '', ''])
+      inputRefs.current[0]?.focus()
       return
     }
     
+    // OTP verified - complete login
+    const pendingLogin = localStorage.getItem('unisync_login_pending')
+    if (pendingLogin) {
+      const { email: userEmail } = JSON.parse(pendingLogin)
+      const users = JSON.parse(localStorage.getItem('unisync_users') || '[]')
+      const user = users.find(u => u.email.toLowerCase() === userEmail.toLowerCase())
+      
+      if (user) {
+        // Store logged in user
+        localStorage.setItem('unisync_current_user', JSON.stringify(user))
+        localStorage.removeItem('unisync_login_pending')
+        
+        showToast('Login successful! Redirecting...', 'success')
+        setTimeout(() => {
+          navigate('/dashboard') // or wherever you want to redirect after login
+        }, 1500)
+        return
+      }
+    }
+    
+    showToast('Login verified successfully!', 'success')
+    localStorage.removeItem('unisync_login_pending')
+    setTimeout(() => navigate('/auth'), 2000)
+  }
+
+  // Verify OTP for Signup
+  const handleVerifySignupOTP = (enteredOtp) => {
     // Get temp user data
     const tempUserData = localStorage.getItem('unisync_temp_user')
     if (!tempUserData) {
@@ -144,27 +173,53 @@ export default function OTPVerification() {
       navigate('/auth')
     }, 2000)
   }
-  
-  // Resend OTP
-  const handleResendOTP = () => {
-    const tempUserData = localStorage.getItem('unisync_temp_user')
-    if (!tempUserData) {
-      showToast('Session expired. Please sign up again.', 'warning')
-      setTimeout(() => navigate('/auth'), 2000)
+
+  // Main verify handler
+  const handleVerifyOTP = (e) => {
+    e.preventDefault()
+    
+    const enteredOtp = otp.join('')
+    
+    if (enteredOtp.length !== 6) {
+      showToast('Please enter the complete 6-digit OTP', 'warning')
       return
     }
     
-    const tempUser = JSON.parse(tempUserData)
-    
-    // Generate new OTP
-    const newOtp = Math.floor(100000 + Math.random() * 900000).toString()
-    tempUser.otp = newOtp
-    tempUser.otpExpiry = Date.now() + 10 * 60 * 1000 // 10 minutes
-    
-    localStorage.setItem('unisync_temp_user', JSON.stringify(tempUser))
-    
-    console.log('🔐 New OTP Code:', newOtp)
-    showToast(`New OTP sent! Check console: ${newOtp}`, 'success')
+    if (verificationType === 'login') {
+      handleVerifyLoginOTP(enteredOtp)
+    } else {
+      handleVerifySignupOTP(enteredOtp)
+    }
+  }
+  
+  // Resend OTP
+  const handleResendOTP = () => {
+    if (verificationType === 'login') {
+      // Resend login OTP
+      const otp = createLoginOTP(email)
+      console.log('🔐 New Login OTP Code:', otp)
+      showToast(`New OTP sent! Check console: ${otp}`, 'success')
+    } else {
+      // Resend signup OTP
+      const tempUserData = localStorage.getItem('unisync_temp_user')
+      if (!tempUserData) {
+        showToast('Session expired. Please sign up again.', 'warning')
+        setTimeout(() => navigate('/auth'), 2000)
+        return
+      }
+      
+      const tempUser = JSON.parse(tempUserData)
+      
+      // Generate new OTP
+      const newOtp = Math.floor(100000 + Math.random() * 900000).toString()
+      tempUser.otp = newOtp
+      tempUser.otpExpiry = Date.now() + 10 * 60 * 1000 // 10 minutes
+      
+      localStorage.setItem('unisync_temp_user', JSON.stringify(tempUser))
+      
+      console.log('🔐 New Signup OTP Code:', newOtp)
+      showToast(`New OTP sent! Check console: ${newOtp}`, 'success')
+    }
     
     // Reset timer and OTP inputs
     setTimeLeft(600)
@@ -237,7 +292,7 @@ export default function OTPVerification() {
           
           {/* Verify Button */}
           <Button type="submit" className="w-full">
-            Verify & Complete Registration
+            {verificationType === 'login' ? 'Verify & Sign In' : 'Verify & Complete Registration'}
           </Button>
           
           {/* Resend OTP */}
@@ -261,7 +316,7 @@ export default function OTPVerification() {
               onClick={() => navigate('/auth')}
               className="text-sm text-gray-600 hover:text-gray-900"
             >
-              ← Back to Sign Up
+              ← Back to {verificationType === 'login' ? 'Sign In' : 'Sign Up'}
             </button>
           </div>
         </form>

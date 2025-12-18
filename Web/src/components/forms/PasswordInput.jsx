@@ -1,6 +1,6 @@
 import { useState } from 'react'
 
-export default function PasswordInput({ id = 'password', label = 'Password', placeholder = 'Enter password', hint, value, onChange }) {
+export default function PasswordInput({ id = 'password', label = 'Password', placeholder = 'Enter password', hint, value, onChange, error }) {
   const [showPassword, setShowPassword] = useState(false)
 
   return (
@@ -24,7 +24,11 @@ export default function PasswordInput({ id = 'password', label = 'Password', pla
           value={value}
           onChange={onChange}
           autoComplete="new-password"
-          className="block w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring-primary text-sm pr-10"
+          className={`block w-full rounded-md shadow-sm text-sm pr-10 ${
+            error 
+              ? 'border-red-500 focus:border-red-500 focus:ring-red-500' 
+              : 'border-gray-300 focus:border-primary focus:ring-primary'
+          }`}
         />
         <button 
           type="button" 
@@ -44,7 +48,8 @@ export default function PasswordInput({ id = 'password', label = 'Password', pla
           )}
         </button>
       </div>
-      {hint && <p id={`${id}-hint`} className="mt-1 text-xs text-gray-500">{hint}</p>}
+      {error && <p className="mt-1 text-xs text-red-600">{error}</p>}
+      {hint && !error && <p id={`${id}-hint`} className="mt-1 text-xs text-gray-500">{hint}</p>}
     </div>
   )
 }
