@@ -1,6 +1,7 @@
 import { Routes, Route, Navigate } from 'react-router-dom'
 import { AuthProvider } from './contexts/AuthContext'
 import ProtectedRoute, { FacultyRoute, AdminRoute, SuperAdminRoute } from './components/auth/ProtectedRoute'
+import PWAUpdatePrompt from './components/ui/PWAUpdatePrompt'
 
 // Layouts
 import DashboardLayout from './layouts/DashboardLayout'
@@ -75,6 +76,9 @@ export default function App() {
         {/* Catch-all redirect */}
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
+      
+      {/* PWA Update Prompt */}
+      <PWAUpdatePrompt />
     </AuthProvider>
   )
 }
