@@ -114,157 +114,154 @@ export default function VerificationWaitingModal({
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md mx-4 overflow-hidden">
-        {/* Header */}
-        <div className="bg-gradient-to-r from-[#1a5f3a] to-[#0d4028] px-6 py-8 text-center">
-          {/* Email Icon with Animation */}
-          <div className="relative inline-flex items-center justify-center">
-            {!isProcessing && (
-              <div className="absolute w-20 h-20 bg-white/20 rounded-full animate-ping" />
-            )}
-            <div className={`relative rounded-full p-4 ${isProcessing ? 'bg-green-500' : 'bg-white/20'}`}>
-              {isProcessing ? (
-                <svg className="w-12 h-12 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <>
+      {/* Backdrop with blur */}
+      <div className="fixed inset-0 z-40 backdrop-blur-md bg-black/20" />
+      
+      {/* Modal Container */}
+      <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+        <div className="relative bg-white rounded-3xl shadow-2xl w-full max-w-2xl overflow-hidden transform transition-all">
+          
+          {isProcessing ? (
+            /* Processing State - Success */
+            <div className="p-8 text-center">
+              <div className="inline-flex items-center justify-center w-20 h-20 bg-green-100 rounded-full mb-6">
+                <svg className="w-10 h-10 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                 </svg>
-              ) : (
-                <svg className="w-12 h-12 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-                </svg>
-              )}
-            </div>
-          </div>
-          
-          <h2 className="text-2xl font-bold text-white mt-4">
-            {isProcessing ? 'Email Verified!' : 'Verify Your Email'}
-          </h2>
-          <p className="text-white/80 text-sm mt-2">
-            {isProcessing ? 'Creating your account...' : "We've sent a verification link to"}
-          </p>
-          {!isProcessing && <p className="text-white font-medium mt-1">{email}</p>}
-        </div>
-
-        {/* Content */}
-        <div className="px-6 py-6 space-y-4">
-          {isProcessing ? (
-            /* Processing state - show loading */
-            <div className="flex flex-col items-center justify-center py-8">
-              <div className="flex gap-1 mb-4">
-                <div className="w-3 h-3 bg-[#1a5f3a] rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
-                <div className="w-3 h-3 bg-[#1a5f3a] rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
-                <div className="w-3 h-3 bg-[#1a5f3a] rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
               </div>
-              <p className="text-gray-600 font-medium">Setting up your account...</p>
-              <p className="text-gray-400 text-sm mt-2">Please wait, this may take a moment.</p>
+              <h2 className="text-2xl font-bold text-gray-900 mb-2">Email Verified!</h2>
+              <p className="text-gray-500 mb-6">Creating your account...</p>
+              <div className="flex justify-center gap-1">
+                <div className="w-2 h-2 bg-green-500 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
+                <div className="w-2 h-2 bg-green-500 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
+                <div className="w-2 h-2 bg-green-500 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
+              </div>
             </div>
           ) : (
-            <>
-              {/* Important Note */}
-              <div className="bg-amber-50 border border-amber-200 rounded-lg p-3">
-                <p className="text-amber-800 text-sm font-medium text-center">
-                  ⚠️ Your account will only be created after email verification
+            /* Main Content - Horizontal Layout */
+            <div className="flex flex-col md:flex-row">
+              {/* Left Side - Icon & Email */}
+              <div className="bg-gradient-to-br from-[#1a5f3a] to-[#0d4028] p-8 md:w-2/5 flex flex-col items-center justify-center text-center">
+                <div className="relative mb-4">
+                  <div className="absolute inset-0 w-16 h-16 bg-white/20 rounded-2xl animate-ping opacity-75" />
+                  <div className="relative bg-white/20 rounded-2xl p-4">
+                    <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                    </svg>
+                  </div>
+                </div>
+                <h3 className="text-white font-semibold text-lg mb-1">Check Your Email</h3>
+                <p className="text-white/70 text-sm mb-3">We sent a verification link to</p>
+                <div className="bg-white/10 rounded-xl px-4 py-2 backdrop-blur-sm">
+                  <p className="text-white font-medium text-sm break-all">{email}</p>
+                </div>
+              </div>
+              
+              {/* Right Side - Actions */}
+              <div className="p-8 md:w-3/5">
+                {/* Close Button */}
+                <button
+                  onClick={onClose}
+                  className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 transition-colors"
+                >
+                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+
+                {/* Steps */}
+                <div className="space-y-4 mb-6">
+                  <h4 className="font-semibold text-gray-900">Quick Steps:</h4>
+                  <div className="flex items-center gap-3 text-sm">
+                    <span className="flex-shrink-0 w-6 h-6 bg-[#1a5f3a] text-white rounded-lg flex items-center justify-center text-xs font-bold">1</span>
+                    <span className="text-gray-600">Open your email inbox (check spam too)</span>
+                  </div>
+                  <div className="flex items-center gap-3 text-sm">
+                    <span className="flex-shrink-0 w-6 h-6 bg-[#1a5f3a] text-white rounded-lg flex items-center justify-center text-xs font-bold">2</span>
+                    <span className="text-gray-600">Click the verification link</span>
+                  </div>
+                  <div className="flex items-center gap-3 text-sm">
+                    <span className="flex-shrink-0 w-6 h-6 bg-[#1a5f3a] text-white rounded-lg flex items-center justify-center text-xs font-bold">3</span>
+                    <span className="text-gray-600">Come back and click the button below</span>
+                  </div>
+                </div>
+
+                {/* Status Animation */}
+                <div className="flex items-center gap-2 mb-6 p-3 bg-amber-50 rounded-xl">
+                  <div className="flex gap-1">
+                    <div className="w-1.5 h-1.5 bg-amber-500 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
+                    <div className="w-1.5 h-1.5 bg-amber-500 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
+                    <div className="w-1.5 h-1.5 bg-amber-500 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
+                  </div>
+                  <span className="text-amber-700 text-sm font-medium">Waiting for verification...</span>
+                </div>
+
+                {/* Message */}
+                {message && (
+                  <div className={`mb-4 text-center text-sm p-3 rounded-xl ${
+                    message.includes('sent') || message.includes('success') || message.includes('verified')
+                      ? 'bg-green-50 text-green-700' 
+                      : 'bg-red-50 text-red-700'
+                  }`}>
+                    {message}
+                  </div>
+                )}
+
+                {/* Action Buttons - Horizontal */}
+                <div className="flex flex-col sm:flex-row gap-3">
+                  <button
+                    onClick={handleManualCheck}
+                    disabled={isChecking}
+                    className="flex-1 py-3 px-4 bg-[#1a5f3a] text-white rounded-xl font-medium hover:bg-[#0d4028] transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 shadow-lg shadow-[#1a5f3a]/20"
+                  >
+                    {isChecking ? (
+                      <>
+                        <svg className="animate-spin w-4 h-4" fill="none" viewBox="0 0 24 24">
+                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                        </svg>
+                        <span>Checking...</span>
+                      </>
+                    ) : (
+                      <>
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                        </svg>
+                        <span>I've Verified</span>
+                      </>
+                    )}
+                  </button>
+
+                  <button
+                    onClick={handleResend}
+                    disabled={resendLoading || resendCooldown > 0}
+                    className="flex-1 py-3 px-4 border-2 border-gray-200 text-gray-600 rounded-xl font-medium hover:border-[#1a5f3a] hover:text-[#1a5f3a] transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {resendLoading ? (
+                      'Sending...'
+                    ) : resendCooldown > 0 ? (
+                      `Resend (${resendCooldown}s)`
+                    ) : (
+                      'Resend Email'
+                    )}
+                  </button>
+                </div>
+
+                {/* Cancel Link */}
+                <p className="text-center mt-4">
+                  <button
+                    onClick={onClose}
+                    className="text-gray-400 text-sm hover:text-gray-600 transition-colors"
+                  >
+                    Use a different email →
+                  </button>
                 </p>
               </div>
-          
-          {/* Instructions */}
-          <div className="bg-gray-50 rounded-lg p-4 space-y-3">
-            <div className="flex items-start gap-3">
-              <div className="bg-[#1a5f3a]/10 rounded-full p-1.5 mt-0.5">
-                <span className="text-[#1a5f3a] text-sm font-bold">1</span>
-              </div>
-              <p className="text-gray-600 text-sm">Check your email inbox (and spam folder)</p>
             </div>
-            <div className="flex items-start gap-3">
-              <div className="bg-[#1a5f3a]/10 rounded-full p-1.5 mt-0.5">
-                <span className="text-[#1a5f3a] text-sm font-bold">2</span>
-              </div>
-              <p className="text-gray-600 text-sm">Click the verification link in the email</p>
-            </div>
-            <div className="flex items-start gap-3">
-              <div className="bg-[#1a5f3a]/10 rounded-full p-1.5 mt-0.5">
-                <span className="text-[#1a5f3a] text-sm font-bold">3</span>
-              </div>
-              <p className="text-gray-600 text-sm">Your account will be created automatically</p>
-            </div>
-          </div>
-
-          {/* Waiting Animation */}
-          <div className="flex items-center justify-center gap-2 py-2">
-            <div className="flex gap-1">
-              <div className="w-2 h-2 bg-[#1a5f3a] rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
-              <div className="w-2 h-2 bg-[#1a5f3a] rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
-              <div className="w-2 h-2 bg-[#1a5f3a] rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
-            </div>
-            <span className="text-gray-500 text-sm">Waiting for verification...</span>
-          </div>
-
-          {/* Message */}
-          {message && (
-            <div className={`text-center text-sm p-3 rounded-lg ${
-              message.includes('sent') || message.includes('success') 
-                ? 'bg-green-50 text-green-700' 
-                : 'bg-amber-50 text-amber-700'
-            }`}>
-              {message}
-            </div>
-          )}
-
-          {/* Buttons */}
-          <div className="space-y-3">
-            {/* Check Now Button */}
-            <button
-              onClick={handleManualCheck}
-              disabled={isChecking}
-              className="w-full py-3 px-4 bg-[#1a5f3a] text-white rounded-lg font-medium hover:bg-[#0d4028] transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-            >
-              {isChecking ? (
-                <>
-                  <svg className="animate-spin w-5 h-5" fill="none" viewBox="0 0 24 24">
-                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
-                  </svg>
-                  Checking...
-                </>
-              ) : (
-                <>
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                  </svg>
-                  I've Verified My Email
-                </>
-              )}
-            </button>
-
-            {/* Resend Button */}
-            <button
-              onClick={handleResend}
-              disabled={resendLoading || resendCooldown > 0}
-              className="w-full py-3 px-4 border-2 border-gray-200 text-gray-600 rounded-lg font-medium hover:border-[#1a5f3a] hover:text-[#1a5f3a] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {resendLoading ? (
-                'Sending...'
-              ) : resendCooldown > 0 ? (
-                `Resend in ${resendCooldown}s`
-              ) : (
-                'Resend Verification Email'
-              )}
-            </button>
-          </div>
-
-          {/* Cancel Link */}
-          <div className="text-center pt-2">
-            <button
-              onClick={onClose}
-              className="text-gray-500 text-sm hover:text-gray-700 hover:underline"
-            >
-              Cancel and try a different email
-            </button>
-          </div>
-            </>
           )}
         </div>
       </div>
-    </div>
+    </>
   )
 }

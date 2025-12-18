@@ -53,7 +53,6 @@ export default function ForgotPasswordModal({ isOpen, onClose }) {
       
       if (result.success) {
         setEmailSent(true)
-        showToast('Password reset link sent to your email!', 'success')
       } else {
         showToast(result.error, 'warning')
       }
