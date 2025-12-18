@@ -1,0 +1,29 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --color-primary: #1a5f3a; /* deep green */
+  --color-primary-hover: #164d2f;
+  --color-primary-active: #123b24;
+
+  --color-brand: #ebae08; /* yellow */
+  --color-brand-hover: #d19b07;
+  --color-brand-active: #b88506;
+
+  --color-accent: #00d97e; /* medium green accent */
+  --color-accent-hover: #00c070;
+  --color-accent-active: #00a862;
+
+  --color-bg: #ffffff; /* white */
+  --color-text: #000000; /* black */
+  --color-text-muted: #6b7280; /* gray */
+}
+
+html, body, #root { height: 100%; }
+body { @apply bg-bg text-text antialiased; }
+
+/* Focus ring utility */
+.focus-ring {
+  @apply outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2;
+}
