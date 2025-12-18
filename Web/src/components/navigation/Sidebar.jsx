@@ -62,6 +62,16 @@ const navigationItems = [
     minRole: ROLES.ADMIN // Admin and above only
   },
   {
+    name: 'Logs',
+    path: '/logs',
+    icon: (
+      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 17v-2a2 2 0 012-2h2a2 2 0 012 2v2m-6 4h6a2 2 0 002-2V7a2 2 0 00-2-2H7a2 2 0 00-2 2v12a2 2 0 002 2z" />
+      </svg>
+    ),
+    minRole: ROLES.SUPER_ADMIN // Super Admin only
+  },
+  {
     name: 'System Settings',
     path: '/settings',
     icon: (
