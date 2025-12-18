@@ -2,22 +2,23 @@
 import { initializeApp } from "firebase/app";
 import { getAnalytics } from "firebase/analytics";
 import { getAuth } from "firebase/auth";
+import { getFirestore } from "firebase/firestore";
 
 // Your web app's Firebase configuration
-// Using environment variables for security
 const firebaseConfig = {
-  apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
-  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
-  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
-  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET,
-  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
-  appId: import.meta.env.VITE_FIREBASE_APP_ID,
-  measurementId: import.meta.env.VITE_FIREBASE_MEASUREMENT_ID
+  apiKey: "AIzaSyBtB3kb_mN3ZdUAyf4xsp1wCK8spQnNtkc",
+  authDomain: "unisync-web-app-ac1fd.firebaseapp.com",
+  projectId: "unisync-web-app-ac1fd",
+  storageBucket: "unisync-web-app-ac1fd.firebasestorage.app",
+  messagingSenderId: "25644861146",
+  appId: "1:25644861146:web:8fbc17eb8aa666bf60c7e3",
+  measurementId: "G-5SQJ2F6E5V"
 };
 
 // Initialize Firebase
 const app = initializeApp(firebaseConfig);
 const analytics = getAnalytics(app);
 const auth = getAuth(app);
+const db = getFirestore(app);
 
-export { app, analytics, auth };
+export { app, analytics, auth, db };

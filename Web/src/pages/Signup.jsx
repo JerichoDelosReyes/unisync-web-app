@@ -6,12 +6,10 @@ import PasswordInput from '../components/forms/PasswordInput.jsx'
 import Button from '../components/ui/Button.jsx'
 import OAuthButtons from '../components/forms/OAuthButtons.jsx'
 import Toast from '../components/ui/Toast.jsx'
-import OTPModal from '../components/ui/OTPModal.jsx'
 import { 
   validateCvsuEmail, 
   validatePassword,
-  userExists,
-  createSignupOTP,
+  registerUser,
   ALLOWED_DOMAIN 
 } from '../services/authService.js'
 
@@ -26,11 +24,10 @@ export default function Signup() {
   const [errors, setErrors] = useState({})
   const [toast, setToast] = useState({ show: false, message: '', kind: 'info' })
   const [isLoading, setIsLoading] = useState(false)
-  const [showOTPModal, setShowOTPModal] = useState(false)
 
   const showToast = (message, kind = 'info') => {
     setToast({ show: true, message, kind })
-    setTimeout(() => setToast({ show: false, message: '', kind: 'info' }), 4000)
+    setTimeout(() => setToast({ show: false, message: '', kind: 'info' }), 5000)
   }
 
   const handleChange = (e) => {
@@ -77,87 +74,36 @@ export default function Signup() {
       return
     }
 
-    // Check if user already exists
-    if (userExists(formData.email)) {
-      showToast('An account with this email already exists. Please sign in.', 'warning')
-      setIsLoading(false)
-      return
-    }
-
     // Parse name
     const nameParts = formData.fullName.trim().split(' ')
     const givenName = nameParts[0]
     const lastName = nameParts.slice(1).join(' ') || ''
 
-    // Generate and send OTP
-    const otp = createSignupOTP({
-      givenName,
-      lastName,
+    // Register user with Firebase (sends verification email automatically)
+    const result = await registerUser({
       email: formData.email,
-      password: formData.password
+      password: formData.password,
+      givenName,
+      lastName
     })
-    
-    console.log('🔐 Signup OTP:', otp)
+
     setIsLoading(false)
-    setShowOTPModal(true)
-  }
 
-  const handleVerifyOTP = async (enteredOtp) => {
-    const tempUserData = localStorage.getItem('unisync_temp_user')
+    if (!result.success) {
+      showToast(result.error, 'warning')
+      return
+    }
+
+    // Success - show message and redirect
+    showToast('Account created! Please check your email to verify your account.', 'success')
     
-    if (!tempUserData) {
-      return { success: false, error: 'Session expired. Please try again.' }
-    }
-
-    const tempUser = JSON.parse(tempUserData)
-
-    if (Date.now() > tempUser.otpExpiry) {
-      localStorage.removeItem('unisync_temp_user')
-      return { success: false, error: 'OTP expired. Please try again.' }
-    }
-
-    if (enteredOtp !== tempUser.otp) {
-      return { success: false, error: 'Invalid OTP. Please try again.' }
-    }
-
-    // OTP verified - create user account
-    const users = JSON.parse(localStorage.getItem('unisync_users') || '[]')
-    const newUser = {
-      name: `${tempUser.givenName} ${tempUser.lastName}`,
-      givenName: tempUser.givenName,
-      lastName: tempUser.lastName,
-      email: tempUser.email,
-      password: tempUser.password,
-      isVerified: true,
-      createdAt: new Date().toISOString()
-    }
-
-    users.push(newUser)
-    localStorage.setItem('unisync_users', JSON.stringify(users))
-    localStorage.removeItem('unisync_temp_user')
-
-    setShowOTPModal(false)
-    showToast('Account created successfully!', 'success')
-
-    // Reset form and switch to login
+    // Reset form
     setFormData({ fullName: '', email: '', password: '', confirmPassword: '' })
     
-    return { success: true }
-  }
-
-  const handleResendOTP = async () => {
-    const nameParts = formData.fullName.trim().split(' ')
-    const givenName = nameParts[0]
-    const lastName = nameParts.slice(1).join(' ') || ''
-
-    const otp = createSignupOTP({
-      givenName,
-      lastName,
-      email: formData.email,
-      password: formData.password
-    })
-    
-    console.log('🔐 New Signup OTP:', otp)
+    // Redirect to login after delay
+    setTimeout(() => {
+      navigate('/auth/login')
+    }, 3000)
   }
 
   return (
@@ -215,16 +161,6 @@ export default function Signup() {
       </div>
 
       <OAuthButtons />
-
-      {/* OTP Verification Modal */}
-      <OTPModal
-        isOpen={showOTPModal}
-        onClose={() => setShowOTPModal(false)}
-        email={formData.email}
-        onVerify={handleVerifyOTP}
-        onResend={handleResendOTP}
-        verificationType="signup"
-      />
     </div>
   )
 }

@@ -6,14 +6,12 @@ import PasswordInput from '../components/forms/PasswordInput.jsx'
 import Button from '../components/ui/Button.jsx'
 import OAuthButtons from '../components/forms/OAuthButtons.jsx'
 import Toast from '../components/ui/Toast.jsx'
-import OTPModal from '../components/ui/OTPModal.jsx'
+import ForgotPasswordModal from '../components/ui/ForgotPasswordModal.jsx'
 import { 
   validateCvsuEmail, 
   validatePassword,
-  authenticateUser, 
-  userExists,
-  createLoginOTP,
-  verifyLoginOTP,
+  loginUser,
+  resendVerificationEmail,
   ALLOWED_DOMAIN 
 } from '../services/authService.js'
 
@@ -23,11 +21,12 @@ export default function Login() {
   const [errors, setErrors] = useState({})
   const [toast, setToast] = useState({ show: false, message: '', kind: 'info' })
   const [isLoading, setIsLoading] = useState(false)
-  const [showOTPModal, setShowOTPModal] = useState(false)
+  const [showForgotPassword, setShowForgotPassword] = useState(false)
+  const [showResendVerification, setShowResendVerification] = useState(false)
 
   const showToast = (message, kind = 'info') => {
     setToast({ show: true, message, kind })
-    setTimeout(() => setToast({ show: false, message: '', kind: 'info' }), 4000)
+    setTimeout(() => setToast({ show: false, message: '', kind: 'info' }), 5000)
   }
 
   const handleChange = (e) => {
@@ -43,6 +42,7 @@ export default function Login() {
     e.preventDefault()
     setIsLoading(true)
     setErrors({})
+    setShowResendVerification(false)
 
     // Validate email domain
     const emailValidation = validateCvsuEmail(formData.email)
@@ -60,64 +60,38 @@ export default function Login() {
       return
     }
 
-    // Check if user exists
-    if (!userExists(formData.email)) {
-      showToast('No account found with this email. Please sign up first.', 'warning')
-      setIsLoading(false)
-      return
-    }
+    // Authenticate with Firebase
+    const authResult = await loginUser(formData.email, formData.password)
+    
+    setIsLoading(false)
 
-    // Authenticate user credentials
-    const authResult = authenticateUser(formData.email, formData.password)
     if (!authResult.success) {
       showToast(authResult.error, 'warning')
-      setIsLoading(false)
       return
     }
 
-    // Generate and send OTP for login verification
-    const otp = createLoginOTP(formData.email)
-    console.log('🔐 Login OTP:', otp)
+    // Check if email is verified
+    if (!authResult.user.emailVerified) {
+      showToast('Please verify your email first. Check your inbox for the verification link.', 'warning')
+      setShowResendVerification(true)
+      return
+    }
 
-    // Store password temporarily for final auth after OTP
-    localStorage.setItem('unisync_login_pending', JSON.stringify({
-      email: formData.email,
-      password: formData.password
-    }))
-
-    setIsLoading(false)
-    setShowOTPModal(true)
-  }
-
-  const handleVerifyOTP = async (enteredOtp) => {
-    const result = verifyLoginOTP(formData.email, enteredOtp)
+    // Login successful
+    showToast('Login successful!', 'success')
     
-    if (!result.valid) {
-      return { success: false, error: result.error }
-    }
-
-    // OTP verified - complete login
-    const users = JSON.parse(localStorage.getItem('unisync_users') || '[]')
-    const user = users.find(u => u.email.toLowerCase() === formData.email.toLowerCase())
-
-    if (user) {
-      localStorage.setItem('unisync_current_user', JSON.stringify(user))
-      localStorage.removeItem('unisync_login_pending')
-      
-      setShowOTPModal(false)
-      showToast('Login successful!', 'success')
-      
-      setTimeout(() => {
-        navigate('/dashboard')
-      }, 1000)
-    }
-
-    return { success: true }
+    setTimeout(() => {
+      navigate('/dashboard')
+    }, 1000)
   }
 
-  const handleResendOTP = async () => {
-    const otp = createLoginOTP(formData.email)
-    console.log('🔐 New Login OTP:', otp)
+  const handleResendVerification = async () => {
+    const result = await resendVerificationEmail()
+    if (result.success) {
+      showToast('Verification email sent! Check your inbox.', 'success')
+    } else {
+      showToast(result.error, 'warning')
+    }
   }
 
   return (
@@ -133,6 +107,21 @@ export default function Login() {
           }
         >
           {toast.show && <Toast kind={toast.kind} message={toast.message} />}
+          
+          {showResendVerification && (
+            <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3 mb-4">
+              <p className="text-sm text-yellow-800">
+                Didn't receive the verification email?{' '}
+                <button
+                  type="button"
+                  onClick={handleResendVerification}
+                  className="font-medium text-yellow-900 underline hover:no-underline"
+                >
+                  Resend verification email
+                </button>
+              </p>
+            </div>
+          )}
           
           <TextInput 
             id="email" 
@@ -155,7 +144,13 @@ export default function Login() {
               <input type="checkbox" className="rounded border-gray-300 text-primary focus:ring-primary" />
               Remember me
             </label>
-            <a className="text-sm text-primary hover:underline" href="#">Forgot password?</a>
+            <button 
+              type="button"
+              onClick={() => setShowForgotPassword(true)}
+              className="text-sm text-primary hover:underline"
+            >
+              Forgot password?
+            </button>
           </div>
         </FormCard>
       </form>
@@ -168,14 +163,10 @@ export default function Login() {
 
       <OAuthButtons />
 
-      {/* OTP Verification Modal */}
-      <OTPModal
-        isOpen={showOTPModal}
-        onClose={() => setShowOTPModal(false)}
-        email={formData.email}
-        onVerify={handleVerifyOTP}
-        onResend={handleResendOTP}
-        verificationType="login"
+      {/* Forgot Password Modal */}
+      <ForgotPasswordModal
+        isOpen={showForgotPassword}
+        onClose={() => setShowForgotPassword(false)}
       />
     </div>
   )

@@ -5,8 +5,17 @@ import TextInput from '../components/forms/TextInput.jsx'
 import PasswordInput from '../components/forms/PasswordInput.jsx'
 import Button from '../components/ui/Button.jsx'
 import Toast from '../components/ui/Toast.jsx'
-import OTPModal from '../components/ui/OTPModal.jsx'
+import ForgotPasswordModal from '../components/ui/ForgotPasswordModal.jsx'
+import VerificationWaitingModal from '../components/ui/VerificationWaitingModal.jsx'
 import logo from '../assets/cvsu-logo.png'
+import {
+  validateCvsuEmail,
+  validatePassword,
+  registerUser,
+  loginUser,
+  resendVerificationEmail,
+  completeRegistration
+} from '../services/authService.js'
 
 export default function AuthPage() {
   const [activeTab, setActiveTab] = useState('signup')
@@ -15,6 +24,7 @@ export default function AuthPage() {
   // Sign In State
   const [signInEmail, setSignInEmail] = useState('')
   const [signInPassword, setSignInPassword] = useState('')
+  const [signInLoading, setSignInLoading] = useState(false)
   
   // Sign Up State
   const [givenName, setGivenName] = useState('')
@@ -22,229 +32,205 @@ export default function AuthPage() {
   const [signUpEmail, setSignUpEmail] = useState('')
   const [signUpPassword, setSignUpPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
+  const [signUpLoading, setSignUpLoading] = useState(false)
   
   // Toast State
   const [toast, setToast] = useState({ show: false, message: '', kind: 'info' })
   
-  // OTP Modal State
-  const [showOTPModal, setShowOTPModal] = useState(false)
-  const [otpEmail, setOtpEmail] = useState('')
-  const [otpType, setOtpType] = useState('signup') // 'signup' or 'login'
+  // Modal State
+  const [showForgotPassword, setShowForgotPassword] = useState(false)
+  const [showResendVerification, setShowResendVerification] = useState(false)
+  const [showVerificationModal, setShowVerificationModal] = useState(false)
+  const [pendingVerificationEmail, setPendingVerificationEmail] = useState('')
+  const [pendingUserData, setPendingUserData] = useState(null)
   
   // Helper function to show toast
   const showToast = (message, kind = 'info') => {
     setToast({ show: true, message, kind })
-    setTimeout(() => setToast({ show: false, message: '', kind: 'info' }), 4000)
-  }
-  
-  // Validate CvSU email
-  const isValidCvsuEmail = (email) => {
-    return email.toLowerCase().endsWith('@cvsu.edu.ph')
+    setTimeout(() => setToast({ show: false, message: '', kind: 'info' }), 5000)
   }
   
   // Handle Sign In
-  const handleSignIn = (e) => {
+  const handleSignIn = async (e) => {
     e.preventDefault()
+    setSignInLoading(true)
+    setShowResendVerification(false)
     
     // Validation
     if (!signInEmail || !signInPassword) {
       showToast('Please fill in all fields', 'warning')
+      setSignInLoading(false)
       return
     }
     
-    if (!isValidCvsuEmail(signInEmail)) {
-      showToast('Please use your CvSU email (@cvsu.edu.ph)', 'warning')
+    // Validate CvSU email
+    const emailValidation = validateCvsuEmail(signInEmail)
+    if (!emailValidation.valid) {
+      showToast(emailValidation.error, 'warning')
+      setSignInLoading(false)
+      return
+    }
+
+    // Validate password
+    const passwordValidation = validatePassword(signInPassword)
+    if (!passwordValidation.valid) {
+      showToast(passwordValidation.error, 'warning')
+      setSignInLoading(false)
       return
     }
     
-    // Check if user exists in localStorage
-    const users = JSON.parse(localStorage.getItem('unisync_users') || '[]')
-      const user = users.find(u => u.email === signInEmail && u.password === signInPassword)
+    // Login with Firebase
+    const result = await loginUser(signInEmail, signInPassword)
+    setSignInLoading(false)
     
-    if (!user) {
-      showToast('Invalid email or password', 'warning')
+    // Check if email needs verification
+    if (result.needsVerification) {
+      showToast(result.error, 'warning')
+      setShowResendVerification(true)
       return
     }
     
-    if (!user.isVerified) {
-      showToast('Please verify your email first', 'warning')
+    if (!result.success) {
+      showToast(result.error, 'warning')
       return
     }
     
-    // Store current user session
-    localStorage.setItem('unisync_current_user', JSON.stringify({ email: signInEmail, name: user.name }))
+    // Login successful
     showToast('Sign in successful!', 'success')
-    
-    // TODO: Navigate to dashboard
     setTimeout(() => {
-      showToast('Dashboard coming soon...', 'info')
-    }, 1500)
+      navigate('/dashboard')
+    }, 1000)
   }
   
   // Handle Sign Up
-  const handleSignUp = (e) => {
+  const handleSignUp = async (e) => {
     e.preventDefault()
+    setSignUpLoading(true)
     
     // Validation
     if (!givenName || !lastName || !signUpEmail || !signUpPassword || !confirmPassword) {
       showToast('Please fill in all fields', 'warning')
+      setSignUpLoading(false)
       return
     }
     
-    if (!isValidCvsuEmail(signUpEmail)) {
-      showToast('Please use your CvSU email (@cvsu.edu.ph)', 'warning')
+    // Validate CvSU email
+    const emailValidation = validateCvsuEmail(signUpEmail)
+    if (!emailValidation.valid) {
+      showToast(emailValidation.error, 'warning')
+      setSignUpLoading(false)
       return
     }
-    
-    if (signUpPassword.length < 6) {
-      showToast('Password must be at least 6 characters', 'warning')
+
+    // Validate password
+    const passwordValidation = validatePassword(signUpPassword)
+    if (!passwordValidation.valid) {
+      showToast(passwordValidation.error, 'warning')
+      setSignUpLoading(false)
       return
     }
     
     if (signUpPassword !== confirmPassword) {
       showToast('Passwords do not match', 'warning')
+      setSignUpLoading(false)
       return
     }
     
-    // Check if email already exists
-    const users = JSON.parse(localStorage.getItem('unisync_users') || '[]')
-    if (users.some(u => u.email === signUpEmail)) {
-      showToast('Email already registered', 'warning')
-      return
-    }
-    
-    // Generate 6-digit OTP
-    const otp = Math.floor(100000 + Math.random() * 900000).toString()
-    
-    // Store temporary user data for OTP verification
-    const tempUser = {
-      givenName,
-      lastName,
+    // Register with Firebase (sends verification email automatically)
+    const result = await registerUser({
       email: signUpEmail,
       password: signUpPassword,
-      otp,
-      otpExpiry: Date.now() + 10 * 60 * 1000 // 10 minutes
+      givenName,
+      lastName
+    })
+    
+    setSignUpLoading(false)
+    
+    if (!result.success) {
+      showToast(result.error, 'warning')
+      return
     }
     
-    localStorage.setItem('unisync_temp_user', JSON.stringify(tempUser))
-    
-    // Show OTP in console for demo
-    console.log('🔐 OTP Code:', otp)
-    
-    // Show OTP modal overlay
-    setOtpEmail(signUpEmail)
-    setOtpType('signup')
-    setShowOTPModal(true)
+    // Success - Show verification waiting modal
+    // Store user data to create Firestore document after verification
+    setPendingUserData({
+      givenName,
+      lastName,
+      email: signUpEmail
+    })
+    setPendingVerificationEmail(signUpEmail)
+    setShowVerificationModal(true)
   }
   
-  // Handle OTP verification
-  const handleVerifyOTP = async (enteredOtp) => {
-    if (otpType === 'signup') {
-      const tempUserData = localStorage.getItem('unisync_temp_user')
-      
-      if (!tempUserData) {
-        return { success: false, error: 'Session expired. Please try again.' }
+  // Handle verification complete - create Firestore document
+  const handleVerificationComplete = async () => {
+    console.log('handleVerificationComplete called')
+    console.log('pendingUserData:', pendingUserData)
+    
+    let success = false
+    
+    if (pendingUserData) {
+      try {
+        // Now create the Firestore document since email is verified
+        const result = await completeRegistration(pendingUserData)
+        
+        console.log('completeRegistration result:', result)
+        
+        if (result.success) {
+          success = true
+        } else {
+          console.error('completeRegistration failed:', result.error)
+          // Still close modal but show error
+          showToast(result.error || 'Account created but profile setup failed. Try signing in.', 'warning')
+        }
+      } catch (error) {
+        console.error('Error in handleVerificationComplete:', error)
+        showToast('Error creating profile. Your account is created - try signing in.', 'warning')
       }
-
-      const tempUser = JSON.parse(tempUserData)
-
-      if (Date.now() > tempUser.otpExpiry) {
-        localStorage.removeItem('unisync_temp_user')
-        return { success: false, error: 'OTP expired. Please try again.' }
-      }
-
-      if (enteredOtp !== tempUser.otp) {
-        return { success: false, error: 'Invalid OTP. Please try again.' }
-      }
-
-      // OTP verified - create user account
-      const users = JSON.parse(localStorage.getItem('unisync_users') || '[]')
-      const newUser = {
-        name: `${tempUser.givenName} ${tempUser.lastName}`,
-        givenName: tempUser.givenName,
-        lastName: tempUser.lastName,
-        email: tempUser.email,
-        password: tempUser.password,
-        isVerified: true,
-        createdAt: new Date().toISOString()
-      }
-
-      users.push(newUser)
-      localStorage.setItem('unisync_users', JSON.stringify(users))
-      localStorage.removeItem('unisync_temp_user')
-
-      setShowOTPModal(false)
-      showToast('Account created successfully! Please sign in.', 'success')
-      
-      // Switch to sign in tab
-      setActiveTab('signin')
-      
-      // Reset form
-      setGivenName('')
-      setLastName('')
-      setSignUpEmail('')
-      setSignUpPassword('')
-      setConfirmPassword('')
-      
-      return { success: true }
-    } else {
-      // Login OTP verification
-      const loginData = localStorage.getItem('unisync_login_otp')
-      
-      if (!loginData) {
-        return { success: false, error: 'Session expired. Please try again.' }
-      }
-
-      const data = JSON.parse(loginData)
-
-      if (Date.now() > data.otpExpiry) {
-        localStorage.removeItem('unisync_login_otp')
-        return { success: false, error: 'OTP expired. Please try again.' }
-      }
-
-      if (enteredOtp !== data.otp) {
-        return { success: false, error: 'Invalid OTP. Please try again.' }
-      }
-
-      // Login successful
-      const users = JSON.parse(localStorage.getItem('unisync_users') || '[]')
-      const user = users.find(u => u.email === data.email)
-      
-      if (user) {
-        localStorage.setItem('unisync_current_user', JSON.stringify(user))
-        localStorage.removeItem('unisync_login_otp')
-        setShowOTPModal(false)
-        showToast('Login successful!', 'success')
-        // TODO: Navigate to dashboard
-      }
-      
-      return { success: true }
     }
+    
+    // Always close the modal
+    setShowVerificationModal(false)
+    
+    if (success) {
+      showToast('Email verified & account created successfully! You can now sign in.', 'success')
+    }
+    
+    // Reset form and switch to sign in
+    setGivenName('')
+    setLastName('')
+    setSignUpEmail('')
+    setSignUpPassword('')
+    setConfirmPassword('')
+    setPendingVerificationEmail('')
+    setPendingUserData(null)
+    
+    setActiveTab('signin')
   }
   
-  // Handle resend OTP
-  const handleResendOTP = async () => {
-    const newOtp = Math.floor(100000 + Math.random() * 900000).toString()
+  // Handle verification modal close (cancel)
+  const handleVerificationModalClose = () => {
+    setShowVerificationModal(false)
+    setPendingVerificationEmail('')
+    setPendingUserData(null)
+    showToast('You can verify your email later by signing in.', 'info')
     
-    if (otpType === 'signup') {
-      const tempUserData = localStorage.getItem('unisync_temp_user')
-      if (tempUserData) {
-        const tempUser = JSON.parse(tempUserData)
-        tempUser.otp = newOtp
-        tempUser.otpExpiry = Date.now() + 10 * 60 * 1000
-        localStorage.setItem('unisync_temp_user', JSON.stringify(tempUser))
-      }
+    // Reset form
+    setGivenName('')
+    setLastName('')
+    setSignUpEmail('')
+    setSignUpPassword('')
+    setConfirmPassword('')
+  }
+  
+  // Handle resend verification email
+  const handleResendVerification = async () => {
+    const result = await resendVerificationEmail()
+    if (result.success) {
+      showToast('Verification email sent! Check your inbox.', 'success')
     } else {
-      const loginData = localStorage.getItem('unisync_login_otp')
-      if (loginData) {
-        const data = JSON.parse(loginData)
-        data.otp = newOtp
-        data.otpExpiry = Date.now() + 10 * 60 * 1000
-        localStorage.setItem('unisync_login_otp', JSON.stringify(data))
-      }
+      showToast(result.error, 'warning')
     }
-    
-    console.log('🔐 New OTP Code:', newOtp)
   }
 
   return (
@@ -382,6 +368,21 @@ export default function AuthPage() {
                 <p className="mt-1 text-sm text-gray-600">Sign in to your CVSU account</p>
               </div>
 
+              {showResendVerification && (
+                <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3">
+                  <p className="text-sm text-yellow-800">
+                    Didn't receive the verification email?{' '}
+                    <button
+                      type="button"
+                      onClick={handleResendVerification}
+                      className="font-medium text-yellow-900 underline hover:no-underline"
+                    >
+                      Resend verification email
+                    </button>
+                  </p>
+                </div>
+              )}
+
               <div className="space-y-4">
                 <TextInput 
                   id="signin-email" 
@@ -402,11 +403,19 @@ export default function AuthPage() {
                     <input type="checkbox" className="rounded border-gray-300 text-primary focus:ring-primary" />
                     Remember me
                   </label>
-                  <a className="text-sm text-primary hover:underline" href="#">Forgot password?</a>
+                  <button 
+                    type="button"
+                    onClick={() => setShowForgotPassword(true)}
+                    className="text-sm text-primary hover:underline"
+                  >
+                    Forgot password?
+                  </button>
                 </div>
               </div>
 
-              <Button type="submit" className="w-full">Sign in</Button>
+              <Button type="submit" disabled={signInLoading} className="w-full">
+                {signInLoading ? 'Signing in...' : 'Sign in'}
+              </Button>
 
               <p className="text-center text-xs text-gray-500">
                 This system is exclusively for CvSU Imus Campus community.<br />
@@ -453,7 +462,7 @@ export default function AuthPage() {
                 <PasswordInput 
                   id="signup-password" 
                   label="Password"
-                  hint="At least 6 characters"
+                  hint="At least 8 characters with uppercase, lowercase, and number"
                   value={signUpPassword}
                   onChange={(e) => setSignUpPassword(e.target.value)}
                 />
@@ -465,8 +474,8 @@ export default function AuthPage() {
                 />
               </div>
 
-              <Button type="submit" className="w-full">
-                Send OTP & Register →
+              <Button type="submit" disabled={signUpLoading} className="w-full">
+                {signUpLoading ? 'Creating account...' : 'Create Account'}
               </Button>
 
               <p className="text-center text-xs text-gray-500">
@@ -478,15 +487,20 @@ export default function AuthPage() {
         </div>
       </div>
       
-      {/* OTP Verification Modal */}
-      <OTPModal
-        isOpen={showOTPModal}
-        onClose={() => setShowOTPModal(false)}
-        email={otpEmail}
-        onVerify={handleVerifyOTP}
-        onResend={handleResendOTP}
-        verificationType={otpType}
+      {/* Forgot Password Modal */}
+      <ForgotPasswordModal
+        isOpen={showForgotPassword}
+        onClose={() => setShowForgotPassword(false)}
       />
+      
+      {/* Verification Waiting Modal */}
+      {showVerificationModal && (
+        <VerificationWaitingModal
+          email={pendingVerificationEmail}
+          onVerified={handleVerificationComplete}
+          onClose={handleVerificationModalClose}
+        />
+      )}
     </div>
   )
 }

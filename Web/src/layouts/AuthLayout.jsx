@@ -6,7 +6,7 @@ export default function AuthLayout() {
   const isLogin = location.pathname === '/login'
 
   return (
-    <div className="min-h-full grid grid-cols-1 md:grid-cols-2">
+    <div className="min-h-screen grid grid-cols-1 md:grid-cols-2">
       {/* Brand / Left panel */}
       <div className="hidden md:flex flex-col justify-between bg-gradient-to-br from-primary to-brand text-white p-8">
         <div>
