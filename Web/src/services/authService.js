@@ -31,8 +31,6 @@ export const USER_ROLES = {
   SUPER_ADMIN: 'super_admin',
   ADMIN: 'admin',
   FACULTY: 'faculty',
-  YEAR_REP: 'year_rep',
-  CLASS_REP: 'class_rep',
   STUDENT: 'student'
 };
 
