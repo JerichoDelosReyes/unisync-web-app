@@ -8,7 +8,6 @@ import DashboardLayout from './layouts/DashboardLayout'
 
 // Public Pages
 import AuthPage from './pages/AuthPage.jsx'
-import VerifyEmail from './pages/VerifyEmail.jsx'
 import Unauthorized from './pages/Unauthorized'
 
 // Protected Pages
@@ -26,7 +25,6 @@ export default function App() {
         {/* Public Routes */}
         <Route path="/" element={<AuthPage />} />
         <Route path="/auth" element={<AuthPage />} />
-        <Route path="/auth/verify-email" element={<VerifyEmail />} />
         <Route path="/login" element={<Navigate to="/" replace />} />
         <Route path="/signup" element={<Navigate to="/" replace />} />
         <Route path="/unauthorized" element={<Unauthorized />} />

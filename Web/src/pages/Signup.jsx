@@ -24,8 +24,6 @@ export default function Signup() {
   const [errors, setErrors] = useState({})
   const [toast, setToast] = useState({ show: false, message: '', kind: 'info' })
   const [isLoading, setIsLoading] = useState(false)
-  const [emailSent, setEmailSent] = useState(false)
-  const [sentToEmail, setSentToEmail] = useState('')
 
   const showToast = (message, kind = 'info') => {
     setToast({ show: true, message, kind })
@@ -96,54 +94,16 @@ export default function Signup() {
       return
     }
 
-    // Success - show verification email sent message
-    setEmailSent(true)
-    setSentToEmail(formData.email)
-    showToast('Verification email sent! Please check your inbox.', 'success')
-  }
-
-  // Show email sent confirmation screen
-  if (emailSent) {
-    return (
-      <div className="space-y-6">
-        <div className="bg-white rounded-2xl border border-gray-200 p-8 text-center">
-          {/* Email Icon */}
-          <div className="w-16 h-16 mx-auto mb-6 bg-primary/10 rounded-full flex items-center justify-center">
-            <svg className="w-8 h-8 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-            </svg>
-          </div>
-          
-          <h2 className="text-2xl font-bold text-gray-900 mb-2">Check your email</h2>
-          <p className="text-gray-600 mb-4">
-            We've sent a verification link to:
-          </p>
-          <p className="text-primary font-medium mb-6">{sentToEmail}</p>
-          
-          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6 text-left">
-            <p className="text-sm text-blue-800">
-              <strong>Important:</strong> Click the link in your email to complete your registration. 
-              The link will expire in 1 hour.
-            </p>
-          </div>
-          
-          <div className="space-y-3">
-            <p className="text-sm text-gray-500">
-              Didn't receive the email? Check your spam folder or
-            </p>
-            <button
-              onClick={() => {
-                setEmailSent(false)
-                setSentToEmail('')
-              }}
-              className="text-primary font-medium hover:underline"
-            >
-              Try signing up again
-            </button>
-          </div>
-        </div>
-      </div>
-    )
+    // Success - show message and redirect
+    showToast('Account created! Please check your email to verify your account.', 'success')
+    
+    // Reset form
+    setFormData({ fullName: '', email: '', password: '', confirmPassword: '' })
+    
+    // Redirect to login after delay
+    setTimeout(() => {
+      navigate('/auth/login')
+    }, 3000)
   }
 
   return (

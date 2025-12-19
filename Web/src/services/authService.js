@@ -2,14 +2,11 @@ import { auth, db } from '../config/firebase';
 import {
   createUserWithEmailAndPassword,
   signInWithEmailAndPassword,
-  sendSignInLinkToEmail,
-  isSignInWithEmailLink,
-  signInWithEmailLink,
+  sendEmailVerification,
   sendPasswordResetEmail,
   signOut,
   onAuthStateChanged,
   updateProfile,
-  updatePassword,
   setPersistence,
   browserLocalPersistence,
   browserSessionPersistence
@@ -102,84 +99,65 @@ export const validatePassword = (password) => {
 // FIREBASE AUTHENTICATION FUNCTIONS
 // ============================================
 
-// Storage key for pending registration
-const PENDING_REGISTRATION_KEY = 'unisync_pending_registration';
-
 /**
- * Store pending registration data in localStorage
- * This is used to save user data before email verification
- */
-const storePendingRegistration = (userData) => {
-  localStorage.setItem(PENDING_REGISTRATION_KEY, JSON.stringify({
-    ...userData,
-    timestamp: Date.now()
-  }));
-};
-
-/**
- * Get pending registration data from localStorage
- */
-export const getPendingRegistration = () => {
-  const data = localStorage.getItem(PENDING_REGISTRATION_KEY);
-  if (!data) return null;
-  
-  const parsed = JSON.parse(data);
-  // Expire after 1 hour
-  if (Date.now() - parsed.timestamp > 3600000) {
-    clearPendingRegistration();
-    return null;
-  }
-  return parsed;
-};
-
-/**
- * Clear pending registration data
- */
-export const clearPendingRegistration = () => {
-  localStorage.removeItem(PENDING_REGISTRATION_KEY);
-};
-
-/**
- * Register new user - Step 1: Send verification email link
- * Does NOT create any account yet - just sends verification link
+ * Register new user with Firebase (Step 1)
+ * - Creates Firebase Auth account
+ * - Sends verification link to email
+ * - Does NOT create Firestore document yet (waits for verification)
  */
 export const registerUser = async (userData) => {
   try {
     const { email, password, givenName, lastName } = userData;
 
-    // Action code settings for email link
-    const actionCodeSettings = {
-      // URL to redirect to after email verification
-      url: `${window.location.origin}/auth/verify-email`,
-      handleCodeInApp: true,
-    };
+    // Create user in Firebase Auth (password is automatically encrypted)
+    const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+    const user = userCredential.user;
 
-    // Send sign-in link to email (this is used for verification)
-    await sendSignInLinkToEmail(auth, email, actionCodeSettings);
-    console.log('✅ Verification email link sent to:', email);
-
-    // Store registration data locally (will be used after verification)
-    storePendingRegistration({
-      email,
-      password, // Will be used to set password after email link sign-in
-      givenName,
-      lastName
+    // Update display name
+    await updateProfile(user, {
+      displayName: `${givenName} ${lastName}`
     });
 
+    // Send email verification link
+    try {
+      await sendEmailVerification(user);
+      console.log('✅ Verification email sent to:', email);
+    } catch (emailError) {
+      console.error('❌ Failed to send verification email:', emailError);
+      // If email fails, delete the auth account
+      await user.delete();
+      return { 
+        success: false, 
+        error: 'Failed to send verification email. Please try again.' 
+      };
+    }
+
+    // Return user data to be saved later after verification
     return {
       success: true,
-      message: 'Verification email sent! Please check your inbox and click the link to complete registration.'
+      user,
+      userData: { givenName, lastName, email },
+      message: 'Verification email sent! Please verify your email.'
     };
   } catch (error) {
     console.error('Registration error:', error);
     console.error('Error code:', error.code);
     console.error('Error message:', error.message);
 
-    let errorMessage = 'Failed to send verification email. Please try again.';
+    let errorMessage = 'Registration failed. Please try again.';
 
     switch (error.code) {
+      case 'auth/email-already-in-use':
+        errorMessage = 'An account with this email already exists.';
+        break;
       case 'auth/invalid-email':
         errorMessage = 'Invalid email address.';
+        break;
+      case 'auth/weak-password':
+        errorMessage = 'Password is too weak.';
+        break;
+      case 'auth/operation-not-allowed':
+        errorMessage = 'Email/password accounts are not enabled. Please enable it in Firebase Console.';
         break;
       case 'auth/network-request-failed':
         errorMessage = 'Network error. Please check your internet connection.';
@@ -187,135 +165,14 @@ export const registerUser = async (userData) => {
       case 'auth/too-many-requests':
         errorMessage = 'Too many attempts. Please try again later.';
         break;
+      case 'auth/invalid-api-key':
+        errorMessage = 'Invalid API key. Please check Firebase configuration.';
+        break;
       default:
-        errorMessage = error.message || 'Failed to send verification email.';
+        errorMessage = error.message || 'Registration failed. Please try again.';
     }
 
     return { success: false, error: errorMessage };
-  }
-};
-
-/**
- * Check if the current URL is an email sign-in link
- */
-export const isEmailSignInLink = (url) => {
-  return isSignInWithEmailLink(auth, url);
-};
-
-/**
- * Complete registration - Step 2: After user clicks email link
- * Creates the account in Firebase Auth AND Firestore
- */
-export const completeEmailVerification = async (url) => {
-  try {
-    // Get pending registration data
-    const pendingData = getPendingRegistration();
-    if (!pendingData) {
-      return { 
-        success: false, 
-        error: 'Registration data expired. Please sign up again.' 
-      };
-    }
-
-    const { email, password, givenName, lastName } = pendingData;
-
-    // Sign in with email link (this verifies the email)
-    const userCredential = await signInWithEmailLink(auth, email, url);
-    const user = userCredential.user;
-    console.log('✅ Email verified via link for:', email);
-
-    // Set password for the account
-    await updatePassword(user, password);
-    console.log('✅ Password set for user');
-
-    // Update display name
-    await updateProfile(user, {
-      displayName: `${givenName} ${lastName}`
-    });
-
-    // Create user document in Firestore
-    await setDoc(doc(db, 'users', user.uid), {
-      email: email,
-      givenName: givenName,
-      lastName: lastName,
-      displayName: `${givenName} ${lastName}`,
-      role: DEFAULT_ROLE,
-      emailVerified: true,
-      createdAt: serverTimestamp(),
-      updatedAt: serverTimestamp()
-    });
-    console.log('✅ User document created in Firestore');
-
-    // Clear pending registration data
-    clearPendingRegistration();
-
-    // Store current user in localStorage
-    localStorage.setItem('unisync_current_user', JSON.stringify({
-      uid: user.uid,
-      email: user.email,
-      displayName: user.displayName,
-      role: DEFAULT_ROLE,
-      emailVerified: true
-    }));
-
-    return {
-      success: true,
-      user: {
-        uid: user.uid,
-        email: user.email,
-        displayName: user.displayName,
-        givenName,
-        lastName,
-        role: DEFAULT_ROLE,
-        emailVerified: true
-      },
-      message: 'Account created successfully!'
-    };
-  } catch (error) {
-    console.error('Email verification error:', error);
-    
-    let errorMessage = 'Failed to complete verification. Please try again.';
-    
-    switch (error.code) {
-      case 'auth/invalid-action-code':
-        errorMessage = 'This verification link is invalid or has expired. Please sign up again.';
-        break;
-      case 'auth/expired-action-code':
-        errorMessage = 'This verification link has expired. Please sign up again.';
-        break;
-      case 'auth/user-disabled':
-        errorMessage = 'This account has been disabled.';
-        break;
-      case 'auth/invalid-email':
-        errorMessage = 'Invalid email address.';
-        break;
-      case 'auth/weak-password':
-        errorMessage = 'Password is too weak. Please sign up again with a stronger password.';
-        break;
-      default:
-        errorMessage = error.message || 'Verification failed. Please try again.';
-    }
-    
-    return { success: false, error: errorMessage };
-  }
-};
-
-/**
- * Delete an unverified user account
- * Used to clean up accounts that were created but never verified
- */
-export const deleteUnverifiedUser = async () => {
-  try {
-    const user = auth.currentUser;
-    if (user && !user.emailVerified) {
-      await user.delete();
-      console.log('🗑️ Deleted unverified user account');
-      return { success: true };
-    }
-    return { success: false, error: 'No unverified user to delete' };
-  } catch (error) {
-    console.error('Error deleting unverified user:', error);
-    return { success: false, error: error.message };
   }
 };
 
@@ -400,6 +257,7 @@ export const completeRegistration = async (userData) => {
 /**
  * Sign in user with Firebase
  * - Validates credentials
+ * - Checks email is verified
  * - Sets persistence based on "Remember Me" option
  * @param {string} email - User email
  * @param {string} password - User password
@@ -416,7 +274,18 @@ export const loginUser = async (email, password, rememberMe = false) => {
     const userCredential = await signInWithEmailAndPassword(auth, email, password);
     const user = userCredential.user;
 
-    // Get user data from Firestore
+    // Check if email is verified FIRST
+    if (!user.emailVerified) {
+      // Don't sign out - keep user signed in so we can resend verification
+      return { 
+        success: false, 
+        error: 'Please verify your email first. Check your inbox for the verification link.',
+        needsVerification: true,
+        user: user
+      };
+    }
+
+    // Get user data from Firestore to check role
     const userDoc = await getDoc(doc(db, 'users', user.uid));
 
     if (!userDoc.exists()) {
@@ -426,8 +295,9 @@ export const loginUser = async (email, password, rememberMe = false) => {
 
     const userData = userDoc.data();
 
-    // Update last login time
+    // Update Firestore to mark email as verified
     await updateDoc(doc(db, 'users', user.uid), {
+      emailVerified: true,
       lastLoginAt: serverTimestamp(),
       updatedAt: serverTimestamp()
     });
@@ -438,7 +308,7 @@ export const loginUser = async (email, password, rememberMe = false) => {
       email: user.email,
       displayName: user.displayName,
       role: userData.role,
-      emailVerified: true
+      emailVerified: user.emailVerified
     }));
 
     return {
@@ -446,7 +316,7 @@ export const loginUser = async (email, password, rememberMe = false) => {
       user: {
         ...userData,
         uid: user.uid,
-        emailVerified: true
+        emailVerified: user.emailVerified
       }
     };
   } catch (error) {
@@ -456,7 +326,7 @@ export const loginUser = async (email, password, rememberMe = false) => {
 
     switch (error.code) {
       case 'auth/user-not-found':
-        errorMessage = 'No account found with this email. Please sign up first.';
+        errorMessage = 'No account found with this email.';
         break;
       case 'auth/wrong-password':
         errorMessage = 'Incorrect password.';

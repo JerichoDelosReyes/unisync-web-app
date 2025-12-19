@@ -11,6 +11,7 @@ import {
   validateCvsuEmail, 
   validatePassword,
   loginUser,
+  resendVerificationEmail,
   ALLOWED_DOMAIN 
 } from '../services/authService.js'
 
@@ -21,6 +22,7 @@ export default function Login() {
   const [toast, setToast] = useState({ show: false, message: '', kind: 'info' })
   const [isLoading, setIsLoading] = useState(false)
   const [showForgotPassword, setShowForgotPassword] = useState(false)
+  const [showResendVerification, setShowResendVerification] = useState(false)
 
   const showToast = (message, kind = 'info') => {
     setToast({ show: true, message, kind })
@@ -40,6 +42,7 @@ export default function Login() {
     e.preventDefault()
     setIsLoading(true)
     setErrors({})
+    setShowResendVerification(false)
 
     // Validate email domain
     const emailValidation = validateCvsuEmail(formData.email)
@@ -67,12 +70,28 @@ export default function Login() {
       return
     }
 
+    // Check if email is verified
+    if (!authResult.user.emailVerified) {
+      showToast('Please verify your email first. Check your inbox for the verification link.', 'warning')
+      setShowResendVerification(true)
+      return
+    }
+
     // Login successful
     showToast('Login successful!', 'success')
     
     setTimeout(() => {
       navigate('/dashboard')
     }, 1000)
+  }
+
+  const handleResendVerification = async () => {
+    const result = await resendVerificationEmail()
+    if (result.success) {
+      showToast('Verification email sent! Check your inbox.', 'success')
+    } else {
+      showToast(result.error, 'warning')
+    }
   }
 
   return (
@@ -88,6 +107,21 @@ export default function Login() {
           }
         >
           {toast.show && <Toast kind={toast.kind} message={toast.message} />}
+          
+          {showResendVerification && (
+            <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3 mb-4">
+              <p className="text-sm text-yellow-800">
+                Didn't receive the verification email?{' '}
+                <button
+                  type="button"
+                  onClick={handleResendVerification}
+                  className="font-medium text-yellow-900 underline hover:no-underline"
+                >
+                  Resend verification email
+                </button>
+              </p>
+            </div>
+          )}
           
           <TextInput 
             id="email" 
