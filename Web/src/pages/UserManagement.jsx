@@ -1,26 +1,423 @@
-import { useAuth, ROLES, ROLE_DISPLAY_NAMES } from '../contexts/AuthContext'
+import { useState, useEffect } from 'react'
+import { useAuth, ROLES, ROLE_DISPLAY_NAMES, ROLE_HIERARCHY } from '../contexts/AuthContext'
+import { getDocuments, updateDocument, addDocument } from '../services/dbService'
+import { createUserWithEmailAndPassword, sendEmailVerification } from 'firebase/auth'
+import { auth } from '../config/firebase'
+import { ALLOWED_DOMAIN } from '../services/authService'
 
 /**
- * User Management Page (Placeholder)
+ * User Management Page
  * 
  * Visible only to Super Admin, Admin, and Faculty.
- * Will feature paginated user tables with role management.
+ * Features paginated user tables with role management.
  */
 export default function UserManagement() {
   const { userProfile, getAssignableRoles } = useAuth()
   
+  const [users, setUsers] = useState([])
+  const [filteredUsers, setFilteredUsers] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(null)
+  const [searchQuery, setSearchQuery] = useState('')
+  const [roleFilter, setRoleFilter] = useState('')
+  const [updatingUserId, setUpdatingUserId] = useState(null)
+  const [toast, setToast] = useState({ show: false, message: '', kind: 'info' })
+  
+  // Tags management
+  const [tagModalUser, setTagModalUser] = useState(null)
+  const [newTag, setNewTag] = useState('')
+  const [selectedOrg, setSelectedOrg] = useState('')
+  const [selectedPosition, setSelectedPosition] = useState('')
+  const [savingTags, setSavingTags] = useState(false)
+  
+  // Organization options
+  const organizations = [
+    'HGA',
+    'SSC',
+    'CEIT-SC',
+    'GDSC',
+    'YES',
+    'RED CROSS',
+    'ROTC',
+    'NSTP'
+  ]
+  
+  // Position options
+  const positions = [
+    'President',
+    'Vice President',
+    'Secretary',
+    'Treasurer',
+    'Auditor',
+    'P.R.O',
+    'Officer',
+    'Member'
+  ]
+  
+  // Pagination
+  const [currentPage, setCurrentPage] = useState(1)
+  const usersPerPage = 10
+  
+  // Add User Modal
+  const [showAddUserModal, setShowAddUserModal] = useState(false)
+  const [newUser, setNewUser] = useState({
+    givenName: '',
+    lastName: '',
+    email: '',
+    password: '',
+    role: ROLES.STUDENT
+  })
+  const [addingUser, setAddingUser] = useState(false)
+  const [addUserError, setAddUserError] = useState('')
+  
   const assignableRoles = getAssignableRoles()
+
+  // Show toast notification
+  const showToast = (message, kind = 'info') => {
+    setToast({ show: true, message, kind })
+    setTimeout(() => setToast({ show: false, message: '', kind: 'info' }), 3000)
+  }
+
+  // Fetch users from Firestore
+  useEffect(() => {
+    const fetchUsers = async () => {
+      try {
+        setLoading(true)
+        setError(null)
+        console.log('🔍 Fetching users from Firestore...')
+        const usersData = await getDocuments('users')
+        console.log('✅ Users fetched:', usersData)
+        setUsers(usersData)
+        setFilteredUsers(usersData)
+      } catch (err) {
+        console.error('❌ Error fetching users:', err)
+        console.error('Error code:', err.code)
+        console.error('Error message:', err.message)
+        
+        if (err.code === 'permission-denied') {
+          setError('Permission denied. Please check Firestore security rules.')
+        } else if (err.code === 'unavailable') {
+          setError('Service unavailable. Please check your internet connection.')
+        } else {
+          setError(`Failed to load users: ${err.message}`)
+        }
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchUsers()
+  }, [])
+
+  // Filter users based on search and role filter
+  useEffect(() => {
+    let result = users
+
+    // Hide SUPER_ADMIN users from non-SUPER_ADMIN users
+    if (userProfile?.role !== ROLES.SUPER_ADMIN) {
+      result = result.filter(user => user.role !== ROLES.SUPER_ADMIN)
+    }
+
+    if (searchQuery) {
+      const query = searchQuery.toLowerCase()
+      result = result.filter(user => 
+        user.givenName?.toLowerCase().includes(query) ||
+        user.lastName?.toLowerCase().includes(query) ||
+        user.email?.toLowerCase().includes(query) ||
+        `${user.givenName} ${user.lastName}`.toLowerCase().includes(query)
+      )
+    }
+
+    if (roleFilter) {
+      result = result.filter(user => user.role === roleFilter)
+    }
+
+    setFilteredUsers(result)
+    setCurrentPage(1)
+  }, [searchQuery, roleFilter, users, userProfile])
+
+  // Get current page users
+  const indexOfLastUser = currentPage * usersPerPage
+  const indexOfFirstUser = indexOfLastUser - usersPerPage
+  const currentUsers = filteredUsers.slice(indexOfFirstUser, indexOfLastUser)
+  const totalPages = Math.ceil(filteredUsers.length / usersPerPage)
+
+  // Get user initials for avatar
+  const getInitials = (user) => {
+    const first = user.givenName?.charAt(0) || ''
+    const last = user.lastName?.charAt(0) || ''
+    return (first + last).toUpperCase() || 'U'
+  }
+
+  // Get role badge color
+  const getRoleBadgeColor = (role) => {
+    switch (role) {
+      case ROLES.SUPER_ADMIN:
+        return 'bg-red-100 text-red-700'
+      case ROLES.ADMIN:
+        return 'bg-orange-100 text-orange-700'
+      case ROLES.FACULTY:
+        return 'bg-purple-100 text-purple-700'
+      case ROLES.YEAR_REP:
+        return 'bg-blue-100 text-blue-700'
+      case ROLES.CLASS_REP:
+        return 'bg-cyan-100 text-cyan-700'
+      case ROLES.STUDENT:
+      default:
+        return 'bg-primary/10 text-primary'
+    }
+  }
+
+  // Format date
+  const formatDate = (timestamp) => {
+    if (!timestamp) return 'N/A'
+    const date = timestamp.toDate ? timestamp.toDate() : new Date(timestamp)
+    return date.toLocaleDateString('en-US', { 
+      year: 'numeric', 
+      month: 'short', 
+      day: 'numeric' 
+    })
+  }
+
+  // Check if current user can change a specific user's role
+  const canChangeUserRole = (targetUser) => {
+    if (!userProfile || !targetUser) return false
+    if (targetUser.id === userProfile.id) return false
+    const myLevel = ROLE_HIERARCHY[userProfile.role] || 0
+    const targetLevel = ROLE_HIERARCHY[targetUser.role] || 0
+    return myLevel > targetLevel
+  }
+
+  // Handle role change
+  const handleRoleChange = async (userId, newRole) => {
+    try {
+      setUpdatingUserId(userId)
+      console.log(`🔄 Updating user ${userId} role to ${newRole}`)
+      
+      await updateDocument('users', userId, { role: newRole })
+      
+      setUsers(prevUsers => 
+        prevUsers.map(user => 
+          user.id === userId ? { ...user, role: newRole } : user
+        )
+      )
+      
+      showToast(`Role updated to ${ROLE_DISPLAY_NAMES[newRole]}`, 'success')
+      console.log('✅ Role updated successfully')
+    } catch (err) {
+      console.error('❌ Error updating role:', err)
+      showToast('Failed to update role. Please try again.', 'error')
+    } finally {
+      setUpdatingUserId(null)
+    }
+  }
+
+  // Handle adding a tag
+  const handleAddTag = async () => {
+    if (!newTag.trim() || !tagModalUser) return
+    
+    const tagToAdd = newTag.trim().toUpperCase()
+    const currentTags = tagModalUser.tags || []
+    
+    if (currentTags.includes(tagToAdd)) {
+      showToast('Tag already exists', 'error')
+      return
+    }
+    
+    try {
+      setSavingTags(true)
+      const updatedTags = [...currentTags, tagToAdd]
+      
+      await updateDocument('users', tagModalUser.id, { tags: updatedTags })
+      
+      setUsers(prevUsers => 
+        prevUsers.map(user => 
+          user.id === tagModalUser.id ? { ...user, tags: updatedTags } : user
+        )
+      )
+      
+      setTagModalUser(prev => ({ ...prev, tags: updatedTags }))
+      setNewTag('')
+      showToast(`Tag "${tagToAdd}" added`, 'success')
+    } catch (err) {
+      console.error('❌ Error adding tag:', err)
+      showToast('Failed to add tag', 'error')
+    } finally {
+      setSavingTags(false)
+    }
+  }
+
+  // Handle removing a tag
+  const handleRemoveTag = async (tagToRemove) => {
+    if (!tagModalUser) return
+    
+    try {
+      setSavingTags(true)
+      const updatedTags = (tagModalUser.tags || []).filter(tag => tag !== tagToRemove)
+      
+      await updateDocument('users', tagModalUser.id, { tags: updatedTags })
+      
+      setUsers(prevUsers => 
+        prevUsers.map(user => 
+          user.id === tagModalUser.id ? { ...user, tags: updatedTags } : user
+        )
+      )
+      
+      setTagModalUser(prev => ({ ...prev, tags: updatedTags }))
+      showToast(`Tag "${tagToRemove}" removed`, 'success')
+    } catch (err) {
+      console.error('❌ Error removing tag:', err)
+      showToast('Failed to remove tag', 'error')
+    } finally {
+      setSavingTags(false)
+    }
+  }
+
+  // Handle adding a new user
+  const handleAddUser = async (e) => {
+    e.preventDefault()
+    setAddUserError('')
+    
+    // Validate email domain
+    const domain = newUser.email.split('@')[1]?.toLowerCase()
+    if (domain !== ALLOWED_DOMAIN) {
+      setAddUserError(`Only @${ALLOWED_DOMAIN} email addresses are allowed`)
+      return
+    }
+    
+    // Validate password
+    if (newUser.password.length < 8) {
+      setAddUserError('Password must be at least 8 characters')
+      return
+    }
+    
+    // Validate names
+    if (!newUser.givenName.trim() || !newUser.lastName.trim()) {
+      setAddUserError('First name and last name are required')
+      return
+    }
+    
+    try {
+      setAddingUser(true)
+      
+      // Create user in Firebase Auth
+      const userCredential = await createUserWithEmailAndPassword(
+        auth,
+        newUser.email,
+        newUser.password
+      )
+      
+      const user = userCredential.user
+      
+      // Send email verification
+      await sendEmailVerification(user)
+      
+      // Create user document in Firestore
+      const userData = {
+        givenName: newUser.givenName.trim(),
+        lastName: newUser.lastName.trim(),
+        email: newUser.email.toLowerCase(),
+        role: newUser.role,
+        emailVerified: false,
+        tags: [],
+        createdAt: new Date(),
+        updatedAt: new Date()
+      }
+      
+      // Use the Firebase Auth UID as the document ID
+      await addDocument('users', { ...userData, uid: user.uid })
+      
+      // Add to local state
+      const newUserData = {
+        id: user.uid,
+        ...userData
+      }
+      setUsers(prev => [newUserData, ...prev])
+      
+      // Reset form and close modal
+      setNewUser({
+        givenName: '',
+        lastName: '',
+        email: '',
+        password: '',
+        role: ROLES.STUDENT
+      })
+      setShowAddUserModal(false)
+      showToast(`User ${newUser.email} created successfully. Verification email sent.`, 'success')
+      
+    } catch (err) {
+      console.error('❌ Error adding user:', err)
+      if (err.code === 'auth/email-already-in-use') {
+        setAddUserError('This email is already registered')
+      } else if (err.code === 'auth/invalid-email') {
+        setAddUserError('Invalid email address')
+      } else if (err.code === 'auth/weak-password') {
+        setAddUserError('Password is too weak')
+      } else {
+        setAddUserError(err.message || 'Failed to create user')
+      }
+    } finally {
+      setAddingUser(false)
+    }
+  }
+
+  // Reset add user form
+  const resetAddUserForm = () => {
+    setNewUser({
+      givenName: '',
+      lastName: '',
+      email: '',
+      password: '',
+      role: ROLES.STUDENT
+    })
+    setAddUserError('')
+    setShowAddUserModal(false)
+  }
 
   return (
     <div className="space-y-6">
+      {/* Toast Notification */}
+      {toast.show && (
+        <div className={`fixed top-4 right-4 z-50 px-4 py-3 rounded-lg shadow-lg transition-all ${
+          toast.kind === 'success' ? 'bg-green-500 text-white' :
+          toast.kind === 'error' ? 'bg-red-500 text-white' :
+          'bg-blue-500 text-white'
+        }`}>
+          {toast.message}
+        </div>
+      )}
+
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">User Management</h1>
           <p className="text-gray-600 mt-1">Manage users and assign roles.</p>
         </div>
-        <button className="px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors text-sm font-medium">
-          + Add User
-        </button>
+        <div className="flex items-center gap-3">
+          <button 
+            onClick={() => setShowAddUserModal(true)}
+            className="inline-flex items-center gap-2 px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors text-sm font-medium"
+          >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+            </svg>
+            Add User
+          </button>
+          
+          {/* Firebase Console Button - Super Admin Only */}
+          {userProfile?.role === ROLES.SUPER_ADMIN && (
+            <a
+              href="https://console.firebase.google.com/project/unisync-web-app-ac1fd"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-2 px-4 py-2 bg-amber-500 text-white font-medium rounded-lg hover:bg-amber-600 transition-colors text-sm"
+            >
+              <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M3.89 15.673L6.255.461A.542.542 0 017.27.289l2.543 4.771zm16.795 3.691L18.433 5.365a.543.543 0 00-.918-.295l-14.2 14.294 7.857 4.428a1.62 1.62 0 001.587 0zM14.3 7.148l-1.82-3.482a.542.542 0 00-.96 0L3.53 17.984z"/>
+              </svg>
+              Firebase
+            </a>
+          )}
+        </div>
       </div>
 
       {/* Role Assignment Info */}
@@ -41,7 +438,7 @@ export default function UserManagement() {
         </div>
       </div>
 
-      {/* User Table Placeholder */}
+      {/* User Table */}
       <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
         {/* Table Header */}
         <div className="px-6 py-4 border-b border-gray-200 flex items-center justify-between">
@@ -49,6 +446,8 @@ export default function UserManagement() {
             <input
               type="text"
               placeholder="Search users..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
               className="w-64 pl-10 pr-4 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
             />
             <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -56,7 +455,11 @@ export default function UserManagement() {
             </svg>
           </div>
           <div className="flex items-center gap-2">
-            <select className="text-sm border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary/20">
+            <select 
+              value={roleFilter}
+              onChange={(e) => setRoleFilter(e.target.value)}
+              className="text-sm border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary/20"
+            >
               <option value="">All Roles</option>
               {Object.entries(ROLE_DISPLAY_NAMES).map(([key, name]) => (
                 <option key={key} value={key}>{name}</option>
@@ -65,70 +468,430 @@ export default function UserManagement() {
           </div>
         </div>
 
+        {/* Loading State */}
+        {loading && (
+          <div className="px-6 py-12 text-center">
+            <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+            <p className="text-gray-500">Loading users...</p>
+          </div>
+        )}
+
+        {/* Error State */}
+        {error && !loading && (
+          <div className="px-6 py-12 text-center">
+            <svg className="w-12 h-12 text-red-400 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            <p className="text-red-600">{error}</p>
+          </div>
+        )}
+
+        {/* Empty State */}
+        {!loading && !error && filteredUsers.length === 0 && (
+          <div className="px-6 py-12 text-center">
+            <svg className="w-12 h-12 text-gray-300 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+            </svg>
+            <p className="text-gray-500">
+              {searchQuery || roleFilter ? 'No users found matching your criteria.' : 'No users found.'}
+            </p>
+          </div>
+        )}
+
         {/* Table */}
-        <div className="overflow-x-auto">
-          <table className="w-full">
-            <thead className="bg-gray-50 border-b border-gray-200">
-              <tr>
-                <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase">User</th>
-                <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Email</th>
-                <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Role</th>
-                <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Tags</th>
-                <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Status</th>
-                <th className="px-6 py-3 text-right text-xs font-semibold text-gray-500 uppercase">Actions</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-200">
-              {/* Placeholder rows */}
-              {[1, 2, 3, 4, 5].map((_, index) => (
-                <tr key={index} className="hover:bg-gray-50">
-                  <td className="px-6 py-4">
-                    <div className="flex items-center gap-3">
-                      <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
-                        <span className="text-primary font-semibold text-xs">JD</span>
-                      </div>
-                      <span className="text-sm font-medium text-gray-900">John Doe</span>
-                    </div>
-                  </td>
-                  <td className="px-6 py-4 text-sm text-gray-500">john.doe@cvsu.edu.ph</td>
-                  <td className="px-6 py-4">
-                    <span className="px-2 py-1 text-xs font-medium bg-primary/10 text-primary rounded-full">
-                      Student
-                    </span>
-                  </td>
-                  <td className="px-6 py-4">
-                    <div className="flex gap-1">
-                      <span className="px-2 py-0.5 text-xs bg-gray-100 text-gray-600 rounded-full">HGA MEMBER</span>
-                    </div>
-                  </td>
-                  <td className="px-6 py-4">
-                    <span className="inline-flex items-center gap-1 text-xs text-green-600">
-                      <span className="w-1.5 h-1.5 bg-green-500 rounded-full"></span>
-                      Active
-                    </span>
-                  </td>
-                  <td className="px-6 py-4 text-right">
-                    <button className="text-sm text-primary hover:underline">Edit</button>
-                  </td>
+        {!loading && !error && filteredUsers.length > 0 && (
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead className="bg-gray-50 border-b border-gray-200">
+                <tr>
+                  <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase">User</th>
+                  <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Email</th>
+                  <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Role</th>
+                  <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Tags</th>
+                  <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Created</th>
+                  <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Status</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+              </thead>
+              <tbody className="divide-y divide-gray-200">
+                {currentUsers.map((user) => (
+                  <tr key={user.id} className="hover:bg-gray-50">
+                    <td className="px-6 py-4">
+                      <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
+                          <span className="text-primary font-semibold text-xs">{getInitials(user)}</span>
+                        </div>
+                        <span className="text-sm font-medium text-gray-900">
+                          {user.givenName} {user.lastName}
+                        </span>
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 text-sm text-gray-500">{user.email}</td>
+                    <td className="px-6 py-4">
+                      {canChangeUserRole(user) ? (
+                        <div className="relative">
+                          <select
+                            value={user.role}
+                            onChange={(e) => handleRoleChange(user.id, e.target.value)}
+                            disabled={updatingUserId === user.id}
+                            className={`text-xs font-medium rounded-full px-2 py-1 border-0 cursor-pointer focus:outline-none focus:ring-2 focus:ring-primary/20 ${getRoleBadgeColor(user.role)} ${updatingUserId === user.id ? 'opacity-50' : ''}`}
+                          >
+                            <option value={user.role}>{ROLE_DISPLAY_NAMES[user.role]}</option>
+                            {assignableRoles
+                              .filter(role => role !== user.role)
+                              .map(role => (
+                                <option key={role} value={role}>
+                                  {ROLE_DISPLAY_NAMES[role]}
+                                </option>
+                              ))
+                            }
+                          </select>
+                          {updatingUserId === user.id && (
+                            <div className="absolute right-0 top-1/2 -translate-y-1/2 mr-6">
+                              <div className="w-3 h-3 border-2 border-primary border-t-transparent rounded-full animate-spin"></div>
+                            </div>
+                          )}
+                        </div>
+                      ) : (
+                        <span className={`px-2 py-1 text-xs font-medium rounded-full ${getRoleBadgeColor(user.role)}`}>
+                          {ROLE_DISPLAY_NAMES[user.role] || user.role}
+                        </span>
+                      )}
+                    </td>
+                    <td className="px-6 py-4">
+                      <div className="flex items-center gap-1 flex-wrap">
+                        {(user.tags || []).slice(0, 2).map((tag, idx) => (
+                          <span key={idx} className="px-2 py-0.5 text-xs bg-gray-100 text-gray-600 rounded-full">
+                            {tag}
+                          </span>
+                        ))}
+                        {(user.tags || []).length > 2 && (
+                          <span className="text-xs text-gray-400">+{user.tags.length - 2}</span>
+                        )}
+                        <button
+                          onClick={() => setTagModalUser(user)}
+                          className="p-1 text-gray-400 hover:text-primary hover:bg-gray-100 rounded"
+                          title="Manage tags"
+                        >
+                          <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                          </svg>
+                        </button>
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 text-sm text-gray-500">
+                      {formatDate(user.createdAt)}
+                    </td>
+                    <td className="px-6 py-4">
+                      <span className={`inline-flex items-center gap-1 text-xs ${user.emailVerified ? 'text-green-600' : 'text-yellow-600'}`}>
+                        <span className={`w-1.5 h-1.5 rounded-full ${user.emailVerified ? 'bg-green-500' : 'bg-yellow-500'}`}></span>
+                        {user.emailVerified ? 'Verified' : 'Pending'}
+                      </span>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
 
         {/* Pagination */}
-        <div className="px-6 py-4 border-t border-gray-200 flex items-center justify-between">
-          <p className="text-sm text-gray-500">Showing 1-5 of 50 users</p>
-          <div className="flex items-center gap-2">
-            <button className="px-3 py-1.5 text-sm border border-gray-200 rounded-lg hover:bg-gray-50 disabled:opacity-50" disabled>
-              Previous
-            </button>
-            <button className="px-3 py-1.5 text-sm border border-gray-200 rounded-lg hover:bg-gray-50">
-              Next
-            </button>
+        {!loading && !error && filteredUsers.length > 0 && (
+          <div className="px-6 py-4 border-t border-gray-200 flex items-center justify-between">
+            <p className="text-sm text-gray-500">
+              Showing {indexOfFirstUser + 1}-{Math.min(indexOfLastUser, filteredUsers.length)} of {filteredUsers.length} users
+            </p>
+            <div className="flex items-center gap-2">
+              <button 
+                onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                disabled={currentPage === 1}
+                className="px-3 py-1.5 text-sm border border-gray-200 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                Previous
+              </button>
+              <span className="text-sm text-gray-600">
+                Page {currentPage} of {totalPages}
+              </span>
+              <button 
+                onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+                disabled={currentPage === totalPages}
+                className="px-3 py-1.5 text-sm border border-gray-200 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                Next
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Tags Modal */}
+      {tagModalUser && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center">
+          {/* Backdrop */}
+          <div 
+            className="absolute inset-0 bg-black/50" 
+            onClick={() => {
+              setTagModalUser(null)
+              setNewTag('')
+              setSelectedOrg('')
+              setSelectedPosition('')
+            }}
+          />
+          
+          {/* Modal */}
+          <div className="relative bg-white rounded-xl shadow-xl w-full max-w-md mx-4 p-6">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-semibold text-gray-900">
+                Manage Tags
+              </h3>
+              <button
+                onClick={() => {
+                  setTagModalUser(null)
+                  setNewTag('')
+                  setSelectedOrg('')
+                  setSelectedPosition('')
+                }}
+                className="text-gray-400 hover:text-gray-600"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+            
+            <p className="text-sm text-gray-600 mb-4">
+              Tags for <span className="font-medium">{tagModalUser.givenName} {tagModalUser.lastName}</span>
+            </p>
+            
+            {/* Current Tags */}
+            <div className="mb-4">
+              <label className="text-sm font-medium text-gray-700 mb-2 block">Current Tags</label>
+              <div className="flex flex-wrap gap-2 min-h-[40px] p-3 bg-gray-50 rounded-lg">
+                {(tagModalUser.tags || []).length === 0 ? (
+                  <span className="text-sm text-gray-400">No tags yet</span>
+                ) : (
+                  (tagModalUser.tags || []).map((tag, idx) => (
+                    <span 
+                      key={idx} 
+                      className="inline-flex items-center gap-1 px-2 py-1 text-xs bg-primary/10 text-primary rounded-full"
+                    >
+                      {tag}
+                      <button
+                        onClick={() => handleRemoveTag(tag)}
+                        disabled={savingTags}
+                        className="hover:text-red-600 disabled:opacity-50"
+                      >
+                        <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                      </button>
+                    </span>
+                  ))
+                )}
+              </div>
+            </div>
+            
+            {/* Add Organization & Position */}
+            <div className="mb-4">
+              <label className="text-sm font-medium text-gray-700 mb-2 block">Add Organization & Position</label>
+              <div className="flex gap-2 mb-2">
+                <select
+                  value={selectedOrg}
+                  onChange={(e) => setSelectedOrg(e.target.value)}
+                  className="flex-1 px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
+                >
+                  <option value="">Select Organization</option>
+                  {organizations.map((org) => (
+                    <option key={org} value={org}>{org}</option>
+                  ))}
+                </select>
+                <select
+                  value={selectedPosition}
+                  onChange={(e) => setSelectedPosition(e.target.value)}
+                  className="flex-1 px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
+                >
+                  <option value="">Select Position</option>
+                  {positions.map((pos) => (
+                    <option key={pos} value={pos}>{pos}</option>
+                  ))}
+                </select>
+              </div>
+              <button
+                onClick={() => {
+                  if (selectedOrg && selectedPosition) {
+                    const orgTag = `${selectedOrg} ${selectedPosition}`.toUpperCase()
+                    setNewTag(orgTag)
+                    handleAddTag(orgTag)
+                    setSelectedOrg('')
+                    setSelectedPosition('')
+                  }
+                }}
+                disabled={!selectedOrg || !selectedPosition || savingTags}
+                className="w-full px-4 py-2 bg-primary text-white text-sm font-medium rounded-lg hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {savingTags ? 'Adding...' : 'Add Organization Tag'}
+              </button>
+            </div>
+
+            <div className="relative flex items-center my-4">
+              <div className="flex-grow border-t border-gray-200" />
+              <span className="mx-3 text-xs text-gray-400">or</span>
+              <div className="flex-grow border-t border-gray-200" />
+            </div>
+            
+            {/* Add Custom Tag */}
+            <div>
+              <label className="text-sm font-medium text-gray-700 mb-2 block">Add Custom Tag</label>
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  value={newTag}
+                  onChange={(e) => setNewTag(e.target.value)}
+                  onKeyDown={(e) => e.key === 'Enter' && handleAddTag()}
+                  placeholder="Enter custom tag"
+                  className="flex-1 px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
+                />
+                <button
+                  onClick={() => handleAddTag()}
+                  disabled={!newTag.trim() || savingTags}
+                  className="px-4 py-2 bg-gray-600 text-white text-sm font-medium rounded-lg hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {savingTags ? '...' : 'Add'}
+                </button>
+              </div>
+            </div>
           </div>
         </div>
-      </div>
+      )}
+
+      {/* Add User Modal */}
+      {showAddUserModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center">
+          <div 
+            className="absolute inset-0 bg-black/50" 
+            onClick={resetAddUserForm}
+          />
+          <div className="relative bg-white rounded-xl shadow-xl w-full max-w-md mx-4 p-6">
+            {/* Header */}
+            <div className="flex items-center justify-between mb-6">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 bg-primary/10 rounded-full flex items-center justify-center">
+                  <svg className="w-5 h-5 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" />
+                  </svg>
+                </div>
+                <h3 className="text-lg font-semibold text-gray-900">Add New User</h3>
+              </div>
+              <button
+                onClick={resetAddUserForm}
+                className="text-gray-400 hover:text-gray-600"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+
+            {/* Error Message */}
+            {addUserError && (
+              <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-600">
+                {addUserError}
+              </div>
+            )}
+
+            {/* Form */}
+            <form onSubmit={handleAddUser} className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="text-sm font-medium text-gray-700 mb-1 block">First Name</label>
+                  <input
+                    type="text"
+                    value={newUser.givenName}
+                    onChange={(e) => setNewUser(prev => ({ ...prev, givenName: e.target.value }))}
+                    placeholder="John"
+                    className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="text-sm font-medium text-gray-700 mb-1 block">Last Name</label>
+                  <input
+                    type="text"
+                    value={newUser.lastName}
+                    onChange={(e) => setNewUser(prev => ({ ...prev, lastName: e.target.value }))}
+                    placeholder="Doe"
+                    className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
+                    required
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="text-sm font-medium text-gray-700 mb-1 block">Email Address</label>
+                <input
+                  type="email"
+                  value={newUser.email}
+                  onChange={(e) => setNewUser(prev => ({ ...prev, email: e.target.value }))}
+                  placeholder={`user@${ALLOWED_DOMAIN}`}
+                  className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="text-sm font-medium text-gray-700 mb-1 block">Password</label>
+                <input
+                  type="password"
+                  value={newUser.password}
+                  onChange={(e) => setNewUser(prev => ({ ...prev, password: e.target.value }))}
+                  placeholder="Minimum 8 characters"
+                  className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
+                  required
+                  minLength={8}
+                />
+              </div>
+
+              <div>
+                <label className="text-sm font-medium text-gray-700 mb-1 block">Role</label>
+                <select
+                  value={newUser.role}
+                  onChange={(e) => setNewUser(prev => ({ ...prev, role: e.target.value }))}
+                  className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
+                >
+                  {assignableRoles.map(role => (
+                    <option key={role} value={role}>{ROLE_DISPLAY_NAMES[role]}</option>
+                  ))}
+                </select>
+                <p className="text-xs text-gray-500 mt-1">You can only assign roles below your level</p>
+              </div>
+
+              {/* Actions */}
+              <div className="flex gap-3 pt-4">
+                <button
+                  type="button"
+                  onClick={resetAddUserForm}
+                  className="flex-1 px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={addingUser}
+                  className="flex-1 px-4 py-2 text-sm font-medium text-white bg-primary rounded-lg hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                >
+                  {addingUser ? (
+                    <span className="flex items-center justify-center gap-2">
+                      <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                      Creating...
+                    </span>
+                  ) : (
+                    'Create User'
+                  )}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
