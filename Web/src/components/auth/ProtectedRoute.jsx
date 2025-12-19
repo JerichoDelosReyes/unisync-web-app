@@ -56,14 +56,23 @@ export default function ProtectedRoute({
 
   // Check if specific roles are allowed
   if (allowedRoles && allowedRoles.length > 0) {
-    const hasAllowedRole = allowedRoles.some(role => hasRole(role))
+    console.log('🔐 Checking allowedRoles:', allowedRoles)
+    console.log('👤 User role:', userProfile?.role)
+    const hasAllowedRole = allowedRoles.some(role => {
+      const result = hasRole(role)
+      console.log(`  Checking if user has role "${role}":`, result)
+      return result
+    })
+    console.log('✅ Has allowed role:', hasAllowedRole)
     if (!hasAllowedRole) {
+      console.log('❌ ACCESS DENIED - User role not in allowedRoles')
       return <Navigate to="/unauthorized" replace />
     }
   }
 
   // Check minimum role requirement
   if (requiredRole && !hasMinRole(requiredRole)) {
+    console.log('❌ ACCESS DENIED - Does not meet minimum role:', requiredRole)
     return <Navigate to="/unauthorized" replace />
   }
 

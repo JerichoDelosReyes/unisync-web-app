@@ -295,12 +295,6 @@ export const loginUser = async (email, password, rememberMe = false) => {
 
     const userData = userDoc.data();
 
-    // Check if user has Student role
-    if (userData.role !== USER_ROLES.STUDENT) {
-      await signOut(auth);
-      return { success: false, error: 'Access denied. Student accounts only.' };
-    }
-
     // Update Firestore to mark email as verified
     await updateDoc(doc(db, 'users', user.uid), {
       emailVerified: true,

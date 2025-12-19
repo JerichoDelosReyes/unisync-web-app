@@ -49,13 +49,17 @@ export function AuthProvider({ children }) {
   // Fetch user profile from Firestore
   const fetchUserProfile = async (uid) => {
     try {
+      console.log('🔍 Fetching profile for UID:', uid)
       const userDoc = await getDoc(doc(db, 'users', uid))
       if (userDoc.exists()) {
         const profile = { id: userDoc.id, ...userDoc.data() }
+        console.log('✅ User profile loaded:', profile)
+        console.log('👤 Role from Firebase:', profile.role)
+        console.log('🔑 Role hierarchy level:', ROLE_HIERARCHY[profile.role])
         setUserProfile(profile)
         return profile
       } else {
-        console.warn('User profile not found in Firestore')
+        console.warn('❌ User profile not found in Firestore for UID:', uid)
         setUserProfile(null)
         return null
       }
@@ -100,6 +104,11 @@ export function AuthProvider({ children }) {
 
   // Check if user has exact role
   const hasRole = (role) => {
+    console.log('🔍 hasRole check:')
+    console.log('   userProfile?.role:', `"${userProfile?.role}"`, typeof userProfile?.role)
+    console.log('   checking against:', `"${role}"`, typeof role)
+    console.log('   ROLES.SUPER_ADMIN:', `"${ROLES.SUPER_ADMIN}"`)
+    console.log('   exact match:', userProfile?.role === role)
     return userProfile?.role === role
   }
 
