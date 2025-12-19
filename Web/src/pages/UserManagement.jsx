@@ -39,7 +39,9 @@ export default function UserManagement() {
     'YES',
     'RED CROSS',
     'ROTC',
-    'NSTP'
+    'NSTP',
+    'Class Representative',
+    'Year Representative'
   ]
   
   // Position options
@@ -71,6 +73,7 @@ export default function UserManagement() {
   const [addUserError, setAddUserError] = useState('')
   
   const assignableRoles = getAssignableRoles()
+  const [openRoleDropdown, setOpenRoleDropdown] = useState(null)
 
   // Show toast notification
   const showToast = (message, kind = 'info') => {
@@ -528,25 +531,41 @@ export default function UserManagement() {
                     <td className="px-6 py-4 text-sm text-gray-500">{user.email}</td>
                     <td className="px-6 py-4">
                       {canChangeUserRole(user) ? (
-                        <div className="relative">
-                          <select
-                            value={user.role}
-                            onChange={(e) => handleRoleChange(user.id, e.target.value)}
+                        <div className="relative inline-block" tabIndex={0} onBlur={() => setOpenRoleDropdown(null)}>
+                          {/* Trigger button */}
+                          <button
+                            type="button"
+                            onClick={() => setOpenRoleDropdown(prev => (prev === user.id ? null : user.id))}
                             disabled={updatingUserId === user.id}
-                            className={`text-xs font-medium rounded-full px-2 py-1 border-0 cursor-pointer focus:outline-none focus:ring-2 focus:ring-primary/20 ${getRoleBadgeColor(user.role)} ${updatingUserId === user.id ? 'opacity-50' : ''}`}
+                            className={`flex items-center gap-2 text-sm font-medium rounded-md px-3 py-1.5 border border-gray-300 bg-white text-gray-900 hover:shadow-sm ${updatingUserId === user.id ? 'opacity-50 cursor-default' : ''}`}
                           >
-                            <option value={user.role}>{ROLE_DISPLAY_NAMES[user.role]}</option>
-                            {assignableRoles
-                              .filter(role => role !== user.role)
-                              .map(role => (
-                                <option key={role} value={role}>
-                                  {ROLE_DISPLAY_NAMES[role]}
-                                </option>
-                              ))
-                            }
-                          </select>
+                            <span>{ROLE_DISPLAY_NAMES[user.role]}</span>
+                            <svg className="w-3 h-3 text-gray-500" viewBox="0 0 20 20" fill="currentColor">
+                              <path fillRule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 10.94l3.71-3.71a.75.75 0 111.06 1.06l-4.24 4.24a.75.75 0 01-1.06 0L5.21 8.29a.75.75 0 01.02-1.08z" clipRule="evenodd" />
+                            </svg>
+                          </button>
+
+                          {/* Dropdown menu - flush with button (no gap) */}
+                          {openRoleDropdown === user.id && (
+                            <div className="absolute left-0 top-full mt-0 w-40 bg-white border border-gray-200 rounded-md shadow-lg z-50">
+                              <ul className="py-1">
+                                {[ROLES.ADMIN, ROLES.FACULTY, ROLES.STUDENT].map((r) => (
+                                  <li key={r}>
+                                    <button
+                                      type="button"
+                                      onClick={() => { handleRoleChange(user.id, r); setOpenRoleDropdown(null) }}
+                                      className={`w-full text-left px-3 py-2 text-sm hover:bg-primary/5 ${user.role === r ? 'bg-primary/10 font-medium' : ''}`}
+                                    >
+                                      {ROLE_DISPLAY_NAMES[r]}
+                                    </button>
+                                  </li>
+                                ))}
+                              </ul>
+                            </div>
+                          )}
+
                           {updatingUserId === user.id && (
-                            <div className="absolute right-0 top-1/2 -translate-y-1/2 mr-6">
+                            <div className="absolute right-2 top-1/2 -translate-y-1/2">
                               <div className="w-3 h-3 border-2 border-primary border-t-transparent rounded-full animate-spin"></div>
                             </div>
                           )}
