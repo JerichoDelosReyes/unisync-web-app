@@ -65,7 +65,8 @@ export default function UserManagement() {
     lastName: '',
     email: '',
     password: '',
-    role: ROLES.STUDENT
+    role: ROLES.STUDENT,
+    tags: []
   })
   const [addingUser, setAddingUser] = useState(false)
   const [addUserError, setAddUserError] = useState('')
@@ -158,8 +159,6 @@ export default function UserManagement() {
         return 'bg-orange-100 text-orange-700'
       case ROLES.FACULTY:
         return 'bg-purple-100 text-purple-700'
-      case ROLES.YEAR_REP:
-        return 'bg-blue-100 text-blue-700'
       case ROLES.CLASS_REP:
         return 'bg-cyan-100 text-cyan-700'
       case ROLES.STUDENT:
@@ -319,7 +318,7 @@ export default function UserManagement() {
         email: newUser.email.toLowerCase(),
         role: newUser.role,
         emailVerified: false,
-        tags: [],
+        tags: newUser.tags || [],
         createdAt: new Date(),
         updatedAt: new Date()
       }
@@ -368,7 +367,8 @@ export default function UserManagement() {
       lastName: '',
       email: '',
       password: '',
-      role: ROLES.STUDENT
+      role: ROLES.STUDENT,
+      tags: []
     })
     setAddUserError('')
     setShowAddUserModal(false)
@@ -862,6 +862,40 @@ export default function UserManagement() {
                   ))}
                 </select>
                 <p className="text-xs text-gray-500 mt-1">You can only assign roles below your level</p>
+              </div>
+
+              {/* Tags */}
+              <div>
+                <label className="text-sm font-medium text-gray-700 mb-1 block">Tags (Optional)</label>
+                <div className="flex flex-wrap gap-2 mb-2 min-h-[28px]">
+                  {newUser.tags.map((tag, idx) => (
+                    <span key={idx} className="inline-flex items-center gap-1 px-2 py-1 bg-primary/10 text-primary text-xs rounded-full">
+                      {tag}
+                      <button
+                        type="button"
+                        onClick={() => setNewUser(prev => ({ 
+                          ...prev, 
+                          tags: prev.tags.filter((_, i) => i !== idx) 
+                        }))}
+                        className="hover:text-red-500 font-bold"
+                      >×</button>
+                    </span>
+                  ))}
+                </div>
+                <select
+                  onChange={(e) => {
+                    if (e.target.value && !newUser.tags.includes(e.target.value)) {
+                      setNewUser(prev => ({ ...prev, tags: [...prev.tags, e.target.value] }))
+                    }
+                    e.target.value = ''
+                  }}
+                  className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
+                >
+                  <option value="">Add Organization Tag...</option>
+                  {organizations.map(org => (
+                    <option key={org} value={org}>{org}</option>
+                  ))}
+                </select>
               </div>
 
               {/* Actions */}

@@ -10,17 +10,15 @@ export const ROLES = {
   SUPER_ADMIN: 'super_admin',
   ADMIN: 'admin',
   FACULTY: 'faculty',
-  YEAR_REP: 'year_rep',
   CLASS_REP: 'class_rep',
   STUDENT: 'student'
 }
 
 // Role hierarchy level (higher number = more permissions)
 export const ROLE_HIERARCHY = {
-  [ROLES.SUPER_ADMIN]: 6,
-  [ROLES.ADMIN]: 5,
-  [ROLES.FACULTY]: 4,
-  [ROLES.YEAR_REP]: 3,
+  [ROLES.SUPER_ADMIN]: 5,
+  [ROLES.ADMIN]: 4,
+  [ROLES.FACULTY]: 3,
   [ROLES.CLASS_REP]: 2,
   [ROLES.STUDENT]: 1
 }
@@ -30,7 +28,6 @@ export const ROLE_DISPLAY_NAMES = {
   [ROLES.SUPER_ADMIN]: 'Super Admin',
   [ROLES.ADMIN]: 'Admin',
   [ROLES.FACULTY]: 'Faculty',
-  [ROLES.YEAR_REP]: 'Year Representative',
   [ROLES.CLASS_REP]: 'Class Representative',
   [ROLES.STUDENT]: 'Student'
 }
@@ -121,9 +118,9 @@ export function AuthProvider({ children }) {
       return targetLevel <= ROLE_HIERARCHY[ROLES.FACULTY]
     }
     
-    // Faculty can assign Year Rep and Class Rep
+    // Faculty can assign Class Rep and Student
     if (currentRole === ROLES.FACULTY) {
-      return targetLevel <= ROLE_HIERARCHY[ROLES.YEAR_REP]
+      return targetLevel <= ROLE_HIERARCHY[ROLES.CLASS_REP]
     }
 
     return false
@@ -136,15 +133,15 @@ export function AuthProvider({ children }) {
     const currentRole = userProfile.role
     
     if (currentRole === ROLES.SUPER_ADMIN) {
-      return [ROLES.ADMIN, ROLES.FACULTY, ROLES.YEAR_REP, ROLES.CLASS_REP, ROLES.STUDENT]
+      return [ROLES.ADMIN, ROLES.FACULTY, ROLES.CLASS_REP, ROLES.STUDENT]
     }
     
     if (currentRole === ROLES.ADMIN) {
-      return [ROLES.FACULTY, ROLES.YEAR_REP, ROLES.CLASS_REP, ROLES.STUDENT]
+      return [ROLES.FACULTY, ROLES.CLASS_REP, ROLES.STUDENT]
     }
     
     if (currentRole === ROLES.FACULTY) {
-      return [ROLES.YEAR_REP, ROLES.CLASS_REP]
+      return [ROLES.CLASS_REP, ROLES.STUDENT]
     }
 
     return []

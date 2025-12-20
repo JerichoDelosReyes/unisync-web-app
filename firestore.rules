@@ -1,0 +1,99 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // Helper function to get user role from their profile
+    function getUserRole() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role;
+    }
+    
+    // Check if user is authenticated
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+    
+    // Check if user is at least Faculty level
+    function isFacultyOrAbove() {
+      let role = getUserRole();
+      return role == 'super_admin' || role == 'admin' || role == 'faculty';
+    }
+    
+    // Check if user is Admin or above
+    function isAdminOrAbove() {
+      let role = getUserRole();
+      return role == 'super_admin' || role == 'admin';
+    }
+    
+    // Check if user is Super Admin
+    function isSuperAdmin() {
+      return getUserRole() == 'super_admin';
+    }
+    
+    // ==========================================
+    // USERS COLLECTION
+    // ==========================================
+    match /users/{userId} {
+      // Anyone authenticated can read users (for user lists, etc.)
+      allow read: if isAuthenticated();
+      
+      // Users can update their own profile (limited to non-role fields)
+      allow update: if isAuthenticated() 
+        && request.auth.uid == userId
+        && !request.resource.data.diff(resource.data).affectedKeys().hasAny(['role']);
+      
+      // Faculty and above can create new users
+      allow create: if isAuthenticated() && isFacultyOrAbove();
+      
+      // Faculty and above can update any user (including role changes)
+      allow update: if isAuthenticated() && isFacultyOrAbove();
+      
+      // Only Admin and above can delete users
+      allow delete: if isAuthenticated() && isAdminOrAbove();
+    }
+    
+    // ==========================================
+    // ANNOUNCEMENTS COLLECTION (Future)
+    // ==========================================
+    match /announcements/{announcementId} {
+      // Anyone authenticated can read announcements
+      allow read: if isAuthenticated();
+      
+      // Faculty and above can create/update announcements
+      allow create, update: if isAuthenticated() && isFacultyOrAbove();
+      
+      // Only Admin and above can delete announcements
+      allow delete: if isAuthenticated() && isAdminOrAbove();
+    }
+    
+    // ==========================================
+    // SCHEDULES / ROOMS COLLECTION (Future)
+    // ==========================================
+    match /schedules/{scheduleId} {
+      allow read: if isAuthenticated();
+      allow create, update: if isAuthenticated() && isFacultyOrAbove();
+      allow delete: if isAuthenticated() && isAdminOrAbove();
+    }
+    
+    match /rooms/{roomId} {
+      allow read: if isAuthenticated();
+      allow create, update, delete: if isAuthenticated() && isAdminOrAbove();
+    }
+    
+    // ==========================================
+    // LOGS COLLECTION (Super Admin Only)
+    // ==========================================
+    match /logs/{logId} {
+      allow read: if isAuthenticated() && isSuperAdmin();
+      allow create: if isAuthenticated(); // Any action can create logs
+      allow update, delete: if false; // Logs are immutable
+    }
+    
+    // ==========================================
+    // SYSTEM SETTINGS (Super Admin Only)
+    // ==========================================
+    match /settings/{settingId} {
+      allow read: if isAuthenticated() && isAdminOrAbove();
+      allow write: if isAuthenticated() && isSuperAdmin();
+    }
+  }
+}
