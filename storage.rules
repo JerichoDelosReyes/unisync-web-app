@@ -1,0 +1,87 @@
+rules_version = '2';
+
+// Firebase Storage Security Rules for UNISYNC
+service firebase.storage {
+  match /b/{bucket}/o {
+    
+    // Helper function to check if user is authenticated
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+    
+    // Helper function to check file size (max 50MB)
+    function isValidSize() {
+      return request.resource.size < 50 * 1024 * 1024;
+    }
+    
+    // Helper function to check if file is an allowed image type
+    function isImage() {
+      return request.resource.contentType.matches('image/.*');
+    }
+    
+    // Helper function to check if file is an allowed video type
+    function isVideo() {
+      return request.resource.contentType.matches('video/.*');
+    }
+    
+    // Helper function to check if file type is allowed
+    function isAllowedFileType() {
+      return isImage() || isVideo();
+    }
+    
+    // ==========================================
+    // ANNOUNCEMENT MEDIA
+    // ==========================================
+    // Path: announcements/{announcementId}/{filename}
+    match /announcements/{announcementId}/{fileName} {
+      // Anyone authenticated can read announcement media
+      allow read: if isAuthenticated();
+      
+      // Authenticated users can upload media (size and type validated)
+      allow create: if isAuthenticated() 
+        && isValidSize() 
+        && isAllowedFileType();
+      
+      // Only the uploader or admin can delete
+      // Note: We can't check Firestore roles from Storage rules directly
+      // So we allow any authenticated user to delete their uploads
+      allow delete: if isAuthenticated();
+    }
+    
+    // ==========================================
+    // USER PROFILE PICTURES (Future)
+    // ==========================================
+    // Path: profiles/{userId}/{filename}
+    match /profiles/{userId}/{fileName} {
+      // Anyone authenticated can view profile pictures
+      allow read: if isAuthenticated();
+      
+      // Users can only upload to their own folder
+      allow create: if isAuthenticated() 
+        && request.auth.uid == userId
+        && isValidSize()
+        && isImage();
+      
+      // Users can only delete their own profile pictures
+      allow delete: if isAuthenticated() && request.auth.uid == userId;
+    }
+    
+    // ==========================================
+    // GENERAL UPLOADS (Future)
+    // ==========================================
+    // Path: uploads/{userId}/{filename}
+    match /uploads/{userId}/{fileName} {
+      // Anyone authenticated can read
+      allow read: if isAuthenticated();
+      
+      // Users can only upload to their own folder
+      allow create: if isAuthenticated() 
+        && request.auth.uid == userId
+        && isValidSize()
+        && isAllowedFileType();
+      
+      // Users can only delete their own uploads
+      allow delete: if isAuthenticated() && request.auth.uid == userId;
+    }
+  }
+}

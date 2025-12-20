@@ -1,0 +1,485 @@
+/**
+ * Announcement Service
+ * 
+ * Handles CRUD operations for announcements with:
+ * - Media uploads (photos/videos) to Firebase Storage
+ * - Tag-based visibility filtering
+ * - Moderation integration
+ * - Priority levels
+ */
+
+import { db, storage } from '../config/firebase'
+import {
+  collection,
+  doc,
+  addDoc,
+  getDoc,
+  getDocs,
+  updateDoc,
+  deleteDoc,
+  query,
+  where,
+  orderBy,
+  limit,
+  serverTimestamp,
+  Timestamp
+} from 'firebase/firestore'
+import {
+  ref,
+  uploadBytes,
+  getDownloadURL,
+  deleteObject
+} from 'firebase/storage'
+import { moderateContent, addModerationFeedback } from './moderationService'
+
+// Collection name
+const COLLECTION_NAME = 'announcements'
+
+// Announcement statuses
+export const ANNOUNCEMENT_STATUS = {
+  DRAFT: 'draft',
+  PENDING_REVIEW: 'pending_review',
+  APPROVED: 'approved',
+  REJECTED: 'rejected',
+  ARCHIVED: 'archived'
+}
+
+// Priority levels
+export const PRIORITY_LEVELS = {
+  LOW: 'low',
+  NORMAL: 'normal',
+  HIGH: 'high',
+  URGENT: 'urgent'
+}
+
+// Allowed file types
+const ALLOWED_IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/gif', 'image/webp']
+const ALLOWED_VIDEO_TYPES = ['video/mp4', 'video/webm', 'video/quicktime']
+const MAX_FILE_SIZE = 50 * 1024 * 1024 // 50MB
+
+/**
+ * Validate a media file
+ */
+const validateMediaFile = (file) => {
+  const isImage = ALLOWED_IMAGE_TYPES.includes(file.type)
+  const isVideo = ALLOWED_VIDEO_TYPES.includes(file.type)
+  
+  if (!isImage && !isVideo) {
+    throw new Error(`Invalid file type: ${file.type}. Allowed: images (JPEG, PNG, GIF, WebP) and videos (MP4, WebM, MOV)`)
+  }
+  
+  if (file.size > MAX_FILE_SIZE) {
+    throw new Error(`File too large: ${(file.size / 1024 / 1024).toFixed(2)}MB. Maximum: 50MB`)
+  }
+  
+  return { isImage, isVideo }
+}
+
+/**
+ * Upload a media file to Firebase Storage
+ * @param {File} file - The file to upload
+ * @param {string} announcementId - The announcement ID for folder structure
+ * @returns {Promise<object>} - { url, path, type, name, size }
+ */
+export const uploadMedia = async (file, announcementId) => {
+  try {
+    const { isImage, isVideo } = validateMediaFile(file)
+    
+    // Create unique filename
+    const timestamp = Date.now()
+    const safeName = file.name.replace(/[^a-zA-Z0-9.-]/g, '_')
+    const filePath = `announcements/${announcementId}/${timestamp}_${safeName}`
+    
+    // Upload to Firebase Storage
+    const storageRef = ref(storage, filePath)
+    const snapshot = await uploadBytes(storageRef, file)
+    const url = await getDownloadURL(snapshot.ref)
+    
+    return {
+      url,
+      path: filePath,
+      type: isImage ? 'image' : 'video',
+      mimeType: file.type,
+      name: file.name,
+      size: file.size
+    }
+  } catch (error) {
+    console.error('Error uploading media:', error)
+    throw error
+  }
+}
+
+/**
+ * Upload multiple media files
+ * @param {FileList|Array} files - Files to upload
+ * @param {string} announcementId - The announcement ID
+ * @returns {Promise<Array>} - Array of media objects
+ */
+export const uploadMultipleMedia = async (files, announcementId) => {
+  const uploads = Array.from(files).map(file => uploadMedia(file, announcementId))
+  return Promise.all(uploads)
+}
+
+/**
+ * Delete a media file from Firebase Storage
+ * @param {string} filePath - The storage path
+ */
+export const deleteMedia = async (filePath) => {
+  try {
+    const storageRef = ref(storage, filePath)
+    await deleteObject(storageRef)
+  } catch (error) {
+    console.error('Error deleting media:', error)
+    // Don't throw - file might already be deleted
+  }
+}
+
+/**
+ * Create a new announcement
+ * @param {object} data - Announcement data
+ * @param {Array} files - Media files to upload
+ * @param {object} author - Author info { uid, name, role }
+ * @param {boolean} skipModeration - If true, skip moderation (for Admin+)
+ * @returns {Promise<object>} - Created announcement with moderation result
+ */
+export const createAnnouncement = async (data, files = [], author, skipModeration = false) => {
+  try {
+    // Run moderation check
+    let moderationResult = { approved: true, status: ANNOUNCEMENT_STATUS.APPROVED }
+    
+    if (!skipModeration) {
+      moderationResult = moderateContent(data.title, data.content)
+    }
+    
+    // Determine initial status
+    let status
+    if (skipModeration) {
+      status = ANNOUNCEMENT_STATUS.APPROVED
+    } else if (moderationResult.status === 'approved') {
+      status = ANNOUNCEMENT_STATUS.APPROVED
+    } else if (moderationResult.status === 'pending_review') {
+      status = ANNOUNCEMENT_STATUS.PENDING_REVIEW
+    } else {
+      status = ANNOUNCEMENT_STATUS.REJECTED
+    }
+    
+    // Create announcement document first (need ID for media upload)
+    const announcementData = {
+      title: data.title,
+      content: data.content,
+      priority: data.priority || PRIORITY_LEVELS.NORMAL,
+      targetTags: data.targetTags || [], // Empty = campus-wide
+      authorId: author.uid,
+      authorName: author.name,
+      authorRole: author.role,
+      status,
+      moderationResult: {
+        confidence: moderationResult.confidence,
+        category: moderationResult.category,
+        filterType: moderationResult.filterType,
+        flaggedWords: moderationResult.flaggedWords || []
+      },
+      media: [],
+      viewCount: 0,
+      scheduledAt: data.scheduledAt ? Timestamp.fromDate(new Date(data.scheduledAt)) : null,
+      expiresAt: data.expiresAt ? Timestamp.fromDate(new Date(data.expiresAt)) : null,
+      createdAt: serverTimestamp(),
+      updatedAt: serverTimestamp()
+    }
+    
+    const docRef = await addDoc(collection(db, COLLECTION_NAME), announcementData)
+    const announcementId = docRef.id
+    
+    // Upload media files if any
+    let mediaItems = []
+    if (files && files.length > 0) {
+      mediaItems = await uploadMultipleMedia(files, announcementId)
+      
+      // Update announcement with media
+      await updateDoc(doc(db, COLLECTION_NAME, announcementId), {
+        media: mediaItems,
+        updatedAt: serverTimestamp()
+      })
+    }
+    
+    return {
+      id: announcementId,
+      ...announcementData,
+      media: mediaItems,
+      moderationResult
+    }
+  } catch (error) {
+    console.error('Error creating announcement:', error)
+    throw error
+  }
+}
+
+/**
+ * Get a single announcement by ID
+ */
+export const getAnnouncement = async (announcementId) => {
+  try {
+    const docRef = doc(db, COLLECTION_NAME, announcementId)
+    const docSnap = await getDoc(docRef)
+    
+    if (docSnap.exists()) {
+      return { id: docSnap.id, ...docSnap.data() }
+    }
+    return null
+  } catch (error) {
+    console.error('Error getting announcement:', error)
+    throw error
+  }
+}
+
+/**
+ * Get announcements visible to a user based on their tags
+ * @param {Array} userTags - User's tags
+ * @param {object} options - { status, priority, limit }
+ */
+export const getAnnouncementsForUser = async (userTags = [], options = {}) => {
+  try {
+    const constraints = []
+    
+    // Only show approved announcements to regular users
+    if (options.status) {
+      constraints.push(where('status', '==', options.status))
+    } else {
+      constraints.push(where('status', '==', ANNOUNCEMENT_STATUS.APPROVED))
+    }
+    
+    // Order by priority (urgent first) then by date
+    constraints.push(orderBy('createdAt', 'desc'))
+    
+    if (options.limit) {
+      constraints.push(limit(options.limit))
+    }
+    
+    const q = query(collection(db, COLLECTION_NAME), ...constraints)
+    const querySnapshot = await getDocs(q)
+    
+    // Filter by tags on client side (Firestore doesn't support array-contains-any with empty array check)
+    const announcements = querySnapshot.docs
+      .map(doc => ({ id: doc.id, ...doc.data() }))
+      .filter(announcement => {
+        // Campus-wide announcements (no target tags) are visible to everyone
+        if (!announcement.targetTags || announcement.targetTags.length === 0) {
+          return true
+        }
+        // Check if user has any matching tag
+        return announcement.targetTags.some(tag => userTags.includes(tag))
+      })
+    
+    // Sort by priority
+    const priorityOrder = { urgent: 0, high: 1, normal: 2, low: 3 }
+    announcements.sort((a, b) => {
+      const priorityDiff = (priorityOrder[a.priority] || 2) - (priorityOrder[b.priority] || 2)
+      if (priorityDiff !== 0) return priorityDiff
+      // Same priority: sort by date
+      const dateA = a.createdAt?.toDate?.() || new Date(0)
+      const dateB = b.createdAt?.toDate?.() || new Date(0)
+      return dateB - dateA
+    })
+    
+    return announcements
+  } catch (error) {
+    console.error('Error getting announcements:', error)
+    throw error
+  }
+}
+
+/**
+ * Get all announcements (for admins)
+ */
+export const getAllAnnouncements = async (options = {}) => {
+  try {
+    const constraints = []
+    
+    if (options.status) {
+      constraints.push(where('status', '==', options.status))
+    }
+    
+    constraints.push(orderBy('createdAt', 'desc'))
+    
+    if (options.limit) {
+      constraints.push(limit(options.limit))
+    }
+    
+    const q = query(collection(db, COLLECTION_NAME), ...constraints)
+    const querySnapshot = await getDocs(q)
+    
+    return querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }))
+  } catch (error) {
+    console.error('Error getting all announcements:', error)
+    throw error
+  }
+}
+
+/**
+ * Get pending announcements for moderation queue
+ */
+export const getPendingAnnouncements = async () => {
+  return getAllAnnouncements({ status: ANNOUNCEMENT_STATUS.PENDING_REVIEW })
+}
+
+/**
+ * Update an announcement
+ */
+export const updateAnnouncement = async (announcementId, data, newFiles = []) => {
+  try {
+    const updateData = {
+      ...data,
+      updatedAt: serverTimestamp()
+    }
+    
+    // Upload new media if any
+    if (newFiles && newFiles.length > 0) {
+      const newMedia = await uploadMultipleMedia(newFiles, announcementId)
+      const existingMedia = data.media || []
+      updateData.media = [...existingMedia, ...newMedia]
+    }
+    
+    await updateDoc(doc(db, COLLECTION_NAME, announcementId), updateData)
+    
+    return { id: announcementId, ...updateData }
+  } catch (error) {
+    console.error('Error updating announcement:', error)
+    throw error
+  }
+}
+
+/**
+ * Approve a pending announcement
+ * @param {string} announcementId - Announcement ID
+ * @param {string} reviewerNote - Optional note from reviewer
+ */
+export const approveAnnouncement = async (announcementId, reviewerNote = '') => {
+  try {
+    // Get the announcement first
+    const announcement = await getAnnouncement(announcementId)
+    if (!announcement) throw new Error('Announcement not found')
+    
+    // Add feedback to improve the classifier
+    addModerationFeedback(`${announcement.title} ${announcement.content}`, true)
+    
+    await updateDoc(doc(db, COLLECTION_NAME, announcementId), {
+      status: ANNOUNCEMENT_STATUS.APPROVED,
+      reviewerNote,
+      reviewedAt: serverTimestamp(),
+      updatedAt: serverTimestamp()
+    })
+    
+    return { success: true }
+  } catch (error) {
+    console.error('Error approving announcement:', error)
+    throw error
+  }
+}
+
+/**
+ * Reject a pending announcement
+ * @param {string} announcementId - Announcement ID
+ * @param {string} rejectionReason - Reason for rejection
+ */
+export const rejectAnnouncement = async (announcementId, rejectionReason = '') => {
+  try {
+    // Get the announcement first
+    const announcement = await getAnnouncement(announcementId)
+    if (!announcement) throw new Error('Announcement not found')
+    
+    // Add feedback to improve the classifier
+    addModerationFeedback(`${announcement.title} ${announcement.content}`, false)
+    
+    await updateDoc(doc(db, COLLECTION_NAME, announcementId), {
+      status: ANNOUNCEMENT_STATUS.REJECTED,
+      rejectionReason,
+      reviewedAt: serverTimestamp(),
+      updatedAt: serverTimestamp()
+    })
+    
+    return { success: true }
+  } catch (error) {
+    console.error('Error rejecting announcement:', error)
+    throw error
+  }
+}
+
+/**
+ * Archive an announcement
+ */
+export const archiveAnnouncement = async (announcementId) => {
+  try {
+    await updateDoc(doc(db, COLLECTION_NAME, announcementId), {
+      status: ANNOUNCEMENT_STATUS.ARCHIVED,
+      updatedAt: serverTimestamp()
+    })
+    return { success: true }
+  } catch (error) {
+    console.error('Error archiving announcement:', error)
+    throw error
+  }
+}
+
+/**
+ * Delete an announcement and its media
+ */
+export const deleteAnnouncement = async (announcementId) => {
+  try {
+    // Get announcement to delete media
+    const announcement = await getAnnouncement(announcementId)
+    
+    if (announcement?.media) {
+      // Delete all media files
+      await Promise.all(announcement.media.map(m => deleteMedia(m.path)))
+    }
+    
+    // Delete the document
+    await deleteDoc(doc(db, COLLECTION_NAME, announcementId))
+    
+    return { success: true }
+  } catch (error) {
+    console.error('Error deleting announcement:', error)
+    throw error
+  }
+}
+
+/**
+ * Remove a specific media item from an announcement
+ */
+export const removeMediaFromAnnouncement = async (announcementId, mediaPath) => {
+  try {
+    // Delete from storage
+    await deleteMedia(mediaPath)
+    
+    // Update announcement
+    const announcement = await getAnnouncement(announcementId)
+    const updatedMedia = (announcement.media || []).filter(m => m.path !== mediaPath)
+    
+    await updateDoc(doc(db, COLLECTION_NAME, announcementId), {
+      media: updatedMedia,
+      updatedAt: serverTimestamp()
+    })
+    
+    return { success: true }
+  } catch (error) {
+    console.error('Error removing media:', error)
+    throw error
+  }
+}
+
+/**
+ * Increment view count
+ */
+export const incrementViewCount = async (announcementId) => {
+  try {
+    const announcement = await getAnnouncement(announcementId)
+    if (announcement) {
+      await updateDoc(doc(db, COLLECTION_NAME, announcementId), {
+        viewCount: (announcement.viewCount || 0) + 1
+      })
+    }
+  } catch (error) {
+    console.error('Error incrementing view count:', error)
+    // Don't throw - this is not critical
+  }
+}

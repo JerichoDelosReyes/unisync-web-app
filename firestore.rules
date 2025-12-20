@@ -12,6 +12,12 @@ service cloud.firestore {
       return request.auth != null;
     }
     
+    // Check if user is at least Class Rep level (can create announcements)
+    function isClassRepOrAbove() {
+      let role = getUserRole();
+      return role == 'super_admin' || role == 'admin' || role == 'faculty' || role == 'class_rep';
+    }
+    
     // Check if user is at least Faculty level
     function isFacultyOrAbove() {
       let role = getUserRole();
@@ -52,21 +58,29 @@ service cloud.firestore {
     }
     
     // ==========================================
-    // ANNOUNCEMENTS COLLECTION (Future)
+    // ANNOUNCEMENTS COLLECTION
     // ==========================================
     match /announcements/{announcementId} {
       // Anyone authenticated can read announcements
+      // Filtering by status is done on the client side
       allow read: if isAuthenticated();
       
-      // Faculty and above can create/update announcements
-      allow create, update: if isAuthenticated() && isFacultyOrAbove();
+      // Class Rep and above can create announcements
+      allow create: if isAuthenticated() && isClassRepOrAbove();
+      
+      // Author can update their own announcements
+      // Admin+ can update any announcement (for moderation)
+      allow update: if isAuthenticated() && (
+        resource.data.authorId == request.auth.uid ||
+        isAdminOrAbove()
+      );
       
       // Only Admin and above can delete announcements
       allow delete: if isAuthenticated() && isAdminOrAbove();
     }
     
     // ==========================================
-    // SCHEDULES / ROOMS COLLECTION (Future)
+    // SCHEDULES / ROOMS COLLECTION
     // ==========================================
     match /schedules/{scheduleId} {
       allow read: if isAuthenticated();
@@ -94,6 +108,15 @@ service cloud.firestore {
     match /settings/{settingId} {
       allow read: if isAuthenticated() && isAdminOrAbove();
       allow write: if isAuthenticated() && isSuperAdmin();
+    }
+    
+    // ==========================================
+    // MODERATION FEEDBACK (for Naive Bayes training)
+    // ==========================================
+    match /moderation_feedback/{feedbackId} {
+      allow read: if isAuthenticated() && isAdminOrAbove();
+      allow create: if isAuthenticated() && isAdminOrAbove();
+      allow update, delete: if isAuthenticated() && isSuperAdmin();
     }
   }
 }

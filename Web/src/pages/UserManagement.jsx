@@ -30,16 +30,21 @@ export default function UserManagement() {
   const [selectedPosition, setSelectedPosition] = useState('')
   const [savingTags, setSavingTags] = useState(false)
   
-  // Organization options
+  // Organization options - CvSU Imus Campus Organizations
   const organizations = [
-    'HGA',
-    'SSC',
-    'CEIT-SC',
-    'GDSC',
-    'YES',
-    'RED CROSS',
-    'ROTC',
-    'NSTP'
+    'Central Student Government',
+    'Builders of Innovative Technologist Society',
+    'Business Management Society',
+    'Cavite Communicators',
+    'Circle of Hospitality and Tourism Students',
+    'Cavite Young Leaders for Entrepreneurship',
+    'Computer Science Clique',
+    'Educators\' Guild for Excellence',
+    'Samahan ng mga Magaaral ng Sikolohiya',
+    'Young Office Professional Advocates',
+    'Sinag-Tala',
+    'The Flare',
+    'Honor Society'
   ]
   
   // Position options
