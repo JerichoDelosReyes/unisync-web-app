@@ -68,15 +68,34 @@ service cloud.firestore {
       // Class Rep and above can create announcements
       allow create: if isAuthenticated() && isClassRepOrAbove();
       
-      // Author can update their own announcements
+      // Author can update their own announcements (for reactions)
+      // Any authenticated user can update (for reactions)
       // Admin+ can update any announcement (for moderation)
-      allow update: if isAuthenticated() && (
-        resource.data.authorId == request.auth.uid ||
-        isAdminOrAbove()
-      );
+      allow update: if isAuthenticated();
       
       // Only Admin and above can delete announcements
       allow delete: if isAuthenticated() && isAdminOrAbove();
+      
+      // Comments subcollection
+      match /comments/{commentId} {
+        // Anyone authenticated can read approved comments
+        allow read: if isAuthenticated();
+        
+        // Anyone authenticated can create comments
+        allow create: if isAuthenticated();
+        
+        // Author can update their own comment, Admin+ can update any
+        allow update: if isAuthenticated() && (
+          resource.data.authorId == request.auth.uid ||
+          isAdminOrAbove()
+        );
+        
+        // Author can delete their own comment, Admin+ can delete any
+        allow delete: if isAuthenticated() && (
+          resource.data.authorId == request.auth.uid ||
+          isAdminOrAbove()
+        );
+      }
     }
     
     // ==========================================

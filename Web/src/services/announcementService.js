@@ -22,7 +22,10 @@ import {
   orderBy,
   limit,
   serverTimestamp,
-  Timestamp
+  Timestamp,
+  increment,
+  arrayUnion,
+  arrayRemove
 } from 'firebase/firestore'
 import {
   ref,
@@ -496,5 +499,315 @@ export const incrementViewCount = async (announcementId) => {
   } catch (error) {
     console.error('Error incrementing view count:', error)
     // Don't throw - this is not critical
+  }
+}
+
+// ==================== REACTIONS ====================
+
+/**
+ * Available reactions
+ */
+export const REACTIONS = {
+  LIKE: '👍',
+  LOVE: '❤️',
+  HAHA: '😂',
+  WOW: '😮',
+  SAD: '😢',
+  ANGRY: '😡'
+}
+
+/**
+ * Toggle a reaction on an announcement
+ * @param {string} announcementId - Announcement ID
+ * @param {string} reactionType - One of REACTIONS keys
+ * @param {object} user - User info { uid, name }
+ */
+export const toggleReaction = async (announcementId, reactionType, user) => {
+  try {
+    const announcementRef = doc(db, COLLECTION_NAME, announcementId)
+    const announcement = await getAnnouncement(announcementId)
+    
+    if (!announcement) throw new Error('Announcement not found')
+    
+    // Get current reactions structure
+    const reactions = announcement.reactions || {}
+    const reactionKey = reactionType.toLowerCase()
+    const currentReactionUsers = reactions[reactionKey] || []
+    
+    // Check if user already reacted with this type
+    const existingReactionIndex = currentReactionUsers.findIndex(r => r.uid === user.uid)
+    
+    let updatedReactions = { ...reactions }
+    
+    if (existingReactionIndex >= 0) {
+      // Remove reaction
+      updatedReactions[reactionKey] = currentReactionUsers.filter(r => r.uid !== user.uid)
+    } else {
+      // Remove user from all other reactions first
+      for (const key of Object.keys(updatedReactions)) {
+        updatedReactions[key] = (updatedReactions[key] || []).filter(r => r.uid !== user.uid)
+      }
+      // Add new reaction
+      updatedReactions[reactionKey] = [...(updatedReactions[reactionKey] || []), { uid: user.uid, name: user.name }]
+    }
+    
+    await updateDoc(announcementRef, {
+      reactions: updatedReactions,
+      updatedAt: serverTimestamp()
+    })
+    
+    return updatedReactions
+  } catch (error) {
+    console.error('Error toggling reaction:', error)
+    throw error
+  }
+}
+
+/**
+ * Get reaction counts for an announcement
+ */
+export const getReactionCounts = (reactions) => {
+  const counts = {}
+  let total = 0
+  
+  for (const [key, users] of Object.entries(reactions || {})) {
+    counts[key] = users.length
+    total += users.length
+  }
+  
+  return { counts, total }
+}
+
+// ==================== COMMENTS ====================
+
+/**
+ * Comment statuses
+ */
+export const COMMENT_STATUS = {
+  APPROVED: 'approved',
+  PENDING_REVIEW: 'pending_review',
+  REJECTED: 'rejected',
+  DELETED: 'deleted'
+}
+
+/**
+ * Add a comment to an announcement
+ * @param {string} announcementId - Announcement ID
+ * @param {string} content - Comment text
+ * @param {object} author - Author info { uid, name, role }
+ * @param {string} parentId - Parent comment ID for replies (optional)
+ * @param {boolean} skipReviewQueue - Skip moderation queue for admins
+ */
+export const addComment = async (announcementId, content, author, parentId = null, skipReviewQueue = false) => {
+  try {
+    // Run moderation on comment
+    const moderationResult = moderateContent('', content)
+    
+    // Determine status based on moderation
+    let status
+    if (moderationResult.status === 'rejected' || moderationResult.filterType === 'profanity') {
+      status = COMMENT_STATUS.REJECTED
+    } else if (moderationResult.status === 'approved' || skipReviewQueue) {
+      status = COMMENT_STATUS.APPROVED
+    } else {
+      status = COMMENT_STATUS.PENDING_REVIEW
+    }
+    
+    const commentData = {
+      announcementId,
+      content,
+      authorId: author.uid,
+      authorName: author.name,
+      authorRole: author.role,
+      parentId,
+      status,
+      moderationResult: {
+        confidence: moderationResult.confidence ?? 1.0,
+        category: moderationResult.category || 'safe',
+        filterType: moderationResult.filterType || 'none',
+        flaggedWords: moderationResult.flaggedWords || []
+      },
+      likes: [],
+      createdAt: serverTimestamp(),
+      updatedAt: serverTimestamp()
+    }
+    
+    const commentsRef = collection(db, COLLECTION_NAME, announcementId, 'comments')
+    const docRef = await addDoc(commentsRef, commentData)
+    
+    // Update comment count on announcement
+    await updateDoc(doc(db, COLLECTION_NAME, announcementId), {
+      commentCount: increment(1),
+      updatedAt: serverTimestamp()
+    })
+    
+    return {
+      id: docRef.id,
+      ...commentData,
+      status,
+      moderationResult
+    }
+  } catch (error) {
+    console.error('Error adding comment:', error)
+    throw error
+  }
+}
+
+/**
+ * Get comments for an announcement
+ * @param {string} announcementId - Announcement ID
+ * @param {boolean} includeAll - Include pending/rejected (for admins)
+ */
+export const getComments = async (announcementId, includeAll = false) => {
+  try {
+    const commentsRef = collection(db, COLLECTION_NAME, announcementId, 'comments')
+    
+    let q
+    if (includeAll) {
+      q = query(commentsRef)
+    } else {
+      q = query(commentsRef, where('status', '==', COMMENT_STATUS.APPROVED))
+    }
+    
+    const snapshot = await getDocs(q)
+    const comments = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }))
+    
+    // Sort by date client-side
+    comments.sort((a, b) => {
+      const dateA = a.createdAt?.toDate?.() || new Date(0)
+      const dateB = b.createdAt?.toDate?.() || new Date(0)
+      return dateA - dateB
+    })
+    
+    return comments
+  } catch (error) {
+    console.error('Error getting comments:', error)
+    throw error
+  }
+}
+
+/**
+ * Get all pending comments across all announcements
+ */
+export const getPendingComments = async () => {
+  try {
+    // We need to query across all announcements
+    // This is a workaround since Firestore doesn't support collection group queries without index
+    const announcementsSnapshot = await getDocs(collection(db, COLLECTION_NAME))
+    
+    const pendingComments = []
+    
+    for (const announcementDoc of announcementsSnapshot.docs) {
+      const commentsRef = collection(db, COLLECTION_NAME, announcementDoc.id, 'comments')
+      const q = query(commentsRef, where('status', '==', COMMENT_STATUS.PENDING_REVIEW))
+      const commentsSnapshot = await getDocs(q)
+      
+      commentsSnapshot.docs.forEach(commentDoc => {
+        pendingComments.push({
+          id: commentDoc.id,
+          ...commentDoc.data(),
+          announcementId: announcementDoc.id,
+          announcementTitle: announcementDoc.data().title
+        })
+      })
+    }
+    
+    // Sort by date
+    pendingComments.sort((a, b) => {
+      const dateA = a.createdAt?.toDate?.() || new Date(0)
+      const dateB = b.createdAt?.toDate?.() || new Date(0)
+      return dateB - dateA
+    })
+    
+    return pendingComments
+  } catch (error) {
+    console.error('Error getting pending comments:', error)
+    throw error
+  }
+}
+
+/**
+ * Approve a comment
+ */
+export const approveComment = async (announcementId, commentId) => {
+  try {
+    const commentRef = doc(db, COLLECTION_NAME, announcementId, 'comments', commentId)
+    await updateDoc(commentRef, {
+      status: COMMENT_STATUS.APPROVED,
+      updatedAt: serverTimestamp()
+    })
+  } catch (error) {
+    console.error('Error approving comment:', error)
+    throw error
+  }
+}
+
+/**
+ * Reject a comment
+ */
+export const rejectComment = async (announcementId, commentId, reason = '') => {
+  try {
+    const commentRef = doc(db, COLLECTION_NAME, announcementId, 'comments', commentId)
+    await updateDoc(commentRef, {
+      status: COMMENT_STATUS.REJECTED,
+      rejectionReason: reason,
+      updatedAt: serverTimestamp()
+    })
+    
+    // Decrement comment count
+    await updateDoc(doc(db, COLLECTION_NAME, announcementId), {
+      commentCount: increment(-1)
+    })
+  } catch (error) {
+    console.error('Error rejecting comment:', error)
+    throw error
+  }
+}
+
+/**
+ * Delete a comment
+ */
+export const deleteComment = async (announcementId, commentId) => {
+  try {
+    const commentRef = doc(db, COLLECTION_NAME, announcementId, 'comments', commentId)
+    await deleteDoc(commentRef)
+    
+    // Decrement comment count
+    await updateDoc(doc(db, COLLECTION_NAME, announcementId), {
+      commentCount: increment(-1)
+    })
+  } catch (error) {
+    console.error('Error deleting comment:', error)
+    throw error
+  }
+}
+
+/**
+ * Like/unlike a comment
+ */
+export const toggleCommentLike = async (announcementId, commentId, userId) => {
+  try {
+    const commentRef = doc(db, COLLECTION_NAME, announcementId, 'comments', commentId)
+    const commentSnap = await getDoc(commentRef)
+    
+    if (!commentSnap.exists()) throw new Error('Comment not found')
+    
+    const comment = commentSnap.data()
+    const likes = comment.likes || []
+    
+    if (likes.includes(userId)) {
+      await updateDoc(commentRef, {
+        likes: arrayRemove(userId)
+      })
+      return likes.filter(id => id !== userId)
+    } else {
+      await updateDoc(commentRef, {
+        likes: arrayUnion(userId)
+      })
+      return [...likes, userId]
+    }
+  } catch (error) {
+    console.error('Error toggling comment like:', error)
+    throw error
   }
 }
