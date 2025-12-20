@@ -8,6 +8,7 @@ import {
   approveAnnouncement,
   rejectAnnouncement,
   deleteAnnouncement,
+  updateAnnouncement,
   removeMediaFromAnnouncement,
   ANNOUNCEMENT_STATUS,
   PRIORITY_LEVELS
@@ -33,6 +34,23 @@ export default function Announcements() {
   const [activeTab, setActiveTab] = useState('all') // 'all', 'pending', 'create'
   const [toast, setToast] = useState({ show: false, message: '', kind: 'info' })
   const [selectedAnnouncement, setSelectedAnnouncement] = useState(null)
+  
+  // Media viewer state
+  const [mediaViewer, setMediaViewer] = useState({ open: false, media: null, index: 0, allMedia: [] })
+  
+  // Edit modal state
+  const [editModal, setEditModal] = useState({ open: false, announcement: null })
+  const [editFormData, setEditFormData] = useState({
+    title: '',
+    content: '',
+    priority: PRIORITY_LEVELS.NORMAL,
+    targetTags: []
+  })
+  const [editSubmitting, setEditSubmitting] = useState(false)
+  
+  // Delete confirmation state
+  const [deleteConfirm, setDeleteConfirm] = useState({ open: false, announcement: null })
+  const [deleting, setDeleting] = useState(false)
   
   // Create form state
   const [formData, setFormData] = useState({
@@ -66,7 +84,8 @@ export default function Announcements() {
   
   const canCreate = hasMinRole(ROLES.CLASS_REP)
   const canModerate = hasMinRole(ROLES.ADMIN)
-  const skipModeration = hasMinRole(ROLES.ADMIN) // Admin+ bypasses moderation
+  // Admin+ skips review queue but profanity is ALWAYS checked
+  const skipReviewQueue = hasMinRole(ROLES.ADMIN)
 
   // Show toast notification
   const showToast = (message, kind = 'info') => {
@@ -174,7 +193,7 @@ export default function Announcements() {
         formData,
         mediaFiles,
         author,
-        skipModeration
+        skipReviewQueue
       )
       
       if (result.status === ANNOUNCEMENT_STATUS.APPROVED) {
@@ -237,16 +256,99 @@ export default function Announcements() {
 
   // Handle delete
   const handleDelete = async (announcementId) => {
-    if (!confirm('Are you sure you want to delete this announcement?')) return
-    
     try {
+      setDeleting(true)
       await deleteAnnouncement(announcementId)
       showToast('Announcement deleted', 'success')
       setAnnouncements(prev => prev.filter(a => a.id !== announcementId))
       setPendingAnnouncements(prev => prev.filter(a => a.id !== announcementId))
       setSelectedAnnouncement(null)
+      setDeleteConfirm({ open: false, announcement: null })
     } catch (err) {
       showToast('Failed to delete announcement', 'error')
+    } finally {
+      setDeleting(false)
+    }
+  }
+
+  // Open edit modal
+  const openEditModal = (announcement) => {
+    setEditFormData({
+      title: announcement.title || '',
+      content: announcement.content || '',
+      priority: announcement.priority || PRIORITY_LEVELS.NORMAL,
+      targetTags: announcement.targetTags || []
+    })
+    setEditModal({ open: true, announcement })
+    setSelectedAnnouncement(null)
+  }
+
+  // Handle edit submission
+  const handleEditSubmit = async (e) => {
+    e.preventDefault()
+    
+    if (!editFormData.title.trim() || !editFormData.content.trim()) {
+      showToast('Title and content are required', 'error')
+      return
+    }
+    
+    try {
+      setEditSubmitting(true)
+      
+      await updateAnnouncement(editModal.announcement.id, {
+        title: editFormData.title,
+        content: editFormData.content,
+        priority: editFormData.priority,
+        targetTags: editFormData.targetTags
+      })
+      
+      // Update local state
+      const updatedAnnouncement = {
+        ...editModal.announcement,
+        title: editFormData.title,
+        content: editFormData.content,
+        priority: editFormData.priority,
+        targetTags: editFormData.targetTags
+      }
+      
+      setAnnouncements(prev => prev.map(a => 
+        a.id === editModal.announcement.id ? updatedAnnouncement : a
+      ))
+      
+      showToast('Announcement updated successfully!', 'success')
+      setEditModal({ open: false, announcement: null })
+    } catch (err) {
+      console.error('Error updating announcement:', err)
+      showToast('Failed to update announcement', 'error')
+    } finally {
+      setEditSubmitting(false)
+    }
+  }
+
+  // Toggle edit tag selection
+  const toggleEditTag = (tag) => {
+    setEditFormData(prev => ({
+      ...prev,
+      targetTags: prev.targetTags.includes(tag)
+        ? prev.targetTags.filter(t => t !== tag)
+        : [...prev.targetTags, tag]
+    }))
+  }
+
+  // Open media viewer
+  const openMediaViewer = (media, index, allMedia) => {
+    setMediaViewer({ open: true, media, index, allMedia })
+  }
+
+  // Navigate media viewer
+  const navigateMedia = (direction) => {
+    const newIndex = mediaViewer.index + direction
+    if (newIndex >= 0 && newIndex < mediaViewer.allMedia.length) {
+      setMediaViewer(prev => ({
+        ...prev,
+        index: newIndex,
+        media: prev.allMedia[newIndex]
+      }))
     }
   }
 
@@ -260,17 +362,48 @@ export default function Announcements() {
     }))
   }
 
-  // Format date
+  // Format date - handles Firestore timestamps, Date objects, and serverTimestamp
   const formatDate = (timestamp) => {
-    if (!timestamp) return 'Unknown'
-    const date = timestamp.toDate ? timestamp.toDate() : new Date(timestamp)
-    return date.toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
-    })
+    if (!timestamp) return 'Just now'
+    
+    try {
+      let date
+      
+      // Handle Firestore Timestamp
+      if (timestamp.toDate && typeof timestamp.toDate === 'function') {
+        date = timestamp.toDate()
+      }
+      // Handle seconds/nanoseconds object (serverTimestamp pending)
+      else if (timestamp.seconds) {
+        date = new Date(timestamp.seconds * 1000)
+      }
+      // Handle Date object or ISO string
+      else if (timestamp instanceof Date) {
+        date = timestamp
+      }
+      else if (typeof timestamp === 'string' || typeof timestamp === 'number') {
+        date = new Date(timestamp)
+      }
+      else {
+        return 'Just now'
+      }
+      
+      // Check if date is valid
+      if (isNaN(date.getTime())) {
+        return 'Just now'
+      }
+      
+      return date.toLocaleDateString('en-US', {
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
+      })
+    } catch (error) {
+      console.error('Error formatting date:', error)
+      return 'Just now'
+    }
   }
 
   // Get priority badge color
@@ -573,7 +706,7 @@ export default function Announcements() {
         <div className="bg-white rounded-xl border border-gray-200 p-6">
           <h2 className="text-lg font-semibold text-gray-900 mb-6">Create New Announcement</h2>
           
-          {!skipModeration && (
+          {!skipReviewQueue && (
             <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
               <div className="flex items-start gap-3">
                 <svg className="w-5 h-5 text-blue-600 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -740,7 +873,7 @@ export default function Announcements() {
                     Publishing...
                   </span>
                 ) : (
-                  skipModeration ? 'Publish Announcement' : 'Submit for Review'
+                  skipReviewQueue ? 'Publish Announcement' : 'Submit for Review'
                 )}
               </button>
             </div>
@@ -753,7 +886,7 @@ export default function Announcements() {
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
           <div className="absolute inset-0 bg-black/50" onClick={() => setSelectedAnnouncement(null)} />
           <div className="relative bg-white rounded-xl shadow-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
-            <div className="sticky top-0 bg-white border-b border-gray-100 px-6 py-4 flex items-center justify-between">
+            <div className="sticky top-0 bg-white border-b border-gray-100 px-6 py-4 flex items-center justify-between z-10">
               <div className="flex items-center gap-2">
                 <span className={`px-2 py-0.5 text-xs font-medium rounded-full ${getPriorityColor(selectedAnnouncement.priority)}`}>
                   {selectedAnnouncement.priority?.toUpperCase() || 'NORMAL'}
@@ -782,18 +915,40 @@ export default function Announcements() {
                 ))}
               </div>
               
-              {/* Media Gallery */}
+              {/* Media Gallery - Clickable for zoom */}
               {selectedAnnouncement.media?.length > 0 && (
-                <div className="grid grid-cols-2 gap-3 mb-6">
-                  {selectedAnnouncement.media.map((media, idx) => (
-                    <div key={idx} className="rounded-lg overflow-hidden bg-gray-100">
-                      {media.type === 'image' ? (
-                        <img src={media.url} alt="" className="w-full h-48 object-cover" />
-                      ) : (
-                        <video src={media.url} controls className="w-full h-48 object-cover" />
-                      )}
-                    </div>
-                  ))}
+                <div className="mb-6">
+                  <p className="text-sm font-medium text-gray-700 mb-3">Attachments:</p>
+                  <div className="grid grid-cols-2 gap-3">
+                    {selectedAnnouncement.media.map((media, idx) => (
+                      <div 
+                        key={idx} 
+                        className="relative rounded-lg overflow-hidden bg-gray-100 cursor-pointer group"
+                        onClick={() => openMediaViewer(media, idx, selectedAnnouncement.media)}
+                      >
+                        {media.type === 'image' ? (
+                          <>
+                            <img src={media.url} alt="" className="w-full h-48 object-cover transition-transform group-hover:scale-105" />
+                            <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors flex items-center justify-center">
+                              <svg className="w-8 h-8 text-white opacity-0 group-hover:opacity-100 transition-opacity drop-shadow-lg" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM10 7v3m0 0v3m0-3h3m-3 0H7" />
+                              </svg>
+                            </div>
+                          </>
+                        ) : (
+                          <div className="relative">
+                            <video src={media.url} className="w-full h-48 object-cover" />
+                            <div className="absolute inset-0 flex items-center justify-center bg-black/30">
+                              <svg className="w-12 h-12 text-white drop-shadow-lg" fill="currentColor" viewBox="0 0 24 24">
+                                <path d="M8 5v14l11-7z" />
+                              </svg>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                  <p className="text-xs text-gray-400 mt-2">Click to view full size</p>
                 </div>
               )}
               
@@ -826,15 +981,273 @@ export default function Announcements() {
               
               {/* Admin Actions */}
               {canModerate && (
-                <div className="mt-6 pt-4 border-t border-gray-100">
+                <div className="mt-6 pt-4 border-t border-gray-100 flex gap-3">
                   <button
-                    onClick={() => handleDelete(selectedAnnouncement.id)}
-                    className="px-4 py-2 text-sm font-medium text-red-600 bg-red-50 rounded-lg hover:bg-red-100 transition-colors"
+                    onClick={() => openEditModal(selectedAnnouncement)}
+                    className="flex-1 inline-flex items-center justify-center gap-2 px-4 py-2 text-sm font-medium text-primary bg-primary/10 rounded-lg hover:bg-primary/20 transition-colors"
                   >
-                    Delete Announcement
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                    </svg>
+                    Edit
+                  </button>
+                  <button
+                    onClick={() => {
+                      setDeleteConfirm({ open: true, announcement: selectedAnnouncement })
+                    }}
+                    className="flex-1 inline-flex items-center justify-center gap-2 px-4 py-2 text-sm font-medium text-red-600 bg-red-50 rounded-lg hover:bg-red-100 transition-colors"
+                  >
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                    </svg>
+                    Delete
                   </button>
                 </div>
               )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Media Viewer Modal */}
+      {mediaViewer.open && mediaViewer.media && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/90">
+          {/* Close button */}
+          <button
+            onClick={() => setMediaViewer({ open: false, media: null, index: 0, allMedia: [] })}
+            className="absolute top-4 right-4 z-10 p-2 text-white/80 hover:text-white bg-black/50 rounded-full transition-colors"
+          >
+            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+          
+          {/* Navigation - Previous */}
+          {mediaViewer.allMedia.length > 1 && mediaViewer.index > 0 && (
+            <button
+              onClick={() => navigateMedia(-1)}
+              className="absolute left-4 z-10 p-3 text-white/80 hover:text-white bg-black/50 rounded-full transition-colors"
+            >
+              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+              </svg>
+            </button>
+          )}
+          
+          {/* Navigation - Next */}
+          {mediaViewer.allMedia.length > 1 && mediaViewer.index < mediaViewer.allMedia.length - 1 && (
+            <button
+              onClick={() => navigateMedia(1)}
+              className="absolute right-4 z-10 p-3 text-white/80 hover:text-white bg-black/50 rounded-full transition-colors"
+            >
+              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+              </svg>
+            </button>
+          )}
+          
+          {/* Media content */}
+          <div className="max-w-[90vw] max-h-[90vh] flex items-center justify-center">
+            {mediaViewer.media.type === 'image' ? (
+              <img 
+                src={mediaViewer.media.url} 
+                alt="" 
+                className="max-w-full max-h-[90vh] object-contain rounded-lg"
+              />
+            ) : (
+              <video 
+                src={mediaViewer.media.url} 
+                controls 
+                autoPlay
+                className="max-w-full max-h-[90vh] rounded-lg"
+              />
+            )}
+          </div>
+          
+          {/* Counter */}
+          {mediaViewer.allMedia.length > 1 && (
+            <div className="absolute bottom-4 left-1/2 -translate-x-1/2 px-4 py-2 bg-black/50 text-white text-sm rounded-full">
+              {mediaViewer.index + 1} / {mediaViewer.allMedia.length}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Edit Modal */}
+      {editModal.open && editModal.announcement && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-black/50" onClick={() => setEditModal({ open: false, announcement: null })} />
+          <div className="relative bg-white rounded-xl shadow-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+            <div className="sticky top-0 bg-white border-b border-gray-100 px-6 py-4 flex items-center justify-between z-10">
+              <h3 className="text-lg font-semibold text-gray-900">Edit Announcement</h3>
+              <button
+                onClick={() => setEditModal({ open: false, announcement: null })}
+                className="text-gray-400 hover:text-gray-600"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+            
+            <form onSubmit={handleEditSubmit} className="p-6 space-y-6">
+              {/* Title */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Title</label>
+                <input
+                  type="text"
+                  value={editFormData.title}
+                  onChange={(e) => setEditFormData(prev => ({ ...prev, title: e.target.value }))}
+                  placeholder="Enter announcement title"
+                  className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
+                  required
+                />
+              </div>
+              
+              {/* Content */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Content</label>
+                <textarea
+                  value={editFormData.content}
+                  onChange={(e) => setEditFormData(prev => ({ ...prev, content: e.target.value }))}
+                  placeholder="Write your announcement content..."
+                  rows={6}
+                  className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary resize-none"
+                  required
+                />
+              </div>
+              
+              {/* Priority */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Priority</label>
+                <select
+                  value={editFormData.priority}
+                  onChange={(e) => setEditFormData(prev => ({ ...prev, priority: e.target.value }))}
+                  className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
+                >
+                  <option value={PRIORITY_LEVELS.LOW}>Low</option>
+                  <option value={PRIORITY_LEVELS.NORMAL}>Normal</option>
+                  <option value={PRIORITY_LEVELS.HIGH}>High</option>
+                  <option value={PRIORITY_LEVELS.URGENT}>Urgent</option>
+                </select>
+              </div>
+              
+              {/* Target Organizations */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Target Audience
+                  <span className="font-normal text-gray-500 ml-1">(Leave empty for campus-wide)</span>
+                </label>
+                <div className="flex flex-wrap gap-2 p-4 bg-gray-50 rounded-lg max-h-48 overflow-y-auto">
+                  {organizations.map((org) => (
+                    <button
+                      key={org}
+                      type="button"
+                      onClick={() => toggleEditTag(org)}
+                      className={`px-3 py-1.5 text-xs font-medium rounded-full transition-colors ${
+                        editFormData.targetTags.includes(org)
+                          ? 'bg-primary text-white'
+                          : 'bg-white border border-gray-200 text-gray-700 hover:bg-gray-100'
+                      }`}
+                    >
+                      {org}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              
+              {/* Existing Media */}
+              {editModal.announcement.media?.length > 0 && (
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Existing Attachments</label>
+                  <div className="flex flex-wrap gap-3">
+                    {editModal.announcement.media.map((media, idx) => (
+                      <div key={idx} className="w-20 h-20 rounded-lg overflow-hidden bg-gray-100">
+                        {media.type === 'image' ? (
+                          <img src={media.url} alt="" className="w-full h-full object-cover" />
+                        ) : (
+                          <video src={media.url} className="w-full h-full object-cover" />
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                  <p className="text-xs text-gray-500 mt-2">Note: Editing media requires re-creating the announcement</p>
+                </div>
+              )}
+              
+              {/* Submit */}
+              <div className="flex gap-3 pt-4">
+                <button
+                  type="button"
+                  onClick={() => setEditModal({ open: false, announcement: null })}
+                  className="flex-1 px-4 py-2.5 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={editSubmitting}
+                  className="flex-1 px-4 py-2.5 text-sm font-medium text-white bg-primary rounded-lg hover:bg-primary/90 disabled:opacity-50 transition-colors"
+                >
+                  {editSubmitting ? (
+                    <span className="flex items-center justify-center gap-2">
+                      <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                      Saving...
+                    </span>
+                  ) : (
+                    'Save Changes'
+                  )}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Confirmation Modal */}
+      {deleteConfirm.open && deleteConfirm.announcement && (
+        <div className="fixed inset-0 z-[55] flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-black/50" onClick={() => setDeleteConfirm({ open: false, announcement: null })} />
+          <div className="relative bg-white rounded-xl shadow-xl w-full max-w-md p-6">
+            <div className="flex items-center gap-4 mb-4">
+              <div className="w-12 h-12 rounded-full bg-red-100 flex items-center justify-center flex-shrink-0">
+                <svg className="w-6 h-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                </svg>
+              </div>
+              <div>
+                <h3 className="text-lg font-semibold text-gray-900">Delete Announcement</h3>
+                <p className="text-sm text-gray-500">This action cannot be undone.</p>
+              </div>
+            </div>
+            
+            <div className="bg-gray-50 rounded-lg p-4 mb-6">
+              <p className="text-sm font-medium text-gray-900 line-clamp-2">{deleteConfirm.announcement.title}</p>
+              <p className="text-xs text-gray-500 mt-1">by {deleteConfirm.announcement.authorName}</p>
+            </div>
+            
+            <div className="flex gap-3">
+              <button
+                onClick={() => setDeleteConfirm({ open: false, announcement: null })}
+                disabled={deleting}
+                className="flex-1 px-4 py-2.5 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors disabled:opacity-50"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => handleDelete(deleteConfirm.announcement.id)}
+                disabled={deleting}
+                className="flex-1 px-4 py-2.5 text-sm font-medium text-white bg-red-600 rounded-lg hover:bg-red-700 transition-colors disabled:opacity-50"
+              >
+                {deleting ? (
+                  <span className="flex items-center justify-center gap-2">
+                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                    Deleting...
+                  </span>
+                ) : (
+                  'Delete'
+                )}
+              </button>
             </div>
           </div>
         </div>

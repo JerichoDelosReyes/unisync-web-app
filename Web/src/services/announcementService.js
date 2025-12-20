@@ -139,28 +139,40 @@ export const deleteMedia = async (filePath) => {
  * @param {object} data - Announcement data
  * @param {Array} files - Media files to upload
  * @param {object} author - Author info { uid, name, role }
- * @param {boolean} skipModeration - If true, skip moderation (for Admin+)
+ * @param {boolean} skipReviewQueue - If true, auto-approve if profanity check passes (for Admin+)
  * @returns {Promise<object>} - Created announcement with moderation result
  */
-export const createAnnouncement = async (data, files = [], author, skipModeration = false) => {
+export const createAnnouncement = async (data, files = [], author, skipReviewQueue = false) => {
   try {
-    // Run moderation check
-    let moderationResult = { approved: true, status: ANNOUNCEMENT_STATUS.APPROVED }
+    // ALWAYS run moderation check - profanity should be caught for ALL users
+    const result = moderateContent(data.title, data.content)
     
-    if (!skipModeration) {
-      moderationResult = moderateContent(data.title, data.content)
+    const moderationResult = {
+      approved: result.approved ?? true,
+      status: result.status || 'approved',
+      confidence: result.confidence ?? 1.0,
+      category: result.category || 'safe',
+      filterType: result.filterType || 'none',
+      flaggedWords: result.flaggedWords || []
     }
     
-    // Determine initial status
+    // Determine initial status based on moderation result and user role
     let status
-    if (skipModeration) {
-      status = ANNOUNCEMENT_STATUS.APPROVED
-    } else if (moderationResult.status === 'approved') {
-      status = ANNOUNCEMENT_STATUS.APPROVED
-    } else if (moderationResult.status === 'pending_review') {
-      status = ANNOUNCEMENT_STATUS.PENDING_REVIEW
-    } else {
+    
+    // If profanity/severe content detected, ALWAYS reject regardless of role
+    if (moderationResult.status === 'rejected' || moderationResult.filterType === 'profanity') {
       status = ANNOUNCEMENT_STATUS.REJECTED
+    }
+    // If moderation says approved OR user is admin (skips review queue)
+    else if (moderationResult.status === 'approved' || skipReviewQueue) {
+      status = ANNOUNCEMENT_STATUS.APPROVED
+    }
+    // Otherwise needs review
+    else if (moderationResult.status === 'pending_review') {
+      status = ANNOUNCEMENT_STATUS.PENDING_REVIEW
+    }
+    else {
+      status = ANNOUNCEMENT_STATUS.PENDING_REVIEW
     }
     
     // Create announcement document first (need ID for media upload)
@@ -174,9 +186,9 @@ export const createAnnouncement = async (data, files = [], author, skipModeratio
       authorRole: author.role,
       status,
       moderationResult: {
-        confidence: moderationResult.confidence,
-        category: moderationResult.category,
-        filterType: moderationResult.filterType,
+        confidence: moderationResult.confidence ?? 1.0,
+        category: moderationResult.category || 'safe',
+        filterType: moderationResult.filterType || 'none',
         flaggedWords: moderationResult.flaggedWords || []
       },
       media: [],
@@ -239,23 +251,13 @@ export const getAnnouncement = async (announcementId) => {
  */
 export const getAnnouncementsForUser = async (userTags = [], options = {}) => {
   try {
-    const constraints = []
-    
-    // Only show approved announcements to regular users
-    if (options.status) {
-      constraints.push(where('status', '==', options.status))
-    } else {
-      constraints.push(where('status', '==', ANNOUNCEMENT_STATUS.APPROVED))
-    }
-    
-    // Order by priority (urgent first) then by date
-    constraints.push(orderBy('createdAt', 'desc'))
-    
-    if (options.limit) {
-      constraints.push(limit(options.limit))
-    }
-    
-    const q = query(collection(db, COLLECTION_NAME), ...constraints)
+    // Simple query - filter by status only
+    // We sort client-side to avoid composite index issues
+    const statusFilter = options.status || ANNOUNCEMENT_STATUS.APPROVED
+    const q = query(
+      collection(db, COLLECTION_NAME),
+      where('status', '==', statusFilter)
+    )
     const querySnapshot = await getDocs(q)
     
     // Filter by tags on client side (Firestore doesn't support array-contains-any with empty array check)
@@ -293,22 +295,35 @@ export const getAnnouncementsForUser = async (userTags = [], options = {}) => {
  */
 export const getAllAnnouncements = async (options = {}) => {
   try {
-    const constraints = []
+    let q
     
+    // Simple query to avoid composite index requirements
+    // Sort client-side instead
     if (options.status) {
-      constraints.push(where('status', '==', options.status))
+      q = query(
+        collection(db, COLLECTION_NAME),
+        where('status', '==', options.status)
+      )
+    } else {
+      q = query(collection(db, COLLECTION_NAME))
     }
     
-    constraints.push(orderBy('createdAt', 'desc'))
-    
-    if (options.limit) {
-      constraints.push(limit(options.limit))
-    }
-    
-    const q = query(collection(db, COLLECTION_NAME), ...constraints)
     const querySnapshot = await getDocs(q)
     
-    return querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }))
+    // Sort by createdAt client-side
+    const announcements = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }))
+    announcements.sort((a, b) => {
+      const dateA = a.createdAt?.toDate?.() || new Date(0)
+      const dateB = b.createdAt?.toDate?.() || new Date(0)
+      return dateB - dateA
+    })
+    
+    // Apply limit if needed
+    if (options.limit) {
+      return announcements.slice(0, options.limit)
+    }
+    
+    return announcements
   } catch (error) {
     console.error('Error getting all announcements:', error)
     throw error

@@ -10,12 +10,23 @@
  * Formula: P(class|words) ∝ P(class) × ∏ P(word|class)
  * 
  * PROFANITY FILTER:
- * - Uses regex patterns to catch obfuscated curse words (f*ck, sh!t, etc.)
+ * - Uses dynamic regex generation from root words with leetspeak substitutions
  * - Includes racial slurs, homophobic terms, Filipino curses
  * - Harassment and hate speech detection
  * - Number substitution detection (4=A, 0=O, 1=I, 3=E, 5=S, 7=T, 8=B)
  * - Automatic rejection for severe content, manual review for medium
  */
+
+// Import the profanity filter utility
+import {
+  checkProfanity as checkProfanityFilter,
+  normalizeText as normalizeProfanityText,
+  censorText,
+  fastCheckProfanity,
+  generateRegexFromWord,
+  BAD_WORD_ROOTS,
+  LEETSPEAK_MAP
+} from '../utils/profanityFilter'
 
 // ==================== PROFANITY & SLUR FILTER ====================
 
@@ -652,7 +663,25 @@ const moderationClassifier = new NaiveBayesClassifier()
 export const moderateContent = (title, content) => {
   const fullText = `${title} ${content}`
 
-  // LAYER 1: Check profanity filter first (immediate rejection for severe content)
+  // LAYER 1A: Check with new dynamic profanity filter (catches leetspeak variations)
+  const dynamicProfanityResult = checkProfanityFilter(fullText)
+  
+  if (dynamicProfanityResult.hasProfanity) {
+    return {
+      approved: false,
+      status: 'rejected',
+      message: `Content rejected: Profanity detected (${dynamicProfanityResult.language || 'offensive language'}). This type of content violates community guidelines.`,
+      confidence: 1.0,
+      category: 'profanity',
+      detectedIssues: dynamicProfanityResult.matches,
+      filterType: 'profanity',
+      probabilities: { safe: 0, unsafe: 1 },
+      flaggedWords: dynamicProfanityResult.matches.map(w => ({ word: w, type: 'profanity' })),
+      timestamp: new Date().toISOString()
+    }
+  }
+
+  // LAYER 1B: Check legacy profanity filter (additional patterns)
   const profanityResult = profanityFilter.check(fullText)
 
   if (profanityResult.hasProfanity) {
@@ -774,17 +803,42 @@ export const getCustomBannedWords = () => {
 /**
  * Check text for profanity only (without full moderation)
  * Useful for real-time input validation
+ * Uses both legacy filter and new dynamic regex-based filter
  */
 export const checkProfanity = (text) => {
-  return profanityFilter.check(text)
+  // Use both the legacy filter and the new dynamic filter
+  const legacyResult = profanityFilter.check(text)
+  const newResult = checkProfanityFilter(text)
+  
+  // Combine results - return true if either detects profanity
+  return {
+    hasProfanity: legacyResult.hasProfanity || newResult.hasProfanity,
+    matches: [...new Set([...legacyResult.matches, ...newResult.matches])],
+    severity: legacyResult.severity || (newResult.hasProfanity ? 'medium' : 'none'),
+    language: newResult.language || null
+  }
+}
+
+/**
+ * Fast profanity check for real-time validation
+ * Returns boolean only
+ */
+export const quickCheckProfanity = (text) => {
+  return fastCheckProfanity(text) || profanityFilter.check(text).hasProfanity
 }
 
 /**
  * Censor profanity in text (replace with asterisks)
  * Useful for displaying flagged content to admins
  */
-export const censorText = (text) => {
-  return profanityFilter.censor(text)
+export { censorText }
+
+// Re-export profanity filter utilities for external use
+export {
+  generateRegexFromWord,
+  normalizeProfanityText as normalizeTextForProfanity,
+  BAD_WORD_ROOTS,
+  LEETSPEAK_MAP
 }
 
 export { profanityFilter, normalizeText }
