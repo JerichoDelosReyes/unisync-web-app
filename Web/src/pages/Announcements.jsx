@@ -18,6 +18,21 @@ import {
   PRIORITY_LEVELS
 } from '../services/announcementService'
 
+// Import organization logos
+import CSGLogo from '../assets/img/CSG-removebg-preview.png'
+import BITSLogo from '../assets/img/BITS-removebg-preview.png'
+import BMSLogo from '../assets/img/BMS-removebg-preview.png'
+import CaviteCommLogo from '../assets/img/CAVITECOMMUNICATOR-removebg-preview.png'
+import CHLSLogo from '../assets/img/CHTS-removebg-preview.png'
+import CYLELogo from '../assets/img/CYLE-removebg-preview.png'
+import CSCLogo from '../assets/img/CSC-removebg-preview.png'
+import EDGELogo from '../assets/img/EDGE-removebg-preview.png'
+import SikolohiyaLogo from '../assets/img/SIKOLOHIYA-removebg-preview (1).png'
+import YOPALogo from '../assets/img/YOPA-removebg-preview.png'
+import SinagTalaLogo from '../assets/img/SINAGTALA-removebg-preview.png'
+import TheFlareLogo from '../assets/img/THE_FLARE-removebg-preview (1).png'
+import HonorSocLogo from '../assets/img/HONORSOC-removebg-preview.png'
+
 /**
  * Announcements Page
  * 
@@ -78,19 +93,19 @@ export default function Announcements() {
   
   // CvSU Imus Campus Organizations for targeting
   const organizations = [
-    'Central Student Government',
-    'Builders of Innovative Technologist Society',
-    'Business Management Society',
-    'Cavite Communicators',
-    'Circle of Hospitality and Tourism Students',
-    'Cavite Young Leaders for Entrepreneurship',
-    'Computer Science Clique',
-    'Educators\' Guild for Excellence',
-    'Samahan ng mga Magaaral ng Sikolohiya',
-    'Young Office Professional Advocates',
-    'Sinag-Tala',
-    'The Flare',
-    'Honor Society'
+    { name: 'Central Student Government', logo: CSGLogo },
+    { name: 'Builders of Innovative Technologist Society', logo: BITSLogo },
+    { name: 'Business Management Society', logo: BMSLogo },
+    { name: 'Cavite Communicators', logo: CaviteCommLogo },
+    { name: 'Circle of Hospitality and Tourism Students', logo: CHLSLogo },
+    { name: 'Cavite Young Leaders for Entrepreneurship', logo: CYLELogo },
+    { name: 'Computer Science Clique', logo: CSCLogo },
+    { name: 'Educators\' Guild for Excellence', logo: EDGELogo },
+    { name: 'Samahan ng mga Magaaral ng Sikolohiya', logo: SikolohiyaLogo },
+    { name: 'Young Office Professional Advocates', logo: YOPALogo },
+    { name: 'Sinag-Tala', logo: SinagTalaLogo },
+    { name: 'The Flare', logo: TheFlareLogo },
+    { name: 'Honor Society', logo: HonorSocLogo }
   ]
   
   const canCreate = hasMinRole(ROLES.CLASS_REP)
@@ -832,13 +847,17 @@ export default function Announcements() {
       {!loading && !error && activeTab === 'organizations' && (
         <div className="bg-white rounded-2xl border border-gray-200 p-8">
           <h2 className="text-3xl font-bold text-gray-900 mb-8 text-center">Student Organizations</h2>
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-6">
             {organizations.map((org, idx) => (
-              <div key={idx} className="flex flex-col items-center gap-3 p-4 rounded-xl border border-gray-200 hover:border-green-600 hover:shadow-md transition-all cursor-pointer group">
-                <div className="w-16 h-16 rounded-full bg-green-100 flex items-center justify-center text-2xl group-hover:bg-green-200 transition-all">
-                  {['🎓', '💻', '📊', '📰', '✈️', '🚀', '📚', '👨‍🏫', '🧠', '💼', '🎭', '📑', '🏆'][idx % 13]}
+              <div key={idx} className="flex flex-col items-center gap-4 p-4 rounded-xl border border-gray-200 hover:border-green-600 hover:shadow-lg transition-all cursor-pointer group bg-gradient-to-br from-white to-gray-50">
+                <div className="w-20 h-20 rounded-full bg-white flex items-center justify-center overflow-hidden border-2 border-gray-200 group-hover:border-green-600 group-hover:shadow-md transition-all">
+                  <img 
+                    src={org.logo} 
+                    alt={org.name}
+                    className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
+                  />
                 </div>
-                <p className="text-sm font-semibold text-gray-900 text-center line-clamp-3">{org}</p>
+                <p className="text-sm font-semibold text-gray-900 text-center line-clamp-3">{org.name}</p>
               </div>
             ))}
           </div>
@@ -1147,16 +1166,16 @@ export default function Announcements() {
                 <div className="grid grid-cols-2 gap-2">
                   {organizations.map((org) => (
                     <button
-                      key={org}
+                      key={org.name}
                       type="button"
-                      onClick={() => toggleTag(org)}
+                      onClick={() => toggleTag(org.name)}
                       className={`px-3 py-2.5 text-xs font-semibold rounded-lg transition-all duration-200 text-left ${
-                        formData.targetTags.includes(org)
+                        formData.targetTags.includes(org.name)
                           ? 'bg-green-600 text-white shadow-md'
                           : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                       }`}
                     >
-                      {org}
+                      {org.name}
                     </button>
                   ))}
                 </div>
@@ -1219,16 +1238,16 @@ export default function Announcements() {
               <div className="grid grid-cols-2 gap-3 p-4 bg-gray-50 rounded-xl max-h-64 overflow-y-auto">
                 {organizations.map((org) => (
                   <button
-                    key={org}
+                    key={org.name}
                     type="button"
-                    onClick={() => toggleTag(org)}
+                    onClick={() => toggleTag(org.name)}
                     className={`px-4 py-2.5 text-sm font-semibold rounded-lg transition-all duration-200 ${
-                      formData.targetTags.includes(org)
+                      formData.targetTags.includes(org.name)
                         ? 'bg-green-600 text-white shadow-md scale-105'
                         : 'bg-white border-2 border-gray-200 text-gray-700 hover:border-green-300 hover:bg-green-50'
                     }`}
                   >
-                    {org}
+                    {org.name}
                   </button>
                 ))}
               </div>
@@ -1682,16 +1701,16 @@ export default function Announcements() {
                 <div className="flex flex-wrap gap-2 p-4 bg-gray-50 rounded-lg max-h-48 overflow-y-auto">
                   {organizations.map((org) => (
                     <button
-                      key={org}
+                      key={org.name}
                       type="button"
-                      onClick={() => toggleEditTag(org)}
+                      onClick={() => toggleEditTag(org.name)}
                       className={`px-3 py-1.5 text-xs font-medium rounded-full transition-colors ${
-                        editFormData.targetTags.includes(org)
+                        editFormData.targetTags.includes(org.name)
                           ? 'bg-primary text-white'
                           : 'bg-white border border-gray-200 text-gray-700 hover:bg-gray-100'
                       }`}
                     >
-                      {org}
+                      {org.name}
                     </button>
                   ))}
                 </div>
