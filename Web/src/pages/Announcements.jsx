@@ -714,7 +714,7 @@ export default function Announcements() {
             }
             
             return (
-              <div className="space-y-4 max-w-2xl mx-auto">
+              <div className="space-y-4 w-full">
                 {filtered.map((announcement, idx) => (
                   <div
                     key={announcement.id}
