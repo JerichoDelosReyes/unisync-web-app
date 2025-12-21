@@ -10,6 +10,10 @@ import {
   deleteAnnouncement,
   updateAnnouncement,
   removeMediaFromAnnouncement,
+  toggleReaction,
+  getReactionCounts,
+  addComment,
+  getComments,
   ANNOUNCEMENT_STATUS,
   PRIORITY_LEVELS
 } from '../services/announcementService'
@@ -51,6 +55,13 @@ export default function Announcements() {
   // Delete confirmation state
   const [deleteConfirm, setDeleteConfirm] = useState({ open: false, announcement: null })
   const [deleting, setDeleting] = useState(false)
+  
+  // Comments and reactions state
+  const [comments, setComments] = useState([])
+  const [reactions, setReactions] = useState({})
+  const [loadingComments, setLoadingComments] = useState(false)
+  const [commentText, setCommentText] = useState('')
+  const [submittingComment, setSubmittingComment] = useState(false)
   
   // Create form state
   const [formData, setFormData] = useState({
@@ -119,6 +130,34 @@ export default function Announcements() {
 
     fetchAnnouncements()
   }, [userProfile, canModerate])
+
+  // Fetch comments when announcement is selected
+  useEffect(() => {
+    if (selectedAnnouncement) {
+      const fetchCommentsData = async () => {
+        try {
+          setLoadingComments(true)
+          const data = await getComments(selectedAnnouncement.id)
+          setComments(data)
+          
+          // Set initial reactions from announcement
+          if (selectedAnnouncement.reactions) {
+            const counts = getReactionCounts(selectedAnnouncement.reactions)
+            setReactions(counts)
+          } else {
+            setReactions({})
+          }
+        } catch (err) {
+          console.error('Error fetching comments:', err)
+        } finally {
+          setLoadingComments(false)
+        }
+      }
+      
+      fetchCommentsData()
+      setCommentText('')
+    }
+  }, [selectedAnnouncement])
 
   // Handle file selection
   const handleFileSelect = (e) => {
@@ -362,6 +401,68 @@ export default function Announcements() {
     }))
   }
 
+  // Handle adding a comment
+  const handleAddComment = async (e) => {
+    e.preventDefault()
+    
+    if (!commentText.trim()) {
+      showToast('Comment cannot be empty', 'error')
+      return
+    }
+    
+    if (!selectedAnnouncement) return
+    
+    try {
+      setSubmittingComment(true)
+      
+      const author = {
+        uid: user.uid,
+        name: `${userProfile.givenName} ${userProfile.lastName}`,
+        role: userProfile.role
+      }
+      
+      const newComment = await addComment(selectedAnnouncement.id, commentText.trim(), author, null, skipReviewQueue)
+      setComments(prev => [newComment, ...prev])
+      setCommentText('')
+      showToast('Comment added successfully!', 'success')
+    } catch (err) {
+      console.error('Error adding comment:', err)
+      showToast(err.message || 'Failed to add comment', 'error')
+    } finally {
+      setSubmittingComment(false)
+    }
+  }
+
+  // Handle toggling a reaction
+  const handleToggleReaction = async (announcementId, reactionType) => {
+    try {
+      const result = await toggleReaction(announcementId, reactionType, user)
+      
+      // Update in announcements list
+      setAnnouncements(prev => prev.map(a => 
+        a.id === announcementId 
+          ? { ...a, reactions: result.reactions }
+          : a
+      ))
+      
+      // Update selected announcement if it's the one being reacted to
+      if (selectedAnnouncement && selectedAnnouncement.id === announcementId) {
+        const counts = getReactionCounts(result.reactions)
+        setReactions(counts)
+        
+        setSelectedAnnouncement(prev => ({
+          ...prev,
+          reactions: result.reactions
+        }))
+      }
+      
+      showToast('Reaction added!', 'success')
+    } catch (err) {
+      console.error('Error toggling reaction:', err)
+      showToast('Failed to add reaction', 'error')
+    }
+  }
+
   // Format date - handles Firestore timestamps, Date objects, and serverTimestamp
   const formatDate = (timestamp) => {
     if (!timestamp) return 'Just now'
@@ -485,55 +586,35 @@ export default function Announcements() {
       <div className="max-w-7xl mx-auto px-6 py-12">
 
       {/* Tabs */}
-      <div className="flex gap-2 mb-8 border-b border-gray-200 rounded-b-lg">
-        <button
-          onClick={() => setActiveTab('all')}
-          className={`pb-4 px-4 font-semibold text-sm transition-all duration-300 relative ${
-            activeTab === 'all'
-              ? 'text-green-600'
-              : 'text-gray-600 hover:text-gray-900'
-          }`}
-        >
-          All Announcements
-          {activeTab === 'all' && (
-            <div className="absolute bottom-0 left-4 right-4 h-1 bg-green-600 rounded-t-lg"></div>
-          )}
-        </button>
-        {canModerate && (
-          <button
-            onClick={() => setActiveTab('pending')}
-            className={`pb-4 px-4 font-semibold text-sm transition-all duration-300 relative flex items-center gap-2 ${
-              activeTab === 'pending'
-                ? 'text-green-600'
-                : 'text-gray-600 hover:text-gray-900'
-            }`}
-          >
-            Pending Review
-            {pendingAnnouncements.length > 0 && (
-              <span className="ml-2 px-3 py-1 text-xs font-bold bg-red-500 text-white rounded-full">
-                {pendingAnnouncements.length}
-              </span>
-            )}
-            {activeTab === 'pending' && (
-              <div className="absolute bottom-0 left-4 right-4 h-1 bg-green-600 rounded-t-lg"></div>
-            )}
-          </button>
-        )}
-        {canCreate && (
-          <button
-            onClick={() => setActiveTab('create')}
-            className={`pb-4 px-4 font-semibold text-sm transition-all duration-300 relative ${
-              activeTab === 'create'
-                ? 'text-green-600'
-                : 'text-gray-600 hover:text-gray-900'
-            }`}
-          >
-            Create New
-            {activeTab === 'create' && (
-              <div className="absolute bottom-0 left-4 right-4 h-1 bg-green-600 rounded-t-lg"></div>
-            )}
-          </button>
-        )}
+      <div className="flex gap-2 mb-8 overflow-x-auto pb-2">
+        {[
+          { key: 'all', label: 'All' },
+          { key: 'important', label: 'Important' },
+          { key: 'academic', label: 'Academic' },
+          { key: 'general', label: 'General' },
+          { key: 'organizations', label: '👥 Organizations' },
+          { key: 'pending', label: 'Pending Review', show: canModerate },
+          { key: 'create', label: '✍️ Create', show: canCreate }
+        ].map(tab => (
+          tab.show !== false && (
+            <button
+              key={tab.key}
+              onClick={() => setActiveTab(tab.key)}
+              className={`px-4 py-2 font-medium text-sm rounded-lg whitespace-nowrap transition-all ${
+                activeTab === tab.key
+                  ? 'bg-green-600 text-white shadow-md'
+                  : 'bg-white text-gray-700 border border-gray-300 hover:border-green-600 hover:text-green-600'
+              }`}
+            >
+              {tab.label}
+              {tab.key === 'pending' && pendingAnnouncements.length > 0 && (
+                <span className="ml-2 px-2 py-0.5 text-xs font-bold bg-red-500 text-white rounded-full inline-block">
+                  {pendingAnnouncements.length}
+                </span>
+              )}
+            </button>
+          )
+        ))}
       </div>
 
       {/* Loading State */}
@@ -555,93 +636,212 @@ export default function Announcements() {
       )}
 
       {/* All Announcements Tab */}
-      {!loading && !error && activeTab === 'all' && (
+      {!loading && !error && ['all', 'important', 'academic', 'general'].includes(activeTab) && (
         <div>
-          {announcements.length === 0 ? (
-            <div className="bg-gradient-to-br from-white to-gray-50 rounded-2xl border-2 border-dashed border-gray-300 p-16 text-center">
-              <div className="w-20 h-20 rounded-full bg-blue-100 flex items-center justify-center mx-auto mb-4">
-                <svg className="w-10 h-10 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M11 5.882V19.24a1.76 1.76 0 01-3.417.592l-2.147-6.15M18 13a3 3 0 100-6M5.436 13.683A4.001 4.001 0 017 6h1.832c4.1 0 7.625-1.234 9.168-3v14c-1.543-1.766-5.067-3-9.168-3H7a3.988 3.988 0 01-1.564-.317z" />
-                </svg>
-              </div>
-              <h3 className="text-2xl font-bold text-gray-900 mb-2">No Announcements Yet</h3>
-              <p className="text-gray-600">Check back soon for exciting updates and campus news!</p>
-            </div>
-          ) : (
-            <div className="space-y-4">
-              {announcements.map((announcement, idx) => (
-                <div
-                  key={announcement.id}
-                  className="group bg-white rounded-2xl border border-gray-200 overflow-hidden hover:border-blue-300 hover:shadow-xl transition-all duration-300 cursor-pointer transform hover:-translate-y-1"
-                  onClick={() => setSelectedAnnouncement(announcement)}
-                  style={{ animationDelay: `${idx * 50}ms` }}
-                >
-                  {/* Top accent bar */}
-                  <div className="h-1 bg-green-600"></div>
-                  
-                  <div className="p-6">
-                    {/* Header with badges */}
-                    <div className="flex items-start justify-between mb-4">
-                      <div className="flex items-center gap-3 flex-wrap">
-                        <span className={`px-3 py-1.5 text-xs font-bold rounded-full uppercase tracking-wide ${getPriorityColor(announcement.priority)}`}>
+          {(() => {
+            let filtered = announcements
+            
+            if (activeTab === 'important') {
+              filtered = announcements.filter(a => a.priority === 'urgent' || a.priority === 'high')
+            } else if (activeTab === 'academic') {
+              const academicTags = ['Computer Science Clique', 'Educators\' Guild for Excellence', 'Builders of Innovative Technologist Society', 'Business Management Society']
+              filtered = announcements.filter(a => a.targetTags?.some(tag => academicTags.includes(tag)))
+            } else if (activeTab === 'general') {
+              filtered = announcements.filter(a => !a.targetTags || a.targetTags.length === 0)
+            }
+            
+            if (filtered.length === 0) {
+              return (
+                <div className="bg-gradient-to-br from-white to-gray-50 rounded-2xl border-2 border-dashed border-gray-300 p-16 text-center">
+                  <div className="w-20 h-20 rounded-full bg-blue-100 flex items-center justify-center mx-auto mb-4">
+                    <svg className="w-10 h-10 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M11 5.882V19.24a1.76 1.76 0 01-3.417.592l-2.147-6.15M18 13a3 3 0 100-6M5.436 13.683A4.001 4.001 0 017 6h1.832c4.1 0 7.625-1.234 9.168-3v14c-1.543-1.766-5.067-3-9.168-3H7a3.988 3.988 0 01-1.564-.317z" />
+                    </svg>
+                  </div>
+                  <h3 className="text-2xl font-bold text-gray-900 mb-2">No Announcements Yet</h3>
+                  <p className="text-gray-600">Check back soon for exciting updates and campus news!</p>
+                </div>
+              )
+            }
+            
+            return (
+              <div className="space-y-4 max-w-2xl mx-auto">
+                {filtered.map((announcement, idx) => (
+                  <div
+                    key={announcement.id}
+                    className="bg-white rounded-2xl border border-gray-200 overflow-hidden shadow-sm hover:shadow-md transition-all duration-300"
+                    style={{ animationDelay: `${idx * 50}ms` }}
+                  >
+                    {/* Header - Facebook Style */}
+                    <div className="px-4 py-3 border-b border-gray-100">
+                      <div className="flex items-start justify-between mb-3">
+                        <div className="flex items-center gap-3 flex-1">
+                          <div className="w-10 h-10 rounded-full bg-green-600 flex items-center justify-center text-white font-bold text-sm flex-shrink-0">
+                            {announcement.authorName?.charAt(0) || 'U'}
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-bold text-gray-900">{announcement.authorName}</p>
+                            <p className="text-xs text-gray-500">{ROLE_DISPLAY_NAMES[announcement.authorRole]} • {formatDate(announcement.createdAt)}</p>
+                          </div>
+                        </div>
+                        <div className="relative group flex-shrink-0">
+                          <button
+                            className="text-gray-500 hover:text-gray-700 transition-colors p-1"
+                          >
+                            <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+                              <path d="M12 8c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zm0 2c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm0 6c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2z" />
+                            </svg>
+                          </button>
+                          {/* Dropdown Menu - Admin Only */}
+                          {canModerate && (
+                            <div className="absolute right-0 mt-1 w-40 bg-white rounded-lg shadow-lg border border-gray-200 py-1 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-20">
+                              <button
+                                onClick={() => openEditModal(announcement)}
+                                className="w-full flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition-colors"
+                              >
+                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                                </svg>
+                                Edit
+                              </button>
+                              <button
+                                onClick={() => setDeleteConfirm({ open: true, announcement })}
+                                className="w-full flex items-center gap-2 px-4 py-2 text-sm text-red-600 hover:bg-red-50 transition-colors border-t border-gray-100"
+                              >
+                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                </svg>
+                                Delete
+                              </button>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                      
+                      {/* Priority and Target Tags */}
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className={`px-2.5 py-1 text-xs font-bold rounded-full uppercase tracking-wide ${getPriorityColor(announcement.priority)}`}>
                           {announcement.priority?.toUpperCase() || 'NORMAL'}
                         </span>
                         {announcement.targetTags?.length > 0 && (
-                          <span className="px-3 py-1.5 text-xs font-bold bg-purple-100 text-purple-700 rounded-full">
-                            {announcement.targetTags.length} org(s)
+                          <span className="px-2.5 py-1 text-xs font-bold bg-purple-100 text-purple-700 rounded-full">
+                            👥 {announcement.targetTags.length}
                           </span>
                         )}
                       </div>
-                      <span className="text-xs font-medium text-gray-500">{formatDate(announcement.createdAt)}</span>
                     </div>
                     
-                    {/* Title and content */}
-                    <h3 className="text-xl font-bold text-gray-900 mb-2 group-hover:text-blue-600 transition-colors line-clamp-2">
-                      {announcement.title}
-                    </h3>
-                    <p className="text-gray-600 text-sm leading-relaxed line-clamp-3 mb-4">
-                      {announcement.content}
-                    </p>
+                    {/* Content */}
+                    <div className="px-4 py-3 cursor-pointer" onClick={() => setSelectedAnnouncement(announcement)}>
+                      <h3 className="text-base font-bold text-gray-900 mb-2 line-clamp-2 hover:text-green-600 transition-colors">
+                        {announcement.title}
+                      </h3>
+                      <p className="text-sm text-gray-700 leading-relaxed line-clamp-3">
+                        {announcement.content}
+                      </p>
+                    </div>
                     
-                    {/* Media preview */}
+                    {/* Media Gallery - Full Width */}
                     {announcement.media?.length > 0 && (
-                      <div className="flex gap-2 mb-4">
-                        {announcement.media.slice(0, 3).map((media, idx) => (
-                          <div key={idx} className="w-16 h-16 rounded-xl overflow-hidden bg-gradient-to-br from-gray-100 to-gray-200 flex-shrink-0 group-hover:shadow-md transition-all">
-                            {media.type === 'image' ? (
-                              <img src={media.url} alt="" className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300" />
+                      <div 
+                        className="bg-gray-100 cursor-pointer"
+                        onClick={() => setSelectedAnnouncement(announcement)}
+                      >
+                        {announcement.media.length === 1 ? (
+                          <div className="w-full aspect-video overflow-hidden">
+                            {announcement.media[0].type === 'image' ? (
+                              <img src={announcement.media[0].url} alt="" className="w-full h-full object-cover hover:scale-105 transition-transform duration-300" />
                             ) : (
                               <div className="w-full h-full flex items-center justify-center bg-gray-300">
-                                <svg className="w-6 h-6 text-gray-500" fill="currentColor" viewBox="0 0 24 24">
+                                <svg className="w-12 h-12 text-gray-600" fill="currentColor" viewBox="0 0 24 24">
                                   <path d="M8 5v14l11-7z" />
                                 </svg>
                               </div>
                             )}
                           </div>
-                        ))}
-                        {announcement.media.length > 3 && (
-                          <div className="w-16 h-16 rounded-xl bg-gradient-to-br from-gray-100 to-gray-200 flex items-center justify-center text-xs font-bold text-gray-700 flex-shrink-0">
-                            +{announcement.media.length - 3}
+                        ) : (
+                          <div className="grid grid-cols-2 gap-1">
+                            {announcement.media.slice(0, 4).map((media, idx) => (
+                              <div key={idx} className="aspect-square overflow-hidden relative bg-gray-300">
+                                {media.type === 'image' ? (
+                                  <img src={media.url} alt="" className="w-full h-full object-cover hover:scale-105 transition-transform duration-300" />
+                                ) : (
+                                  <div className="w-full h-full flex items-center justify-center">
+                                    <svg className="w-8 h-8 text-gray-600" fill="currentColor" viewBox="0 0 24 24">
+                                      <path d="M8 5v14l11-7z" />
+                                    </svg>
+                                  </div>
+                                )}
+                                {idx === 3 && announcement.media.length > 4 && (
+                                  <div className="absolute inset-0 bg-black/60 flex items-center justify-center">
+                                    <p className="text-white font-bold text-xl">+{announcement.media.length - 4}</p>
+                                  </div>
+                                )}
+                              </div>
+                            ))}
                           </div>
                         )}
                       </div>
                     )}
                     
-                    {/* Footer with author */}
-                    <div className="flex items-center gap-3 pt-4 border-t border-gray-100">
-                      <div className="w-8 h-8 rounded-full bg-green-600 flex items-center justify-center text-white text-sm font-bold flex-shrink-0">
-                        {announcement.authorName?.charAt(0) || 'U'}
+                    {/* Engagement Stats & Action Bar - Facebook Style */}
+                    <div className="px-4 py-2 border-t border-gray-100">
+                      {/* Stats */}
+                      <div className="flex items-center justify-between text-xs text-gray-500 mb-2 pb-2 border-b border-gray-100">
+                        <div className="flex items-center gap-3">
+                          {announcement.reactions && Object.values(announcement.reactions).some(count => count > 0) && (
+                            <span>
+                              {Object.values(announcement.reactions).reduce((a, b) => a + b, 0)} 👍
+                            </span>
+                          )}
+                          {announcement.comments?.length > 0 && (
+                            <span>{announcement.comments.length} 💬</span>
+                          )}
+                        </div>
                       </div>
-                      <div>
-                        <p className="text-xs font-semibold text-gray-900">{announcement.authorName}</p>
-                        <p className="text-xs text-gray-500">{ROLE_DISPLAY_NAMES[announcement.authorRole]}</p>
+                      
+                      {/* Action Buttons */}
+                      <div className="flex items-center justify-start gap-0">
+                        <button
+                          onClick={() => handleToggleReaction(announcement.id, '👍')}
+                          className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 text-sm font-semibold text-gray-700 hover:bg-gray-100 transition-all group"
+                        >
+                          <span className="group-hover:scale-125 transition-transform">👍</span>
+                          <span className="hidden sm:inline">Like</span>
+                        </button>
+                        <button
+                          onClick={() => setSelectedAnnouncement(announcement)}
+                          className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 text-sm font-semibold text-gray-700 hover:bg-gray-100 transition-all"
+                        >
+                          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                          </svg>
+                          <span className="hidden sm:inline">Comment</span>
+                        </button>
                       </div>
                     </div>
                   </div>
+                ))}
+              </div>
+            )
+          })()}
+        </div>
+      )}
+
+      {/* Organizations Tab */}
+      {!loading && !error && activeTab === 'organizations' && (
+        <div className="bg-white rounded-2xl border border-gray-200 p-8">
+          <h2 className="text-3xl font-bold text-gray-900 mb-8 text-center">Student Organizations</h2>
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
+            {organizations.map((org, idx) => (
+              <div key={idx} className="flex flex-col items-center gap-3 p-4 rounded-xl border border-gray-200 hover:border-green-600 hover:shadow-md transition-all cursor-pointer group">
+                <div className="w-16 h-16 rounded-full bg-green-100 flex items-center justify-center text-2xl group-hover:bg-green-200 transition-all">
+                  {['🎓', '💻', '📊', '📰', '✈️', '🚀', '📚', '👨‍🏫', '🧠', '💼', '🎭', '📑', '🏆'][idx % 13]}
                 </div>
-              ))}
-            </div>
-          )}
+                <p className="text-sm font-semibold text-gray-900 text-center line-clamp-3">{org}</p>
+              </div>
+            ))}
+          </div>
         </div>
       )}
 
@@ -659,35 +859,50 @@ export default function Announcements() {
               <p className="text-gray-600">No pending announcements to review. Great work keeping things clean!</p>
             </div>
           ) : (
-            <div className="space-y-4">
+            <div className="space-y-4 max-w-2xl mx-auto">
               {pendingAnnouncements.map((announcement, idx) => (
                 <div
                   key={announcement.id}
-                  className="bg-white rounded-2xl border-2 border-amber-200 hover:border-amber-300 hover:shadow-lg transition-all overflow-hidden"
+                  className="bg-white rounded-2xl border border-amber-200 overflow-hidden shadow-sm hover:shadow-md transition-all"
                   style={{ animationDelay: `${idx * 50}ms` }}
                 >
-                  {/* Top accent bar */}
-                  <div className="h-1 bg-amber-400"></div>
-                  
-                  <div className="p-6">
-                    <div className="flex items-start justify-between mb-4">
-                      <div className="flex items-center gap-3 flex-wrap">
-                        <span className="px-3 py-1.5 text-xs font-bold bg-amber-100 text-amber-800 rounded-full uppercase tracking-wide">
-                          🔍 PENDING REVIEW
-                        </span>
-                        <span className={`px-3 py-1.5 text-xs font-bold rounded-full uppercase tracking-wide ${getPriorityColor(announcement.priority)}`}>
-                          {announcement.priority?.toUpperCase() || 'NORMAL'}
-                        </span>
+                  {/* Header - Facebook Style */}
+                  <div className="px-4 py-3 border-b border-amber-100">
+                    <div className="flex items-start justify-between mb-3">
+                      <div className="flex items-center gap-3 flex-1">
+                        <div className="w-10 h-10 rounded-full bg-green-600 flex items-center justify-center text-white font-bold text-sm flex-shrink-0">
+                          {announcement.authorName?.charAt(0) || 'U'}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-bold text-gray-900">{announcement.authorName}</p>
+                          <p className="text-xs text-gray-500">{ROLE_DISPLAY_NAMES[announcement.authorRole]} • {formatDate(announcement.createdAt)}</p>
+                        </div>
                       </div>
-                      <span className="text-xs font-medium text-gray-500">{formatDate(announcement.createdAt)}</span>
+                      <span className="px-3 py-1 text-xs font-bold bg-amber-100 text-amber-800 rounded-full flex-shrink-0">
+                        🔍 PENDING
+                      </span>
                     </div>
                     
-                    <h3 className="text-xl font-bold text-gray-900 mb-2">{announcement.title}</h3>
-                    <p className="text-gray-600 text-sm leading-relaxed mb-4">{announcement.content}</p>
+                    {/* Priority Badge */}
+                    <div>
+                      <span className={`px-2.5 py-1 text-xs font-bold rounded-full uppercase tracking-wide inline-block ${getPriorityColor(announcement.priority)}`}>
+                        {announcement.priority?.toUpperCase() || 'NORMAL'}
+                      </span>
+                    </div>
+                  </div>
+                  
+                  {/* Content */}
+                  <div className="px-4 py-3">
+                    <h3 className="text-base font-bold text-gray-900 mb-2 line-clamp-2">
+                      {announcement.title}
+                    </h3>
+                    <p className="text-sm text-gray-700 leading-relaxed mb-4">
+                      {announcement.content}
+                    </p>
                     
                     {/* Moderation Details Card */}
                     {announcement.moderationResult && (
-                      <div className="bg-amber-50 border-l-4 border-amber-400 rounded-xl p-4 mb-4">
+                      <div className="bg-amber-50 border-l-4 border-amber-400 rounded-lg p-4 mb-4">
                         <p className="text-xs font-bold text-amber-900 mb-2 flex items-center gap-2">
                           <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
                             <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z" />
@@ -718,53 +933,22 @@ export default function Announcements() {
                         )}
                       </div>
                     )}
-                    
-                    {/* Media preview */}
-                    {announcement.media?.length > 0 && (
-                      <div className="flex gap-2 mb-6">
-                        {announcement.media.map((media, idx) => (
-                          <div key={idx} className="w-20 h-20 rounded-lg overflow-hidden bg-gray-200 flex-shrink-0">
-                            {media.type === 'image' ? (
-                              <img src={media.url} alt="" className="w-full h-full object-cover" />
-                            ) : (
-                              <div className="w-full h-full flex items-center justify-center bg-gray-400">
-                                <svg className="w-6 h-6 text-gray-600" fill="currentColor" viewBox="0 0 24 24">
-                                  <path d="M8 5v14l11-7z" />
-                                </svg>
-                              </div>
-                            )}
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                    
-                    {/* Author and Actions */}
-                    <div className="flex items-center justify-between pt-4 border-t border-gray-200">
-                      <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 rounded-full bg-green-600 flex items-center justify-center text-white text-sm font-bold">
-                          {announcement.authorName?.charAt(0) || 'U'}
-                        </div>
-                        <div>
-                          <p className="text-xs font-semibold text-gray-900">{announcement.authorName}</p>
-                          <p className="text-xs text-gray-500">{ROLE_DISPLAY_NAMES[announcement.authorRole]}</p>
-                        </div>
-                      </div>
-                      
-                      <div className="flex gap-2">
-                        <button
-                          onClick={() => handleReject(announcement.id)}
-                          className="px-4 py-2 text-sm font-bold text-red-700 bg-red-50 rounded-lg hover:bg-red-100 transition-all"
-                        >
-                          ✗ Reject
-                        </button>
-                        <button
-                          onClick={() => handleApprove(announcement.id)}
-                          className="px-4 py-2 text-sm font-bold text-white bg-emerald-500 rounded-lg hover:bg-emerald-600 hover:shadow-lg transition-all"
-                        >
-                          ✓ Approve
-                        </button>
-                      </div>
-                    </div>
+                  </div>
+                  
+                  {/* Admin Actions */}
+                  <div className="px-4 py-3 border-t border-amber-100 bg-amber-50 flex gap-2">
+                    <button
+                      onClick={() => handleReject(announcement.id)}
+                      className="flex-1 px-4 py-2.5 text-sm font-bold text-red-700 bg-white border border-red-300 rounded-lg hover:bg-red-50 transition-all"
+                    >
+                      ✗ Reject
+                    </button>
+                    <button
+                      onClick={() => handleApprove(announcement.id)}
+                      className="flex-1 px-4 py-2.5 text-sm font-bold text-white bg-emerald-500 rounded-lg hover:bg-emerald-600 transition-all"
+                    >
+                      ✓ Approve
+                    </button>
                   </div>
                 </div>
               ))}
@@ -773,31 +957,218 @@ export default function Announcements() {
         </div>
       )}
 
-      {/* Create Tab */}
+      {/* Create Tab - Facebook Style */}
       {!loading && activeTab === 'create' && canCreate && (
-        <div className="bg-white rounded-2xl border border-gray-200 p-8">
-          <div className="mb-8">
-            <h2 className="text-3xl font-bold text-gray-900 mb-2">Share Your Announcement</h2>
-            <p className="text-gray-600">Reach your audience with important campus updates and news.</p>
-          </div>
-          
-          {!skipReviewQueue && (
-            <div className="bg-blue-50 border-2 border-blue-200 rounded-2xl p-4 mb-8 flex gap-4">
-              <div className="flex-shrink-0">
-                <svg className="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m7 0a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
+        <div className="max-w-2xl mx-auto">
+          <form onSubmit={handleSubmit} className="space-y-4">
+            {/* Post Creator Card */}
+            <div className="bg-white rounded-2xl border border-gray-200 p-6 shadow-sm">
+              {/* User Header */}
+              <div className="flex items-center gap-3 mb-4 pb-4 border-b border-gray-200">
+                <div className="w-10 h-10 rounded-full bg-green-600 flex items-center justify-center text-white font-bold text-sm flex-shrink-0">
+                  {userProfile?.givenName?.charAt(0) || 'U'}
+                </div>
+                <div className="flex-1">
+                  <p className="font-semibold text-gray-900 text-sm">{userProfile?.givenName} {userProfile?.lastName}</p>
+                  <p className="text-xs text-gray-500">{ROLE_DISPLAY_NAMES[userProfile?.role]}</p>
+                </div>
+                {/* Privacy Selector */}
+                <select
+                  value={formData.targetTags.length === 0 ? 'public' : 'targeted'}
+                  onChange={(e) => {
+                    if (e.target.value === 'public') {
+                      setFormData(prev => ({ ...prev, targetTags: [] }))
+                    }
+                  }}
+                  className="px-3 py-1.5 text-xs font-semibold border border-gray-300 rounded-lg bg-white hover:bg-gray-50 cursor-pointer transition-all"
+                >
+                  <option value="public">📢 Campus-wide</option>
+                  <option value="targeted">👥 Targeted</option>
+                </select>
               </div>
-              <div>
-                <p className="text-sm font-semibold text-blue-900">Content Review</p>
-                <p className="text-sm text-blue-700 mt-1">
-                  Your announcement will be reviewed by our moderation system to ensure community standards are met.
-                </p>
+              
+              {/* Title Input - Hidden/Minimal */}
+              <input
+                type="text"
+                value={formData.title}
+                onChange={(e) => setFormData(prev => ({ ...prev, title: e.target.value }))}
+                placeholder="What's the announcement about?"
+                className="w-full px-0 py-2 text-2xl font-bold text-gray-900 placeholder-gray-400 bg-transparent border-0 focus:outline-none resize-none mb-3"
+                required
+              />
+              
+              {/* Main Content Input */}
+              <textarea
+                value={formData.content}
+                onChange={(e) => setFormData(prev => ({ ...prev, content: e.target.value }))}
+                placeholder="Share the details of your announcement..."
+                rows={5}
+                className="w-full px-0 py-3 text-base text-gray-900 placeholder-gray-500 bg-transparent border-0 focus:outline-none resize-none"
+                required
+              />
+              
+              {/* Media Previews */}
+              {mediaPreview.length > 0 && (
+                <div className="mt-4 -mx-6 px-6">
+                  <div className="grid grid-cols-2 gap-3">
+                    {mediaPreview.map((media, idx) => (
+                      <div key={idx} className="relative group rounded-lg overflow-hidden bg-gray-100">
+                        <div className="aspect-square">
+                          {media.type === 'image' ? (
+                            <img src={media.url} alt="" className="w-full h-full object-cover" />
+                          ) : (
+                            <div className="w-full h-full flex items-center justify-center bg-gray-400">
+                              <svg className="w-10 h-10 text-gray-600" fill="currentColor" viewBox="0 0 24 24">
+                                <path d="M8 5v14l11-7z" />
+                              </svg>
+                            </div>
+                          )}
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => removeMedia(idx)}
+                          className="absolute top-2 right-2 w-8 h-8 bg-black/60 text-white rounded-full flex items-center justify-center hover:bg-black/80 transition-all opacity-0 group-hover:opacity-100"
+                        >
+                          <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+                            <path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z" />
+                          </svg>
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+              
+              {/* Action Bar */}
+              <div className="mt-4 pt-3 border-t border-gray-200 flex items-center gap-2">
+                <input
+                  type="file"
+                  ref={fileInputRef}
+                  onChange={handleFileSelect}
+                  accept="image/*,video/*"
+                  multiple
+                  className="hidden"
+                />
+                
+                {/* Icon Buttons */}
+                <button
+                  type="button"
+                  onClick={() => fileInputRef.current?.click()}
+                  className="flex-1 flex items-center justify-center gap-2 px-3 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-100 rounded-lg transition-all group"
+                >
+                  <svg className="w-5 h-5 text-red-500 group-hover:scale-110 transition-transform" fill="currentColor" viewBox="0 0 24 24">
+                    <path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z" />
+                  </svg>
+                  <span className="hidden sm:inline">Photo/Video</span>
+                </button>
+                
+                <select
+                  value={formData.priority}
+                  onChange={(e) => setFormData(prev => ({ ...prev, priority: e.target.value }))}
+                  className="flex-1 flex items-center justify-center gap-2 px-3 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-100 rounded-lg transition-all bg-transparent border-0 cursor-pointer"
+                >
+                  <option value={PRIORITY_LEVELS.LOW}>📍 Low</option>
+                  <option value={PRIORITY_LEVELS.NORMAL}>📌 Normal</option>
+                  <option value={PRIORITY_LEVELS.HIGH}>⚠️ High</option>
+                  <option value={PRIORITY_LEVELS.URGENT}>🔴 Urgent</option>
+                </select>
+              </div>
+              
+              {/* Audience Targeting (Expandable) */}
+              {formData.targetTags.length === 0 ? (
+                <div className="mt-3 text-xs text-gray-500">
+                  📢 This will reach all campus users
+                </div>
+              ) : (
+                <div className="mt-3">
+                  <p className="text-xs font-semibold text-gray-600 mb-2">Targeting {formData.targetTags.length} organization{formData.targetTags.length !== 1 ? 's' : ''}:</p>
+                  <div className="flex flex-wrap gap-2">
+                    {formData.targetTags.map((tag) => (
+                      <button
+                        key={tag}
+                        type="button"
+                        onClick={() => toggleTag(tag)}
+                        className="px-2 py-1 text-xs bg-green-100 text-green-700 rounded-full font-semibold hover:bg-green-200 transition-all flex items-center gap-1"
+                      >
+                        {tag}
+                        <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 24 24">
+                          <path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z" />
+                        </svg>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+              
+              {/* Moderation Notice */}
+              {!skipReviewQueue && (
+                <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                  <p className="text-xs text-blue-900"><span className="font-semibold">⚠️ Content Review:</span> Your post will be reviewed before publishing.</p>
+                </div>
+              )}
+              
+              {/* Submit Button */}
+              <div className="flex gap-3 mt-4 pt-3 border-t border-gray-200">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setActiveTab('all')
+                    setFormData({ title: '', content: '', priority: PRIORITY_LEVELS.NORMAL, targetTags: [] })
+                    setMediaFiles([])
+                    setMediaPreview([])
+                  }}
+                  className="flex-1 px-4 py-2.5 text-sm font-bold text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-all"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={submitting}
+                  className="flex-1 px-4 py-2.5 text-sm font-bold text-white bg-green-600 rounded-lg hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all flex items-center justify-center gap-2"
+                >
+                  {submitting ? (
+                    <>
+                      <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                      {skipReviewQueue ? 'Publishing...' : 'Submitting...'}
+                    </>
+                  ) : (
+                    <>
+                      {skipReviewQueue ? '✨ Publish' : '📤 Submit'}
+                    </>
+                  )}
+                </button>
               </div>
             </div>
-          )}
-          
-          <form onSubmit={handleSubmit} className="space-y-8">
+            
+            {/* Organization Selector Modal - Collapsible */}
+            {formData.targetTags.length !== undefined && (
+              <div className="bg-white rounded-2xl border border-gray-200 p-6 shadow-sm">
+                <p className="text-sm font-bold text-gray-900 mb-4">Select Target Audience (Optional)</p>
+                <div className="grid grid-cols-2 gap-2">
+                  {organizations.map((org) => (
+                    <button
+                      key={org}
+                      type="button"
+                      onClick={() => toggleTag(org)}
+                      className={`px-3 py-2.5 text-xs font-semibold rounded-lg transition-all duration-200 text-left ${
+                        formData.targetTags.includes(org)
+                          ? 'bg-green-600 text-white shadow-md'
+                          : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                      }`}
+                    >
+                      {org}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+          </form>
+        </div>
+      )}
+      
+      {/* Old form hidden - keeping reference structure but replaced above */}
+      {false && (
+      <form onSubmit={handleSubmit} className="space-y-8">
             {/* Title */}
             <div>
               <label className="block text-sm font-bold text-gray-900 mb-3">Title</label>
@@ -966,28 +1337,22 @@ export default function Announcements() {
               </button>
             </div>
           </form>
-        </div>
       )}
 
-      {/* Announcement Detail Modal */}
+      {/* Announcement Detail Modal - Facebook Style */}
       {selectedAnnouncement && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
           <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
-            {/* Header */}
-            <div className="sticky top-0 bg-green-600 text-white px-8 py-6 flex items-center justify-between z-10 rounded-t-2xl">
-              <div className="flex items-center gap-3">
-                <span className={`px-3 py-1 text-xs font-bold rounded-full uppercase tracking-wide ${
-                  selectedAnnouncement.priority === PRIORITY_LEVELS.URGENT ? 'bg-red-500' :
-                  selectedAnnouncement.priority === PRIORITY_LEVELS.HIGH ? 'bg-orange-500' :
-                  selectedAnnouncement.priority === PRIORITY_LEVELS.NORMAL ? 'bg-blue-500' :
-                  'bg-gray-500'
-                }`}>
-                  {selectedAnnouncement.priority?.toUpperCase() || 'NORMAL'}
-                </span>
-                <span className="px-3 py-1 text-xs font-bold bg-white/20 rounded-full">
-                  {selectedAnnouncement.status?.replace('_', ' ').toUpperCase()}
-                </span>
-              </div>
+            {/* Header - Compact Facebook Style */}
+            <div className="sticky top-0 bg-green-600 text-white px-4 py-3 flex items-center justify-between z-10">
+              <span className={`px-3 py-1 text-xs font-bold rounded-full uppercase tracking-wide ${
+                selectedAnnouncement.priority === PRIORITY_LEVELS.URGENT ? 'bg-red-500' :
+                selectedAnnouncement.priority === PRIORITY_LEVELS.HIGH ? 'bg-orange-500' :
+                selectedAnnouncement.priority === PRIORITY_LEVELS.NORMAL ? 'bg-blue-500' :
+                'bg-gray-500'
+              }`}>
+                {selectedAnnouncement.priority?.toUpperCase() || 'NORMAL'}
+              </span>
               <button
                 onClick={() => setSelectedAnnouncement(null)}
                 className="text-white/80 hover:text-white transition-colors"
@@ -998,77 +1363,87 @@ export default function Announcements() {
               </button>
             </div>
             
-            <div className="p-8">
-              {/* Title and meta */}
-              <h2 className="text-3xl font-bold text-gray-900 mb-2">{selectedAnnouncement.title}</h2>
-              <p className="text-sm text-gray-500 mb-6 flex items-center gap-2">
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-                {formatDate(selectedAnnouncement.createdAt)}
-              </p>
-              
-              {/* Content */}
-              <div className="prose prose-sm max-w-none text-gray-700 mb-8 leading-relaxed">
-                {selectedAnnouncement.content.split('\n').map((line, i) => (
-                  <p key={i} className="mb-2">{line}</p>
-                ))}
+            <div className="divide-y divide-gray-200">
+              {/* Post Header with Author */}
+              <div className="px-4 py-3">
+                <div className="flex items-start justify-between mb-3">
+                  <div className="flex items-center gap-3 flex-1">
+                    <div className="w-10 h-10 rounded-full bg-green-600 flex items-center justify-center text-white font-bold text-sm flex-shrink-0">
+                      {selectedAnnouncement.authorName?.charAt(0) || 'U'}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="font-bold text-gray-900 text-sm">{selectedAnnouncement.authorName}</p>
+                      <p className="text-xs text-gray-500">{ROLE_DISPLAY_NAMES[selectedAnnouncement.authorRole]}</p>
+                    </div>
+                  </div>
+                </div>
+                <p className="text-xs text-gray-500 flex items-center gap-2">
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                  {formatDate(selectedAnnouncement.createdAt)}
+                </p>
               </div>
               
-              {/* Media Gallery */}
+              {/* Content */}
+              <div className="px-4 py-3">
+                <h2 className="text-2xl font-bold text-gray-900 mb-3">{selectedAnnouncement.title}</h2>
+                <div className="text-gray-700 text-sm leading-relaxed whitespace-pre-wrap">
+                  {selectedAnnouncement.content}
+                </div>
+              </div>
+              
+              {/* Media Gallery - Full Width */}
               {selectedAnnouncement.media?.length > 0 && (
-                <div className="mb-8">
-                  <h3 className="text-sm font-bold text-gray-900 mb-4 flex items-center gap-2">
-                    <svg className="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                    </svg>
-                    Attachments ({selectedAnnouncement.media.length})
-                  </h3>
-                  <div className="grid grid-cols-2 gap-4">
-                    {selectedAnnouncement.media.map((media, idx) => (
-                      <div 
-                        key={idx} 
-                        className="relative rounded-xl overflow-hidden bg-gray-100 cursor-pointer group aspect-square"
-                        onClick={() => openMediaViewer(media, idx, selectedAnnouncement.media)}
-                      >
-                        {media.type === 'image' ? (
-                          <>
-                            <img src={media.url} alt="" className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300" />
-                            <div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-colors flex items-center justify-center">
-                              <svg className="w-8 h-8 text-white opacity-0 group-hover:opacity-100 transition-opacity" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM10 7v3m0 0v3m0-3h3m-3 0H7" />
-                              </svg>
-                            </div>
-                          </>
-                        ) : (
-                          <div className="relative w-full h-full">
-                            <video src={media.url} className="w-full h-full object-cover" />
-                            <div className="absolute inset-0 flex items-center justify-center bg-black/30 group-hover:bg-black/50 transition-colors">
-                              <svg className="w-12 h-12 text-white opacity-90" fill="currentColor" viewBox="0 0 24 24">
+                <div className="bg-gray-100">
+                  {selectedAnnouncement.media.length === 1 ? (
+                    <div className="w-full max-h-96 overflow-hidden cursor-pointer" onClick={() => openMediaViewer(selectedAnnouncement.media[0], 0, selectedAnnouncement.media)}>
+                      {selectedAnnouncement.media[0].type === 'image' ? (
+                        <img src={selectedAnnouncement.media[0].url} alt="" className="w-full h-full object-cover hover:scale-105 transition-transform" />
+                      ) : (
+                        <div className="w-full aspect-video flex items-center justify-center bg-gray-300">
+                          <svg className="w-16 h-16 text-gray-600" fill="currentColor" viewBox="0 0 24 24">
+                            <path d="M8 5v14l11-7z" />
+                          </svg>
+                        </div>
+                      )}
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-2 gap-1">
+                      {selectedAnnouncement.media.map((media, idx) => (
+                        <div 
+                          key={idx} 
+                          className="aspect-square overflow-hidden bg-gray-300 cursor-pointer group relative"
+                          onClick={() => openMediaViewer(media, idx, selectedAnnouncement.media)}
+                        >
+                          {media.type === 'image' ? (
+                            <img src={media.url} alt="" className="w-full h-full object-cover group-hover:scale-105 transition-transform" />
+                          ) : (
+                            <div className="w-full h-full flex items-center justify-center">
+                              <svg className="w-10 h-10 text-gray-600" fill="currentColor" viewBox="0 0 24 24">
                                 <path d="M8 5v14l11-7z" />
                               </svg>
                             </div>
-                          </div>
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                  <p className="text-xs text-gray-500 mt-3">Click any image to view full size</p>
+                          )}
+                          {idx === 3 && selectedAnnouncement.media.length > 4 && (
+                            <div className="absolute inset-0 bg-black/60 flex items-center justify-center group-hover:bg-black/70 transition-colors">
+                              <p className="text-white font-bold text-xl">+{selectedAnnouncement.media.length - 4}</p>
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
               )}
               
               {/* Target Tags */}
               {selectedAnnouncement.targetTags?.length > 0 && (
-                <div className="mb-8">
-                  <h3 className="text-sm font-bold text-gray-900 mb-3 flex items-center gap-2">
-                    <svg className="w-5 h-5 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
-                    </svg>
-                    Target Audience
-                  </h3>
+                <div className="px-4 py-3">
+                  <p className="text-xs font-bold text-gray-600 mb-2">👥 Targeted to {selectedAnnouncement.targetTags.length} organization{selectedAnnouncement.targetTags.length !== 1 ? 's' : ''}</p>
                   <div className="flex flex-wrap gap-2">
                     {selectedAnnouncement.targetTags.map((tag, idx) => (
-                      <span key={idx} className="px-3 py-1.5 text-xs font-semibold bg-purple-100 text-purple-700 rounded-lg">
+                      <span key={idx} className="px-2.5 py-1 text-xs font-semibold bg-purple-100 text-purple-700 rounded-full">
                         {tag}
                       </span>
                     ))}
@@ -1076,25 +1451,83 @@ export default function Announcements() {
                 </div>
               )}
               
-              {/* Author Info */}
-              <div className="flex items-center gap-4 pt-8 border-t border-gray-200">
-                <div className="w-12 h-12 rounded-full bg-green-600 flex items-center justify-center text-white font-bold text-lg">
-                  {selectedAnnouncement.authorName?.charAt(0) || 'U'}
-                </div>
-                <div>
-                  <p className="font-bold text-gray-900">{selectedAnnouncement.authorName}</p>
-                  <p className="text-sm text-gray-600">{ROLE_DISPLAY_NAMES[selectedAnnouncement.authorRole]}</p>
-                </div>
+              {/* Comments Section */}
+              <div className="px-4 py-3 border-t border-gray-200">
+                <h3 className="text-sm font-bold text-gray-900 mb-4">Comments ({comments.length})</h3>
+                
+                {/* Comment Input */}
+                <form onSubmit={handleAddComment} className="mb-4">
+                  <div className="flex gap-3 mb-3">
+                    <div className="w-8 h-8 rounded-full bg-green-600 flex items-center justify-center text-white text-xs font-bold flex-shrink-0">
+                      {userProfile?.givenName?.charAt(0) || 'U'}
+                    </div>
+                    <div className="flex-1">
+                      <textarea
+                        value={commentText}
+                        onChange={(e) => setCommentText(e.target.value)}
+                        placeholder="Share your thoughts..."
+                        rows={2}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent resize-none text-sm"
+                      />
+                      <div className="flex justify-end gap-2 mt-2">
+                        <button
+                          type="button"
+                          onClick={() => setCommentText('')}
+                          className="px-3 py-1.5 text-xs font-semibold text-gray-600 bg-gray-100 rounded-lg hover:bg-gray-200 transition-all"
+                        >
+                          Cancel
+                        </button>
+                        <button
+                          type="submit"
+                          disabled={submittingComment || !commentText.trim()}
+                          className="px-3 py-1.5 text-xs font-semibold text-white bg-green-600 rounded-lg hover:bg-green-700 disabled:opacity-50 transition-all"
+                        >
+                          {submittingComment ? 'Posting...' : 'Post'}
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </form>
+                
+                {/* Divider */}
+                <div className="border-t border-gray-200 my-4"></div>
+                
+                {/* Comments List */}
+                {loadingComments ? (
+                  <div className="text-center py-8">
+                    <div className="w-5 h-5 border-2 border-green-600 border-t-transparent rounded-full animate-spin mx-auto mb-2"></div>
+                    <p className="text-xs text-gray-500">Loading comments...</p>
+                  </div>
+                ) : comments.length === 0 ? (
+                  <p className="text-center text-sm text-gray-500 py-8">No comments yet. Be the first to share your thoughts!</p>
+                ) : (
+                  <div className="space-y-3 max-h-80 overflow-y-auto">
+                    {comments.map((comment) => (
+                      <div key={comment.id} className="flex gap-3">
+                        <div className="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center text-white text-xs font-bold flex-shrink-0">
+                          {comment.authorName?.charAt(0) || 'U'}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="bg-gray-100 rounded-lg px-3 py-2">
+                            <p className="text-sm font-semibold text-gray-900">{comment.authorName}</p>
+                            <p className="text-sm text-gray-700 mt-0.5">{comment.content}</p>
+                          </div>
+                          <p className="text-xs text-gray-500 mt-1">{formatDate(comment.createdAt)}</p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
               
               {/* Admin Actions */}
               {canModerate && (
-                <div className="mt-8 pt-8 border-t border-gray-200 flex gap-3">
+                <div className="px-4 py-3 bg-gray-50 border-t border-gray-200 flex gap-2">
                   <button
                     onClick={() => openEditModal(selectedAnnouncement)}
-                    className="flex-1 inline-flex items-center justify-center gap-2 px-4 py-3 text-sm font-bold text-blue-600 bg-blue-50 rounded-lg hover:bg-blue-100 transition-all"
+                    className="flex-1 inline-flex items-center justify-center gap-2 px-4 py-2.5 text-sm font-bold text-blue-600 bg-blue-50 border border-blue-200 rounded-lg hover:bg-blue-100 transition-all"
                   >
-                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
                     </svg>
                     Edit
@@ -1103,9 +1536,9 @@ export default function Announcements() {
                     onClick={() => {
                       setDeleteConfirm({ open: true, announcement: selectedAnnouncement })
                     }}
-                    className="flex-1 inline-flex items-center justify-center gap-2 px-4 py-3 text-sm font-bold text-red-600 bg-red-50 rounded-lg hover:bg-red-100 transition-all"
+                    className="flex-1 inline-flex items-center justify-center gap-2 px-4 py-2.5 text-sm font-bold text-red-600 bg-red-50 border border-red-200 rounded-lg hover:bg-red-100 transition-all"
                   >
-                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                     </svg>
                     Delete
@@ -1186,7 +1619,7 @@ export default function Announcements() {
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
           <div className="absolute inset-0 bg-black/50" onClick={() => setEditModal({ open: false, announcement: null })} />
           <div className="relative bg-white rounded-xl shadow-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
-            <div className="sticky top-0 bg-white border-b border-gray-100 px-6 py-4 flex items-center justify-between z-10">
+            <div className="sticky top-0 bg-white border-b border-gray-100 px-4 py-3 flex items-center justify-between z-10">
               <h3 className="text-lg font-semibold text-gray-900">Edit Announcement</h3>
               <button
                 onClick={() => setEditModal({ open: false, announcement: null })}

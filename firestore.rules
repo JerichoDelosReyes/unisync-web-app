@@ -96,6 +96,21 @@ service cloud.firestore {
           isAdminOrAbove()
         );
       }
+      
+      // Reactions subcollection
+      match /reactions/{reactionId} {
+        // Anyone authenticated can read reactions
+        allow read: if isAuthenticated();
+        
+        // Anyone authenticated can create/update reactions (toggle)
+        allow create, update: if isAuthenticated();
+        
+        // Author can delete their own reaction
+        allow delete: if isAuthenticated() && (
+          resource.data.userId == request.auth.uid ||
+          isAdminOrAbove()
+        );
+      }
     }
     
     // ==========================================

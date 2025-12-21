@@ -542,13 +542,24 @@ export const toggleReaction = async (announcementId, reactionType, user) => {
     if (existingReactionIndex >= 0) {
       // Remove reaction
       updatedReactions[reactionKey] = currentReactionUsers.filter(r => r.uid !== user.uid)
+      // Clean up empty reaction types
+      if (updatedReactions[reactionKey].length === 0) {
+        delete updatedReactions[reactionKey]
+      }
     } else {
       // Remove user from all other reactions first
       for (const key of Object.keys(updatedReactions)) {
         updatedReactions[key] = (updatedReactions[key] || []).filter(r => r.uid !== user.uid)
+        // Clean up empty reaction types
+        if (updatedReactions[key].length === 0) {
+          delete updatedReactions[key]
+        }
       }
       // Add new reaction
-      updatedReactions[reactionKey] = [...(updatedReactions[reactionKey] || []), { uid: user.uid, name: user.name }]
+      updatedReactions[reactionKey] = [...(updatedReactions[reactionKey] || []), { 
+        uid: user.uid, 
+        name: user.displayName || user.name || 'Unknown' 
+      }]
     }
     
     await updateDoc(announcementRef, {
@@ -556,7 +567,10 @@ export const toggleReaction = async (announcementId, reactionType, user) => {
       updatedAt: serverTimestamp()
     })
     
-    return updatedReactions
+    return {
+      reactions: updatedReactions,
+      success: true
+    }
   } catch (error) {
     console.error('Error toggling reaction:', error)
     throw error
