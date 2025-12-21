@@ -75,6 +75,9 @@ export default function Announcements() {
   // Create announcement modal state
   const [showCreateModal, setShowCreateModal] = useState(false)
   
+  // Selected organization for filtering
+  const [selectedOrganization, setSelectedOrganization] = useState(null)
+  
   // Report announcement modal state
   const [reportModal, setReportModal] = useState({ open: false, announcement: null })
   const [reportReason, setReportReason] = useState('')
@@ -557,6 +560,15 @@ export default function Announcements() {
     }
   }
 
+  // Generate acronym from organization name
+  const getOrgAcronym = (orgName) => {
+    return orgName
+      .split(' ')
+      .map(word => word.charAt(0).toUpperCase())
+      .join('')
+      .substring(0, 4)
+  }
+
   // Get priority badge color
   const getPriorityColor = (priority) => {
     switch (priority) {
@@ -796,9 +808,13 @@ export default function Announcements() {
                           {announcement.priority?.toUpperCase() || 'NORMAL'}
                         </span>
                         {announcement.targetTags?.length > 0 && (
-                          <span className="px-2.5 py-1 text-xs font-bold bg-purple-100 text-purple-700 rounded-full">
-                            👥 {announcement.targetTags.length}
-                          </span>
+                          <div className="flex flex-wrap gap-2">
+                            {announcement.targetTags.map((tag, idx) => (
+                              <span key={idx} className="px-2 py-1 text-xs font-bold bg-purple-100 text-purple-700 rounded-full" title={tag}>
+                                {getOrgAcronym(tag)}
+                              </span>
+                            ))}
+                          </div>
                         )}
                       </div>
                     </div>
@@ -897,12 +913,16 @@ export default function Announcements() {
       )}
 
       {/* Organizations Tab */}
-      {!loading && !error && activeTab === 'organizations' && (
+      {!loading && !error && activeTab === 'organizations' && selectedOrganization === null && (
         <div className="bg-white rounded-2xl border border-gray-200 p-8">
           <h2 className="text-3xl font-bold text-gray-900 mb-8 text-center">Student Organizations</h2>
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-6">
             {organizations.map((org) => (
-              <div key={org.name} className="flex flex-col items-center gap-4 p-4 rounded-xl border border-gray-200 hover:border-green-600 hover:shadow-lg transition-all cursor-pointer group bg-gradient-to-br from-white to-gray-50">
+              <button
+                key={org.name}
+                onClick={() => setSelectedOrganization(org.name)}
+                className="flex flex-col items-center gap-4 p-4 rounded-xl border border-gray-200 hover:border-green-600 hover:shadow-lg transition-all cursor-pointer group bg-gradient-to-br from-white to-gray-50"
+              >
                 <div className="w-20 h-20 rounded-full bg-white flex items-center justify-center overflow-hidden border-2 border-gray-200 group-hover:border-green-600 group-hover:shadow-md transition-all">
                   <img 
                     src={org.logo} 
@@ -911,9 +931,72 @@ export default function Announcements() {
                   />
                 </div>
                 <p className="text-sm font-semibold text-gray-900 text-center line-clamp-3">{org.name}</p>
-              </div>
+              </button>
             ))}
           </div>
+        </div>
+      )}
+
+      {!loading && !error && activeTab === 'organizations' && selectedOrganization !== null && (
+        <div className="space-y-4">
+          <div className="flex items-center gap-3 mb-6">
+            <button
+              onClick={() => setSelectedOrganization(null)}
+              className="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg font-medium transition-colors text-sm"
+            >
+              ← Back to Organizations
+            </button>
+            <h2 className="text-2xl font-bold text-gray-900">Announcements from {selectedOrganization}</h2>
+          </div>
+          {(() => {
+            const orgAnnouncements = announcements.filter(a => a.targetTags?.includes(selectedOrganization))
+            if (orgAnnouncements.length === 0) {
+              return (
+                <div className="bg-gray-50 rounded-2xl border-2 border-dashed border-gray-300 p-12 text-center">
+                  <h3 className="text-lg font-bold text-gray-900 mb-2">No Announcements</h3>
+                  <p className="text-gray-600">This organization hasn't posted any announcements yet.</p>
+                </div>
+              )
+            }
+            return (
+              <div className="space-y-4 w-full">
+                {orgAnnouncements.map((announcement, idx) => (
+                  <div
+                    key={announcement.id}
+                    className="bg-white rounded-2xl border border-gray-200 overflow-hidden shadow-sm hover:shadow-md transition-all duration-300"
+                    style={{ animationDelay: `${idx * 50}ms` }}
+                  >
+                    <div className="px-4 py-3 border-b border-gray-100">
+                      <div className="flex items-start justify-between mb-3">
+                        <div className="flex items-center gap-3 flex-1">
+                          <div className="w-10 h-10 rounded-full bg-green-600 flex items-center justify-center text-white font-bold text-sm flex-shrink-0">
+                            {announcement.authorName?.charAt(0) || 'U'}
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-bold text-gray-900">{announcement.authorName}</p>
+                            <p className="text-xs text-gray-500">{ROLE_DISPLAY_NAMES[announcement.authorRole]} • {formatDate(announcement.createdAt)}</p>
+                          </div>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className={`px-2.5 py-1 text-xs font-bold rounded-full uppercase tracking-wide ${getPriorityColor(announcement.priority)}`}>
+                          {announcement.priority?.toUpperCase() || 'NORMAL'}
+                        </span>
+                      </div>
+                    </div>
+                    <div className="px-4 py-3 cursor-pointer" onClick={() => setSelectedAnnouncement(announcement)}>
+                      <h3 className="text-base font-bold text-gray-900 mb-2 line-clamp-2 hover:text-green-600 transition-colors">
+                        {announcement.title}
+                      </h3>
+                      <p className="text-sm text-gray-700 leading-relaxed line-clamp-3">
+                        {announcement.content}
+                      </p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )
+          })()}
         </div>
       )}
 
