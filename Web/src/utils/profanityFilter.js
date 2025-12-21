@@ -29,7 +29,9 @@ const BAD_WORD_ROOTS = {
     "tanga", "bobo", "vovo", "bubu", "tarantado", "trntado",
     "ulol", "olul", "ulul", "leche", "letse", "piste", "pisti",
     "hindot", "kantot", "tite", "titi", "pepek", "puki", "kiki",
-    "kepyas", "jakol", "jabol", "bayag", "suso", "bilat", "burat", "kupal"
+    "kepyas", "jakol", "jabol", "bayag", "suso", "bilat", "burat", "kupal",
+    "kainin mo to", "haup ka", "hayp", "anak mo", "nanay mo", "tatay mo",
+    "impi", "sulot", "bugbugan", "tawag", "samantalahin", "sira"
   ],
   english: [
     "fuck", "fck", "shit", "shet", "bitch", "btch", "asshole",

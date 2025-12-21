@@ -71,6 +71,9 @@ export default function Announcements() {
   const [deleteConfirm, setDeleteConfirm] = useState({ open: false, announcement: null })
   const [deleting, setDeleting] = useState(false)
   
+  // Create announcement modal state
+  const [showCreateModal, setShowCreateModal] = useState(false)
+  
   // Comments and reactions state
   const [comments, setComments] = useState([])
   const [reactions, setReactions] = useState({})
@@ -269,6 +272,7 @@ export default function Announcements() {
       setMediaFiles([])
       setMediaPreview([])
       setModerationPreview(null)
+      setShowCreateModal(false)
       setActiveTab('all')
       
     } catch (err) {
@@ -584,7 +588,7 @@ export default function Announcements() {
             
             {canCreate && (
               <button
-                onClick={() => setActiveTab('create')}
+                onClick={() => setShowCreateModal(true)}
                 className="group inline-flex items-center gap-3 px-6 py-3 bg-green-600 text-white rounded-xl hover:bg-green-700 transition-all duration-300 text-base font-semibold shadow-lg transform hover:-translate-y-1"
               >
                 <svg className="w-5 h-5 group-hover:rotate-90 transition-transform duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -607,9 +611,8 @@ export default function Announcements() {
           { key: 'important', label: 'Important' },
           { key: 'academic', label: 'Academic' },
           { key: 'general', label: 'General' },
-          { key: 'organizations', label: '👥 Organizations' },
-          { key: 'pending', label: 'Pending Review', show: canModerate },
-          { key: 'create', label: '✍️ Create', show: canCreate }
+          { key: 'organizations', label: 'Organizations' },
+          { key: 'pending', label: 'Pending Review', show: canModerate }
         ].map(tab => (
           tab.show !== false && (
             <button
@@ -822,7 +825,12 @@ export default function Announcements() {
                           className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 text-sm font-semibold text-gray-700 hover:bg-gray-100 transition-all group"
                         >
                           <span className="group-hover:scale-125 transition-transform">👍</span>
-                          <span className="hidden sm:inline">Like</span>
+                          <span>Like</span>
+                          {announcement.reactions && Object.values(announcement.reactions).reduce((a, b) => a + b, 0) > 0 && (
+                            <span className="text-xs text-gray-500">
+                              ({Object.values(announcement.reactions).reduce((a, b) => a + b, 0)})
+                            </span>
+                          )}
                         </button>
                         <button
                           onClick={() => setSelectedAnnouncement(announcement)}
@@ -831,7 +839,12 @@ export default function Announcements() {
                           <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
                           </svg>
-                          <span className="hidden sm:inline">Comment</span>
+                          <span>Comment</span>
+                          {announcement.comments?.length > 0 && (
+                            <span className="text-xs text-gray-500">
+                              ({announcement.comments.length})
+                            </span>
+                          )}
                         </button>
                       </div>
                     </div>
@@ -848,8 +861,8 @@ export default function Announcements() {
         <div className="bg-white rounded-2xl border border-gray-200 p-8">
           <h2 className="text-3xl font-bold text-gray-900 mb-8 text-center">Student Organizations</h2>
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-6">
-            {organizations.map((org, idx) => (
-              <div key={idx} className="flex flex-col items-center gap-4 p-4 rounded-xl border border-gray-200 hover:border-green-600 hover:shadow-lg transition-all cursor-pointer group bg-gradient-to-br from-white to-gray-50">
+            {organizations.map((org) => (
+              <div key={org.name} className="flex flex-col items-center gap-4 p-4 rounded-xl border border-gray-200 hover:border-green-600 hover:shadow-lg transition-all cursor-pointer group bg-gradient-to-br from-white to-gray-50">
                 <div className="w-20 h-20 rounded-full bg-white flex items-center justify-center overflow-hidden border-2 border-gray-200 group-hover:border-green-600 group-hover:shadow-md transition-all">
                   <img 
                     src={org.logo} 
@@ -976,212 +989,219 @@ export default function Announcements() {
         </div>
       )}
 
-      {/* Create Tab - Facebook Style */}
-      {!loading && activeTab === 'create' && canCreate && (
-        <div className="max-w-2xl mx-auto">
-          <form onSubmit={handleSubmit} className="space-y-4">
-            {/* Post Creator Card */}
-            <div className="bg-white rounded-2xl border border-gray-200 p-6 shadow-sm">
-              {/* User Header */}
-              <div className="flex items-center gap-3 mb-4 pb-4 border-b border-gray-200">
-                <div className="w-10 h-10 rounded-full bg-green-600 flex items-center justify-center text-white font-bold text-sm flex-shrink-0">
-                  {userProfile?.givenName?.charAt(0) || 'U'}
-                </div>
-                <div className="flex-1">
-                  <p className="font-semibold text-gray-900 text-sm">{userProfile?.givenName} {userProfile?.lastName}</p>
-                  <p className="text-xs text-gray-500">{ROLE_DISPLAY_NAMES[userProfile?.role]}</p>
-                </div>
-                {/* Privacy Selector */}
-                <select
-                  value={formData.targetTags.length === 0 ? 'public' : 'targeted'}
-                  onChange={(e) => {
-                    if (e.target.value === 'public') {
-                      setFormData(prev => ({ ...prev, targetTags: [] }))
-                    }
-                  }}
-                  className="px-3 py-1.5 text-xs font-semibold border border-gray-300 rounded-lg bg-white hover:bg-gray-50 cursor-pointer transition-all"
-                >
-                  <option value="public">📢 Campus-wide</option>
-                  <option value="targeted">👥 Targeted</option>
-                </select>
-              </div>
-              
-              {/* Title Input - Hidden/Minimal */}
-              <input
-                type="text"
-                value={formData.title}
-                onChange={(e) => setFormData(prev => ({ ...prev, title: e.target.value }))}
-                placeholder="What's the announcement about?"
-                className="w-full px-0 py-2 text-2xl font-bold text-gray-900 placeholder-gray-400 bg-transparent border-0 focus:outline-none resize-none mb-3"
-                required
-              />
-              
-              {/* Main Content Input */}
-              <textarea
-                value={formData.content}
-                onChange={(e) => setFormData(prev => ({ ...prev, content: e.target.value }))}
-                placeholder="Share the details of your announcement..."
-                rows={5}
-                className="w-full px-0 py-3 text-base text-gray-900 placeholder-gray-500 bg-transparent border-0 focus:outline-none resize-none"
-                required
-              />
-              
-              {/* Media Previews */}
-              {mediaPreview.length > 0 && (
-                <div className="mt-4 -mx-6 px-6">
-                  <div className="grid grid-cols-2 gap-3">
-                    {mediaPreview.map((media, idx) => (
-                      <div key={idx} className="relative group rounded-lg overflow-hidden bg-gray-100">
-                        <div className="aspect-square">
-                          {media.type === 'image' ? (
-                            <img src={media.url} alt="" className="w-full h-full object-cover" />
-                          ) : (
-                            <div className="w-full h-full flex items-center justify-center bg-gray-400">
-                              <svg className="w-10 h-10 text-gray-600" fill="currentColor" viewBox="0 0 24 24">
-                                <path d="M8 5v14l11-7z" />
-                              </svg>
-                            </div>
-                          )}
-                        </div>
-                        <button
-                          type="button"
-                          onClick={() => removeMedia(idx)}
-                          className="absolute top-2 right-2 w-8 h-8 bg-black/60 text-white rounded-full flex items-center justify-center hover:bg-black/80 transition-all opacity-0 group-hover:opacity-100"
-                        >
-                          <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
-                            <path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z" />
-                          </svg>
-                        </button>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-              
-              {/* Action Bar */}
-              <div className="mt-4 pt-3 border-t border-gray-200 flex items-center gap-2">
-                <input
-                  type="file"
-                  ref={fileInputRef}
-                  onChange={handleFileSelect}
-                  accept="image/*,video/*"
-                  multiple
-                  className="hidden"
-                />
-                
-                {/* Icon Buttons */}
-                <button
-                  type="button"
-                  onClick={() => fileInputRef.current?.click()}
-                  className="flex-1 flex items-center justify-center gap-2 px-3 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-100 rounded-lg transition-all group"
-                >
-                  <svg className="w-5 h-5 text-red-500 group-hover:scale-110 transition-transform" fill="currentColor" viewBox="0 0 24 24">
-                    <path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z" />
-                  </svg>
-                  <span className="hidden sm:inline">Photo/Video</span>
-                </button>
-                
-                <select
-                  value={formData.priority}
-                  onChange={(e) => setFormData(prev => ({ ...prev, priority: e.target.value }))}
-                  className="flex-1 flex items-center justify-center gap-2 px-3 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-100 rounded-lg transition-all bg-transparent border-0 cursor-pointer"
-                >
-                  <option value={PRIORITY_LEVELS.LOW}>📍 Low</option>
-                  <option value={PRIORITY_LEVELS.NORMAL}>📌 Normal</option>
-                  <option value={PRIORITY_LEVELS.HIGH}>⚠️ High</option>
-                  <option value={PRIORITY_LEVELS.URGENT}>🔴 Urgent</option>
-                </select>
-              </div>
-              
-              {/* Audience Targeting (Expandable) */}
-              {formData.targetTags.length === 0 ? (
-                <div className="mt-3 text-xs text-gray-500">
-                  📢 This will reach all campus users
-                </div>
-              ) : (
-                <div className="mt-3">
-                  <p className="text-xs font-semibold text-gray-600 mb-2">Targeting {formData.targetTags.length} organization{formData.targetTags.length !== 1 ? 's' : ''}:</p>
-                  <div className="flex flex-wrap gap-2">
-                    {formData.targetTags.map((tag) => (
-                      <button
-                        key={tag}
-                        type="button"
-                        onClick={() => toggleTag(tag)}
-                        className="px-2 py-1 text-xs bg-green-100 text-green-700 rounded-full font-semibold hover:bg-green-200 transition-all flex items-center gap-1"
-                      >
-                        {tag}
-                        <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 24 24">
-                          <path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z" />
-                        </svg>
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              )}
-              
-              {/* Moderation Notice */}
-              {!skipReviewQueue && (
-                <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
-                  <p className="text-xs text-blue-900"><span className="font-semibold">⚠️ Content Review:</span> Your post will be reviewed before publishing.</p>
-                </div>
-              )}
-              
-              {/* Submit Button */}
-              <div className="flex gap-3 mt-4 pt-3 border-t border-gray-200">
-                <button
-                  type="button"
-                  onClick={() => {
-                    setActiveTab('all')
-                    setFormData({ title: '', content: '', priority: PRIORITY_LEVELS.NORMAL, targetTags: [] })
-                    setMediaFiles([])
-                    setMediaPreview([])
-                  }}
-                  className="flex-1 px-4 py-2.5 text-sm font-bold text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-all"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  disabled={submitting}
-                  className="flex-1 px-4 py-2.5 text-sm font-bold text-white bg-green-600 rounded-lg hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all flex items-center justify-center gap-2"
-                >
-                  {submitting ? (
-                    <>
-                      <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                      {skipReviewQueue ? 'Publishing...' : 'Submitting...'}
-                    </>
-                  ) : (
-                    <>
-                      {skipReviewQueue ? '✨ Publish' : '📤 Submit'}
-                    </>
-                  )}
-                </button>
-              </div>
+      {/* Create Announcement Modal */}
+      {showCreateModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto shadow-2xl">
+            {/* Modal Header */}
+            <div className="sticky top-0 bg-white border-b border-gray-200 p-6 flex items-center justify-between z-10">
+              <h2 className="text-2xl font-bold text-gray-900">Create Announcement</h2>
+              <button
+                onClick={() => {
+                  setShowCreateModal(false)
+                  setFormData({ title: '', content: '', priority: PRIORITY_LEVELS.NORMAL, targetTags: [] })
+                  setMediaFiles([])
+                  setMediaPreview([])
+                }}
+                className="text-gray-500 hover:text-gray-700 text-2xl"
+              >
+                ✕
+              </button>
             </div>
             
-            {/* Organization Selector Modal - Collapsible */}
-            {formData.targetTags.length !== undefined && (
-              <div className="bg-white rounded-2xl border border-gray-200 p-6 shadow-sm">
-                <p className="text-sm font-bold text-gray-900 mb-4">Select Target Audience (Optional)</p>
-                <div className="grid grid-cols-2 gap-2">
-                  {organizations.map((org) => (
+            {/* Modal Content */}
+            <div className="p-6">
+              <form onSubmit={handleSubmit} className="space-y-4">
+                {/* Post Creator Card */}
+                <div className="bg-white rounded-2xl border border-gray-200 p-6 shadow-sm">
+                  {/* User Header */}
+                  <div className="flex items-center gap-3 mb-4 pb-4 border-b border-gray-200">
+                    <div className="w-10 h-10 rounded-full bg-green-600 flex items-center justify-center text-white font-bold text-sm flex-shrink-0">
+                      {userProfile?.givenName?.charAt(0) || 'U'}
+                    </div>
+                    <div className="flex-1">
+                      <p className="font-semibold text-gray-900 text-sm">{userProfile?.givenName} {userProfile?.lastName}</p>
+                      <p className="text-xs text-gray-500">{ROLE_DISPLAY_NAMES[userProfile?.role]}</p>
+                    </div>
+                  </div>
+                  
+                  {/* Title Input */}
+                  <input
+                    type="text"
+                    value={formData.title}
+                    onChange={(e) => setFormData(prev => ({ ...prev, title: e.target.value }))}
+                    placeholder="What's the announcement about?"
+                    className="w-full px-0 py-2 text-2xl font-bold text-gray-900 placeholder-gray-400 bg-transparent border-0 focus:outline-none resize-none mb-3"
+                    required
+                  />
+                  
+                  {/* Main Content Input */}
+                  <textarea
+                    value={formData.content}
+                    onChange={(e) => setFormData(prev => ({ ...prev, content: e.target.value }))}
+                    placeholder="Share the details of your announcement..."
+                    rows={5}
+                    className="w-full px-0 py-3 text-base text-gray-900 placeholder-gray-500 bg-transparent border-0 focus:outline-none resize-none"
+                    required
+                  />
+                  
+                  {/* Media Previews */}
+                  {mediaPreview.length > 0 && (
+                    <div className="mt-4 -mx-6 px-6">
+                      <div className="grid grid-cols-2 gap-3">
+                        {mediaPreview.map((media, idx) => (
+                          <div key={idx} className="relative group rounded-lg overflow-hidden bg-gray-100">
+                            <div className="aspect-square">
+                              {media.type === 'image' ? (
+                                <img src={media.url} alt="" className="w-full h-full object-cover" />
+                              ) : (
+                                <div className="w-full h-full flex items-center justify-center bg-gray-400">
+                                  <svg className="w-10 h-10 text-gray-600" fill="currentColor" viewBox="0 0 24 24">
+                                    <path d="M8 5v14l11-7z" />
+                                  </svg>
+                                </div>
+                              )}
+                            </div>
+                            <button
+                              type="button"
+                              onClick={() => removeMedia(idx)}
+                              className="absolute top-2 right-2 w-8 h-8 bg-black/60 text-white rounded-full flex items-center justify-center hover:bg-black/80 transition-all opacity-0 group-hover:opacity-100"
+                            >
+                              <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+                                <path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z" />
+                              </svg>
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                  
+                  {/* Action Bar */}
+                  <div className="mt-4 pt-3 border-t border-gray-200 flex items-center gap-2">
+                    <input
+                      type="file"
+                      ref={fileInputRef}
+                      onChange={handleFileSelect}
+                      accept="image/*,video/*"
+                      multiple
+                      className="hidden"
+                    />
+                    
+                    {/* Icon Buttons */}
                     <button
-                      key={org.name}
                       type="button"
-                      onClick={() => toggleTag(org.name)}
-                      className={`px-3 py-2.5 text-xs font-semibold rounded-lg transition-all duration-200 text-left ${
-                        formData.targetTags.includes(org.name)
-                          ? 'bg-green-600 text-white shadow-md'
-                          : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                      }`}
+                      onClick={() => fileInputRef.current?.click()}
+                      className="flex-1 flex items-center justify-center gap-2 px-3 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-100 rounded-lg transition-all group"
                     >
-                      {org.name}
+                      <svg className="w-5 h-5 text-red-500 group-hover:scale-110 transition-transform" fill="currentColor" viewBox="0 0 24 24">
+                        <path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z" />
+                      </svg>
+                      <span className="hidden sm:inline">Photo/Video</span>
                     </button>
-                  ))}
+                    
+                    <select
+                      value={formData.priority}
+                      onChange={(e) => setFormData(prev => ({ ...prev, priority: e.target.value }))}
+                      className="flex-1 flex items-center justify-center gap-2 px-3 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-100 rounded-lg transition-all bg-transparent border-0 cursor-pointer text-center"
+                    >
+                      <option value={PRIORITY_LEVELS.LOW}>📍 Low</option>
+                      <option value={PRIORITY_LEVELS.NORMAL}>📌 Normal</option>
+                      <option value={PRIORITY_LEVELS.URGENT}>🔴 Urgent</option>
+                    </select>
+                  </div>
+                  
+                  {/* Audience Targeting Note */}
+                  {formData.targetTags.length === 0 ? (
+                    <div className="mt-3 p-3 bg-blue-50 border border-blue-200 rounded-lg text-center">
+                      <p className="text-xs text-blue-900"><span className="font-semibold">ℹ️ Note:</span> If you don't select a target audience, your announcement will reach all campus users.</p>
+                    </div>
+                  ) : (
+                    <div className="mt-3">
+                      <p className="text-xs font-semibold text-gray-600 mb-2">Targeting {formData.targetTags.length} organization{formData.targetTags.length !== 1 ? 's' : ''}:</p>
+                      <div className="flex flex-wrap gap-2">
+                        {formData.targetTags.map((tag) => (
+                          <button
+                            key={tag}
+                            type="button"
+                            onClick={() => toggleTag(tag)}
+                            className="px-2 py-1 text-xs bg-green-100 text-green-700 rounded-full font-semibold hover:bg-green-200 transition-all flex items-center gap-1"
+                          >
+                            {tag}
+                            <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 24 24">
+                              <path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z" />
+                            </svg>
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                  
+                  {/* Moderation Notice */}
+                  {!skipReviewQueue && (
+                    <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                      <p className="text-xs text-blue-900"><span className="font-semibold">⚠️ Content Review:</span> Your post will be reviewed before publishing.</p>
+                    </div>
+                  )}
+                  
+                  {/* Submit Button */}
+                  <div className="flex gap-3 mt-4 pt-3 border-t border-gray-200">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setShowCreateModal(false)
+                        setFormData({ title: '', content: '', priority: PRIORITY_LEVELS.NORMAL, targetTags: [] })
+                        setMediaFiles([])
+                        setMediaPreview([])
+                      }}
+                      className="flex-1 px-4 py-2.5 text-sm font-bold text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-all"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      type="submit"
+                      disabled={submitting}
+                      className="flex-1 px-4 py-2.5 text-sm font-bold text-white bg-green-600 rounded-lg hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all flex items-center justify-center gap-2"
+                    >
+                      {submitting ? (
+                        <>
+                          <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                          {skipReviewQueue ? 'Publishing...' : 'Submitting...'}
+                        </>
+                      ) : (
+                        <>
+                          {skipReviewQueue ? '✨ Publish' : '📤 Submit'}
+                        </>
+                      )}
+                    </button>
+                  </div>
                 </div>
-              </div>
-            )}
-          </form>
+                
+                {/* Organization Selector Modal - Collapsible */}
+                {formData.targetTags.length !== undefined && (
+                  <div className="bg-white rounded-2xl border border-gray-200 p-6 shadow-sm">
+                    <p className="text-sm font-bold text-gray-900 mb-4">Select Target Audience (Optional)</p>
+                    <div className="grid grid-cols-2 gap-2">
+                      {organizations.map((org) => (
+                        <button
+                          key={org.name}
+                          type="button"
+                          onClick={() => toggleTag(org.name)}
+                          className={`px-3 py-2.5 text-xs font-semibold rounded-lg transition-all duration-200 text-left ${
+                            formData.targetTags.includes(org.name)
+                              ? 'bg-green-600 text-white shadow-md'
+                              : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                          }`}
+                        >
+                          {org.name}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </form>
+            </div>
+          </div>
         </div>
       )}
       
