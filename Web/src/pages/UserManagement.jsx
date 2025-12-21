@@ -405,21 +405,6 @@ export default function UserManagement() {
             </svg>
             Add User
           </button>
-          
-          {/* Firebase Console Button - Super Admin Only */}
-          {userProfile?.role === ROLES.SUPER_ADMIN && (
-            <a
-              href="https://console.firebase.google.com/project/unisync-web-app-ac1fd"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center gap-2 px-4 py-2 bg-amber-500 text-white font-medium rounded-lg hover:bg-amber-600 transition-colors text-sm"
-            >
-              <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor">
-                <path d="M3.89 15.673L6.255.461A.542.542 0 017.27.289l2.543 4.771zm16.795 3.691L18.433 5.365a.543.543 0 00-.918-.295l-14.2 14.294 7.857 4.428a1.62 1.62 0 001.587 0zM14.3 7.148l-1.82-3.482a.542.542 0 00-.96 0L3.53 17.984z"/>
-              </svg>
-              Firebase
-            </a>
-          )}
         </div>
       </div>
 

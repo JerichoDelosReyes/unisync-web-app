@@ -196,6 +196,9 @@ export const createAnnouncement = async (data, files = [], author, skipReviewQue
       },
       media: [],
       viewCount: 0,
+      reactions: {
+        '👍': 0
+      },
       scheduledAt: data.scheduledAt ? Timestamp.fromDate(new Date(data.scheduledAt)) : null,
       expiresAt: data.expiresAt ? Timestamp.fromDate(new Date(data.expiresAt)) : null,
       createdAt: serverTimestamp(),
@@ -264,7 +267,7 @@ export const getAnnouncementsForUser = async (userTags = [], options = {}) => {
     const querySnapshot = await getDocs(q)
     
     // Filter by tags on client side (Firestore doesn't support array-contains-any with empty array check)
-    const announcements = querySnapshot.docs
+    let announcements = querySnapshot.docs
       .map(doc => ({ id: doc.id, ...doc.data() }))
       .filter(announcement => {
         // Campus-wide announcements (no target tags) are visible to everyone
@@ -274,6 +277,23 @@ export const getAnnouncementsForUser = async (userTags = [], options = {}) => {
         // Check if user has any matching tag
         return announcement.targetTags.some(tag => userTags.includes(tag))
       })
+    
+    // Fetch comments count for each announcement
+    announcements = await Promise.all(
+      announcements.map(async (announcement) => {
+        try {
+          const commentsRef = collection(db, COLLECTION_NAME, announcement.id, 'comments')
+          const commentsSnapshot = await getDocs(commentsRef)
+          return {
+            ...announcement,
+            comments: commentsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }))
+          }
+        } catch (error) {
+          console.error('Error fetching comments for announcement:', announcement.id, error)
+          return { ...announcement, comments: [] }
+        }
+      })
+    )
     
     // Sort by priority
     const priorityOrder = { urgent: 0, high: 1, normal: 2, low: 3 }

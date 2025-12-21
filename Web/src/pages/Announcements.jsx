@@ -17,6 +17,7 @@ import {
   ANNOUNCEMENT_STATUS,
   PRIORITY_LEVELS
 } from '../services/announcementService'
+import { reportAnnouncement } from '../services/reportService'
 
 // Import organization logos
 import CSGLogo from '../assets/img/CSG-removebg-preview.png'
@@ -73,6 +74,11 @@ export default function Announcements() {
   
   // Create announcement modal state
   const [showCreateModal, setShowCreateModal] = useState(false)
+  
+  // Report announcement modal state
+  const [reportModal, setReportModal] = useState({ open: false, announcement: null })
+  const [reportReason, setReportReason] = useState('')
+  const [reportSubmitting, setReportSubmitting] = useState(false)
   
   // Comments and reactions state
   const [comments, setComments] = useState([])
@@ -309,6 +315,31 @@ export default function Announcements() {
       setPendingAnnouncements(prev => prev.filter(a => a.id !== announcementId))
     } catch (err) {
       showToast('Failed to reject announcement', 'error')
+    }
+  }
+
+  // Handle report submission
+  const handleSubmitReport = async () => {
+    if (!reportModal.announcement) return
+
+    try {
+      setReportSubmitting(true)
+      await reportAnnouncement(
+        reportModal.announcement.id,
+        reportReason,
+        {
+          uid: user.uid,
+          name: userProfile?.givenName + ' ' + userProfile?.lastName,
+          email: user.email
+        }
+      )
+      showToast('Report submitted successfully. Our team will review it.', 'success')
+      setReportModal({ open: false, announcement: null })
+      setReportReason('')
+    } catch (err) {
+      showToast(err.message || 'Failed to submit report', 'error')
+    } finally {
+      setReportSubmitting(false)
     }
   }
 
@@ -731,6 +762,29 @@ export default function Announcements() {
                                 </svg>
                                 Delete
                               </button>
+                              <button
+                                onClick={() => setReportModal({ open: true, announcement })}
+                                className="w-full flex items-center gap-2 px-4 py-2 text-sm text-orange-600 hover:bg-orange-50 transition-colors border-t border-gray-100"
+                              >
+                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4v2m0 0a9 9 0 1 1 0-18 9 9 0 0 1 0 18z" />
+                                </svg>
+                                Report
+                              </button>
+                            </div>
+                          )}
+                          {/* Report option for all users */}
+                          {!canModerate && (
+                            <div className="absolute right-0 mt-1 w-40 bg-white rounded-lg shadow-lg border border-gray-200 py-1 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-20">
+                              <button
+                                onClick={() => setReportModal({ open: true, announcement })}
+                                className="w-full flex items-center gap-2 px-4 py-2 text-sm text-orange-600 hover:bg-orange-50 transition-colors"
+                              >
+                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4v2m0 0a9 9 0 1 1 0-18 9 9 0 0 1 0 18z" />
+                                </svg>
+                                Report
+                              </button>
                             </div>
                           )}
                         </div>
@@ -804,20 +858,6 @@ export default function Announcements() {
                     
                     {/* Engagement Stats & Action Bar - Facebook Style */}
                     <div className="px-4 py-2 border-t border-gray-100">
-                      {/* Stats */}
-                      <div className="flex items-center justify-between text-xs text-gray-500 mb-2 pb-2 border-b border-gray-100">
-                        <div className="flex items-center gap-3">
-                          {announcement.reactions && Object.values(announcement.reactions).some(count => count > 0) && (
-                            <span>
-                              {Object.values(announcement.reactions).reduce((a, b) => a + b, 0)} 👍
-                            </span>
-                          )}
-                          {announcement.comments?.length > 0 && (
-                            <span>{announcement.comments.length} 💬</span>
-                          )}
-                        </div>
-                      </div>
-                      
                       {/* Action Buttons */}
                       <div className="flex items-center justify-start gap-0">
                         <button
@@ -988,6 +1028,7 @@ export default function Announcements() {
           )}
         </div>
       )}
+      </div>
 
       {/* Create Announcement Modal */}
       {showCreateModal && (
@@ -1831,7 +1872,69 @@ export default function Announcements() {
           </div>
         </div>
       )}
-      </div>
+
+      {/* Report Modal */}
+      {reportModal.open && reportModal.announcement && (
+        <div className="fixed inset-0 z-[55] flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
+          <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-md p-8">
+            <div className="flex items-center gap-4 mb-6">
+              <div className="w-14 h-14 rounded-full bg-orange-100 flex items-center justify-center flex-shrink-0">
+                <svg className="w-7 h-7 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4v2m0 0a9 9 0 1 1 0-18 9 9 0 0 1 0 18z" />
+                </svg>
+              </div>
+              <div>
+                <h3 className="text-xl font-bold text-gray-900">Report Announcement</h3>
+                <p className="text-sm text-gray-600 mt-1">Help us keep the community safe</p>
+              </div>
+            </div>
+            
+            <div className="bg-gray-50 rounded-lg p-4 mb-6 border-l-4 border-orange-500">
+              <p className="text-sm font-bold text-gray-900 line-clamp-2">{reportModal.announcement.title}</p>
+              <p className="text-xs text-gray-500 mt-2">by {reportModal.announcement.authorName}</p>
+            </div>
+
+            <div className="mb-6">
+              <label className="block text-sm font-bold text-gray-900 mb-2">Reason for Report</label>
+              <textarea
+                value={reportReason}
+                onChange={(e) => setReportReason(e.target.value)}
+                placeholder="Please describe why you're reporting this announcement (minimum 10 characters)..."
+                rows={4}
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent resize-none text-sm"
+              />
+              <p className="text-xs text-gray-500 mt-2">{reportReason.length} characters</p>
+            </div>
+            
+            <div className="flex gap-3">
+              <button
+                onClick={() => {
+                  setReportModal({ open: false, announcement: null })
+                  setReportReason('')
+                }}
+                disabled={reportSubmitting}
+                className="flex-1 px-4 py-3 text-sm font-bold text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-all disabled:opacity-50"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleSubmitReport}
+                disabled={reportSubmitting || reportReason.trim().length < 10}
+                className="flex-1 px-4 py-3 text-sm font-bold text-white bg-orange-600 rounded-lg hover:bg-orange-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {reportSubmitting ? (
+                  <span className="flex items-center justify-center gap-2">
+                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                    Submitting...
+                  </span>
+                ) : (
+                  'Submit Report'
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
