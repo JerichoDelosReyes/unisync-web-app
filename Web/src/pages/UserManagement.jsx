@@ -681,11 +681,11 @@ export default function UserManagement() {
             {/* Add Organization & Position */}
             <div className="mb-4">
               <label className="text-sm font-medium text-gray-700 mb-2 block">Add Organization & Position</label>
-              <div className="flex gap-2 mb-2">
+              <div className="space-y-2 mb-2">
                 <select
                   value={selectedOrg}
                   onChange={(e) => setSelectedOrg(e.target.value)}
-                  className="flex-1 px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
+                  className="w-full px-4 py-2.5 text-base border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary bg-white text-gray-900"
                 >
                   <option value="">Select Organization</option>
                   {organizations.map((org) => (
@@ -695,7 +695,7 @@ export default function UserManagement() {
                 <select
                   value={selectedPosition}
                   onChange={(e) => setSelectedPosition(e.target.value)}
-                  className="flex-1 px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
+                  className="w-full px-4 py-2.5 text-base border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary bg-white text-gray-900"
                 >
                   <option value="">Select Position</option>
                   {positions.map((pos) => (
@@ -707,14 +707,13 @@ export default function UserManagement() {
                 onClick={() => {
                   if (selectedOrg && selectedPosition) {
                     const orgTag = `${selectedOrg} ${selectedPosition}`.toUpperCase()
-                    setNewTag(orgTag)
                     handleAddTag(orgTag)
                     setSelectedOrg('')
                     setSelectedPosition('')
                   }
                 }}
                 disabled={!selectedOrg || !selectedPosition || savingTags}
-                className="w-full px-4 py-2 bg-primary text-white text-sm font-medium rounded-lg hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="w-full px-4 py-2.5 bg-primary text-white text-base font-medium rounded-lg hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
               >
                 {savingTags ? 'Adding...' : 'Add Organization Tag'}
               </button>
