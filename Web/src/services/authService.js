@@ -284,11 +284,43 @@ export const loginUser = async (email, password, rememberMe = false) => {
     }
 
     // Get user data from Firestore to check role
-    const userDoc = await getDoc(doc(db, 'users', user.uid));
+    let userDoc = await getDoc(doc(db, 'users', user.uid));
 
+    // If user profile doesn't exist but email is verified, create it automatically
+    // This handles cases where user verified email but didn't complete registration flow
     if (!userDoc.exists()) {
-      await signOut(auth);
-      return { success: false, error: 'User profile not found. Please contact support.' };
+      console.log('📝 User profile not found, creating automatically...');
+      
+      // Extract name from displayName (set during registration)
+      const displayName = user.displayName || '';
+      const nameParts = displayName.trim().split(' ');
+      const givenName = nameParts[0] || 'User';
+      const lastName = nameParts.slice(1).join(' ') || '';
+      
+      try {
+        await setDoc(doc(db, 'users', user.uid), {
+          uid: user.uid,
+          email: user.email.toLowerCase(),
+          givenName,
+          lastName,
+          displayName: displayName || givenName,
+          role: DEFAULT_ROLE,
+          tags: [],
+          isVerified: true,
+          emailVerified: true,
+          createdAt: serverTimestamp(),
+          updatedAt: serverTimestamp()
+        });
+        
+        console.log('✅ User profile created automatically');
+        
+        // Re-fetch the user document
+        userDoc = await getDoc(doc(db, 'users', user.uid));
+      } catch (createError) {
+        console.error('❌ Failed to create user profile:', createError);
+        await signOut(auth);
+        return { success: false, error: 'Failed to create user profile. Please contact support.' };
+      }
     }
 
     const userData = userDoc.data();

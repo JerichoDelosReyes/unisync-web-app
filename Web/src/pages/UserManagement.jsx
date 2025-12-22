@@ -4,6 +4,7 @@ import { getDocuments, updateDocument, addDocument } from '../services/dbService
 import { createUserWithEmailAndPassword, sendEmailVerification } from 'firebase/auth'
 import { auth } from '../config/firebase'
 import { ALLOWED_DOMAIN } from '../services/authService'
+import { DEPARTMENTS, DEPARTMENT_CODES, DEPT_ORG_MAPPING, STUDENT_ORGS } from '../constants/targeting'
 
 /**
  * User Management Page
@@ -29,6 +30,11 @@ export default function UserManagement() {
   const [selectedOrg, setSelectedOrg] = useState('')
   const [selectedPosition, setSelectedPosition] = useState('')
   const [savingTags, setSavingTags] = useState(false)
+  
+  // Faculty department/org management
+  const [facultyDepartment, setFacultyDepartment] = useState('')
+  const [facultyOrgs, setFacultyOrgs] = useState([])
+  const [savingFacultyInfo, setSavingFacultyInfo] = useState(false)
   
   // Organization options - CvSU Imus Campus Organizations
   const organizations = [
@@ -216,10 +222,11 @@ export default function UserManagement() {
   }
 
   // Handle adding a tag
-  const handleAddTag = async () => {
-    if (!newTag.trim() || !tagModalUser) return
+  const handleAddTag = async (tagParam = null) => {
+    const tagToAdd = tagParam ? tagParam.trim().toUpperCase() : newTag.trim().toUpperCase()
     
-    const tagToAdd = newTag.trim().toUpperCase()
+    if (!tagToAdd || !tagModalUser) return
+    
     const currentTags = tagModalUser.tags || []
     
     if (currentTags.includes(tagToAdd)) {
@@ -274,6 +281,85 @@ export default function UserManagement() {
     } finally {
       setSavingTags(false)
     }
+  }
+
+  // Handle saving faculty department and organizations
+  const handleSaveFacultyInfo = async () => {
+    if (!tagModalUser || !facultyDepartment) return
+    
+    try {
+      setSavingFacultyInfo(true)
+      
+      // Build tags array
+      const deptCode = DEPARTMENT_CODES[facultyDepartment]
+      const newTags = [
+        `dept:${deptCode}`,
+        ...facultyOrgs.map(org => `org:${org}`)
+      ]
+      
+      // Merge with existing non-faculty tags (remove old dept/org tags first)
+      const existingTags = (tagModalUser.tags || []).filter(tag => 
+        !tag.startsWith('dept:') && !tag.startsWith('org:')
+      )
+      const updatedTags = [...existingTags, ...newTags]
+      
+      // Update Firestore
+      await updateDocument('users', tagModalUser.id, {
+        department: facultyDepartment,
+        departmentCode: deptCode,
+        linkedOrganizations: facultyOrgs,
+        tags: updatedTags,
+        facultyOnboardingComplete: true
+      })
+      
+      // Update local state
+      setUsers(prevUsers => 
+        prevUsers.map(user => 
+          user.id === tagModalUser.id 
+            ? { 
+                ...user, 
+                department: facultyDepartment,
+                departmentCode: deptCode,
+                linkedOrganizations: facultyOrgs,
+                tags: updatedTags,
+                facultyOnboardingComplete: true
+              } 
+            : user
+        )
+      )
+      
+      setTagModalUser(prev => ({ 
+        ...prev, 
+        department: facultyDepartment,
+        departmentCode: deptCode,
+        linkedOrganizations: facultyOrgs,
+        tags: updatedTags,
+        facultyOnboardingComplete: true
+      }))
+      
+      showToast('Faculty department and organizations updated', 'success')
+    } catch (err) {
+      console.error('❌ Error saving faculty info:', err)
+      showToast('Failed to save faculty information', 'error')
+    } finally {
+      setSavingFacultyInfo(false)
+    }
+  }
+
+  // Get available organizations for selected department
+  const getAvailableOrgsForDept = (dept) => {
+    if (!dept) return []
+    const orgCodes = DEPT_ORG_MAPPING[dept] || []
+    return STUDENT_ORGS.filter(org => orgCodes.includes(org.code))
+  }
+
+  // Toggle faculty org selection
+  const toggleFacultyOrg = (orgCode) => {
+    setFacultyOrgs(prev => 
+      prev.includes(orgCode)
+        ? prev.filter(o => o !== orgCode)
+        : [...prev, orgCode]
+    )
   }
 
   // Handle adding a new user
@@ -553,10 +639,34 @@ export default function UserManagement() {
                           </span>
                         ))}
                         {(user.tags || []).length > 2 && (
-                          <span className="text-xs text-gray-400">+{user.tags.length - 2}</span>
+                          <span className="relative group">
+                            <span className="text-xs text-gray-400 cursor-pointer hover:text-gray-600">
+                              +{user.tags.length - 2}
+                            </span>
+                            {/* Tooltip showing remaining tags */}
+                            <div className="absolute left-1/2 -translate-x-1/2 bottom-full mb-2 z-[100] invisible opacity-0 group-hover:visible group-hover:opacity-100 transition-opacity duration-150">
+                              <div className="bg-gray-800 text-white text-xs rounded-lg py-2 px-3 shadow-lg whitespace-nowrap">
+                                {user.tags.slice(2).map((tag, idx) => (
+                                  <div key={idx} className="py-0.5">{tag}</div>
+                                ))}
+                              </div>
+                              {/* Arrow */}
+                              <div className="absolute left-1/2 -translate-x-1/2 top-full w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-gray-800"></div>
+                            </div>
+                          </span>
                         )}
                         <button
-                          onClick={() => setTagModalUser(user)}
+                          onClick={() => {
+                            setTagModalUser(user)
+                            // Initialize faculty state if user is faculty
+                            if (user.role === ROLES.FACULTY || user.role === 'faculty') {
+                              setFacultyDepartment(user.department || '')
+                              setFacultyOrgs(user.linkedOrganizations || [])
+                            } else {
+                              setFacultyDepartment('')
+                              setFacultyOrgs([])
+                            }
+                          }}
                           className="p-1 text-gray-400 hover:text-primary hover:bg-gray-100 rounded"
                           title="Manage tags"
                         >
@@ -622,11 +732,13 @@ export default function UserManagement() {
               setNewTag('')
               setSelectedOrg('')
               setSelectedPosition('')
+              setFacultyDepartment('')
+              setFacultyOrgs([])
             }}
           />
           
           {/* Modal */}
-          <div className="relative bg-white rounded-xl shadow-xl w-full max-w-md mx-4 p-6">
+          <div className="relative bg-white rounded-xl shadow-xl w-full max-w-md mx-4 p-6 max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-lg font-semibold text-gray-900">
                 Manage Tags
@@ -637,6 +749,8 @@ export default function UserManagement() {
                   setNewTag('')
                   setSelectedOrg('')
                   setSelectedPosition('')
+                  setFacultyDepartment('')
+                  setFacultyOrgs([])
                 }}
                 className="text-gray-400 hover:text-gray-600"
               >
@@ -648,7 +762,92 @@ export default function UserManagement() {
             
             <p className="text-sm text-gray-600 mb-4">
               Tags for <span className="font-medium">{tagModalUser.givenName} {tagModalUser.lastName}</span>
+              {tagModalUser.role === ROLES.FACULTY || tagModalUser.role === 'faculty' ? (
+                <span className="ml-2 px-2 py-0.5 text-xs bg-purple-100 text-purple-700 rounded-full">Faculty</span>
+              ) : null}
             </p>
+            
+            {/* Faculty Department & Organization Section */}
+            {(tagModalUser.role === ROLES.FACULTY || tagModalUser.role === 'faculty') && (
+              <div className="mb-6 p-4 bg-purple-50 border border-purple-200 rounded-xl">
+                <div className="flex items-center gap-2 mb-3">
+                  <svg className="w-5 h-5 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                  </svg>
+                  <h4 className="font-semibold text-purple-900">Faculty Department & Organizations</h4>
+                </div>
+                
+                {/* Department Selection */}
+                <div className="mb-3">
+                  <label className="text-xs font-medium text-purple-700 mb-1.5 block">Department</label>
+                  <select
+                    value={facultyDepartment}
+                    onChange={(e) => {
+                      setFacultyDepartment(e.target.value)
+                      setFacultyOrgs([]) // Reset orgs when department changes
+                    }}
+                    className="w-full px-3 py-2 text-sm border border-purple-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent bg-white"
+                  >
+                    <option value="">Select Department</option>
+                    {DEPARTMENTS.map((dept) => (
+                      <option key={dept} value={dept}>
+                        {DEPARTMENT_CODES[dept]} - {dept}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                
+                {/* Linked Organizations */}
+                {facultyDepartment && getAvailableOrgsForDept(facultyDepartment).length > 0 && (
+                  <div className="mb-3">
+                    <label className="text-xs font-medium text-purple-700 mb-1.5 block">
+                      Linked Organizations (for {DEPARTMENT_CODES[facultyDepartment]})
+                    </label>
+                    <div className="flex flex-wrap gap-2">
+                      {getAvailableOrgsForDept(facultyDepartment).map((org) => (
+                        <button
+                          key={org.code}
+                          type="button"
+                          onClick={() => toggleFacultyOrg(org.code)}
+                          className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-all ${
+                            facultyOrgs.includes(org.code)
+                              ? 'bg-purple-600 text-white shadow-sm'
+                              : 'bg-white border border-purple-200 text-purple-700 hover:bg-purple-100'
+                          }`}
+                        >
+                          {org.code}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+                
+                {/* Current Faculty Info Display */}
+                {tagModalUser.department && (
+                  <div className="mb-3 p-2 bg-white rounded-lg border border-purple-100">
+                    <p className="text-xs text-purple-600">
+                      <span className="font-medium">Current:</span> {tagModalUser.departmentCode || DEPARTMENT_CODES[tagModalUser.department]}
+                      {tagModalUser.linkedOrganizations?.length > 0 && (
+                        <span> → {tagModalUser.linkedOrganizations.join(', ')}</span>
+                      )}
+                    </p>
+                  </div>
+                )}
+                
+                {/* Save Button */}
+                <button
+                  onClick={handleSaveFacultyInfo}
+                  disabled={!facultyDepartment || savingFacultyInfo}
+                  className={`w-full px-4 py-2 text-sm font-semibold rounded-lg transition-all ${
+                    facultyDepartment && !savingFacultyInfo
+                      ? 'bg-purple-600 text-white hover:bg-purple-700'
+                      : 'bg-gray-200 text-gray-400 cursor-not-allowed'
+                  }`}
+                >
+                  {savingFacultyInfo ? 'Saving...' : 'Save Faculty Department & Orgs'}
+                </button>
+              </div>
+            )}
             
             {/* Current Tags */}
             <div className="mb-4">
@@ -678,46 +877,59 @@ export default function UserManagement() {
               </div>
             </div>
             
-            {/* Add Organization & Position */}
-            <div className="mb-4">
-              <label className="text-sm font-medium text-gray-700 mb-2 block">Add Organization & Position</label>
-              <div className="space-y-2 mb-2">
-                <select
-                  value={selectedOrg}
-                  onChange={(e) => setSelectedOrg(e.target.value)}
-                  className="w-full px-4 py-2.5 text-base border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary bg-white text-gray-900"
-                >
-                  <option value="">Select Organization</option>
-                  {organizations.map((org) => (
-                    <option key={org} value={org}>{org}</option>
-                  ))}
-                </select>
-                <select
-                  value={selectedPosition}
-                  onChange={(e) => setSelectedPosition(e.target.value)}
-                  className="w-full px-4 py-2.5 text-base border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary bg-white text-gray-900"
-                >
-                  <option value="">Select Position</option>
-                  {positions.map((pos) => (
-                    <option key={pos} value={pos}>{pos}</option>
-                  ))}
-                </select>
+            {/* Add Organization & Position Tag (for students only - not faculty) */}
+            {tagModalUser.role !== ROLES.FACULTY && tagModalUser.role !== 'faculty' && (
+              <div className="mb-4">
+                <label className="text-sm font-medium text-gray-700 mb-2 block">Add Organization & Position</label>
+                <p className="text-xs text-gray-500 mb-2">For student organization members/officers</p>
+                
+                <div className="grid grid-cols-[1fr_1fr_auto] gap-2">
+                  {/* Organization Selection */}
+                  <select
+                    value={selectedOrg}
+                    onChange={(e) => setSelectedOrg(e.target.value)}
+                    className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary bg-white truncate"
+                  >
+                    <option value="">Organization</option>
+                    {STUDENT_ORGS.map((org) => (
+                      <option key={org.code} value={org.code}>{org.code}</option>
+                    ))}
+                  </select>
+                  
+                  {/* Position Selection */}
+                  <select
+                    value={selectedPosition}
+                    onChange={(e) => setSelectedPosition(e.target.value)}
+                    className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary bg-white truncate"
+                  >
+                    <option value="">Position</option>
+                    {positions.map((pos) => (
+                      <option key={pos} value={pos}>{pos}</option>
+                    ))}
+                  </select>
+                  
+                  {/* Single Add Button */}
+                  <button
+                    onClick={async () => {
+                      if (selectedOrg && selectedPosition) {
+                        // Add combined tag: ORG POSITION (e.g., "CSC PRESIDENT")
+                        await handleAddTag(`${selectedOrg} ${selectedPosition.toUpperCase()}`)
+                      } else if (selectedOrg) {
+                        await handleAddTag(`org:${selectedOrg}`)
+                      } else if (selectedPosition) {
+                        await handleAddTag(selectedPosition.toUpperCase())
+                      }
+                      setSelectedOrg('')
+                      setSelectedPosition('')
+                    }}
+                    disabled={(!selectedOrg && !selectedPosition) || savingTags}
+                    className="px-4 py-2 bg-primary text-white text-sm font-medium rounded-lg hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors whitespace-nowrap"
+                  >
+                    {savingTags ? '...' : 'Add'}
+                  </button>
+                </div>
               </div>
-              <button
-                onClick={() => {
-                  if (selectedOrg && selectedPosition) {
-                    const orgTag = `${selectedOrg} ${selectedPosition}`.toUpperCase()
-                    handleAddTag(orgTag)
-                    setSelectedOrg('')
-                    setSelectedPosition('')
-                  }
-                }}
-                disabled={!selectedOrg || !selectedPosition || savingTags}
-                className="w-full px-4 py-2.5 bg-primary text-white text-base font-medium rounded-lg hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-              >
-                {savingTags ? 'Adding...' : 'Add Organization Tag'}
-              </button>
-            </div>
+            )}
 
             <div className="relative flex items-center my-4">
               <div className="flex-grow border-t border-gray-200" />

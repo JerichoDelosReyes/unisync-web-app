@@ -25,7 +25,6 @@ export default function AuthPage() {
   const [signInEmail, setSignInEmail] = useState('')
   const [signInPassword, setSignInPassword] = useState('')
   const [signInLoading, setSignInLoading] = useState(false)
-  const [rememberMe, setRememberMe] = useState(false)
   
   // Sign Up State
   const [givenName, setGivenName] = useState('')
@@ -81,7 +80,7 @@ export default function AuthPage() {
     }
     
     // Login with Firebase
-    const result = await loginUser(signInEmail, signInPassword, rememberMe)
+    const result = await loginUser(signInEmail, signInPassword)
     setSignInLoading(false)
     
     // Check if email needs verification
@@ -395,16 +394,7 @@ export default function AuthPage() {
                   value={signInPassword}
                   onChange={(e) => setSignInPassword(e.target.value)}
                 />
-                <div className="flex items-center justify-between">
-                  <label className="inline-flex items-center gap-2 text-sm text-gray-700 cursor-pointer">
-                    <input 
-                      type="checkbox" 
-                      checked={rememberMe}
-                      onChange={(e) => setRememberMe(e.target.checked)}
-                      className="rounded border-gray-300 text-primary focus:ring-primary" 
-                    />
-                    Remember me
-                  </label>
+                <div className="flex items-center justify-end">
                   <button 
                     type="button"
                     onClick={() => setShowForgotPassword(true)}

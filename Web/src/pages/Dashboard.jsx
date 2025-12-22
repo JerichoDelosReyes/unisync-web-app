@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth, ROLE_DISPLAY_NAMES, ROLES } from '../contexts/AuthContext'
 import { getAnnouncementsForUser, getPendingAnnouncements, PRIORITY_LEVELS } from '../services/announcementService'
+import FacultyOnboardingModal from '../components/ui/FacultyOnboardingModal'
 
 /**
  * Dashboard Page
@@ -9,12 +10,36 @@ import { getAnnouncementsForUser, getPendingAnnouncements, PRIORITY_LEVELS } fro
  * Main landing page after login. Shows role-specific content with real data.
  */
 export default function Dashboard() {
-  const { user, userProfile, hasMinRole } = useAuth()
+  const { user, userProfile, hasMinRole, refreshProfile } = useAuth()
   const navigate = useNavigate()
   
   const [announcements, setAnnouncements] = useState([])
   const [pendingCount, setPendingCount] = useState(0)
   const [loading, setLoading] = useState(true)
+  const [showFacultyOnboarding, setShowFacultyOnboarding] = useState(false)
+
+  // Check if faculty needs onboarding
+  useEffect(() => {
+    if (userProfile) {
+      const isFaculty = userProfile.role === 'faculty' || userProfile.role === ROLES.FACULTY
+      const needsOnboarding = !userProfile.facultyOnboardingComplete && !userProfile.department
+      
+      if (isFaculty && needsOnboarding) {
+        setShowFacultyOnboarding(true)
+      }
+    }
+  }, [userProfile])
+
+  // Handle faculty onboarding completion
+  const handleFacultyOnboardingComplete = async (data) => {
+    console.log('Faculty onboarding complete:', data)
+    setShowFacultyOnboarding(false)
+    
+    // Refresh user profile to get updated data
+    if (refreshProfile) {
+      await refreshProfile()
+    }
+  }
 
   // Fetch real announcement data
   useEffect(() => {
@@ -282,6 +307,13 @@ export default function Dashboard() {
           </div>
         )}
       </div>
+      
+      {/* Faculty Onboarding Modal */}
+      <FacultyOnboardingModal
+        isOpen={showFacultyOnboarding}
+        userProfile={userProfile}
+        onComplete={handleFacultyOnboardingComplete}
+      />
     </div>
   )
 }

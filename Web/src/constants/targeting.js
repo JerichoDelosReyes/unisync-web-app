@@ -127,10 +127,9 @@ export const DEPT_ORG_MAPPING = {
 
 // Get organizations available for a department
 export const getOrgsForDepartment = (departmentName) => {
-  // CSG (Central Student Government) is available to all departments
-  const baseOrgs = ["CSG", "HS"] // CSG and Honor Society available to all
+  // Only return department-linked organizations (no CSG/HS for faculty)
   const deptOrgs = DEPT_ORG_MAPPING[departmentName] || []
-  return [...deptOrgs, ...baseOrgs]
+  return deptOrgs
 }
 
 // All orgs combined for DCS faculty selection
