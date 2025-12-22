@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    
+    <!-- PWA Meta Tags -->
+    <meta name="theme-color" content="#166534" />
+    <meta name="description" content="UNISYNC - Centralized University Management System for CvSU Imus Campus" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="UNISYNC" />
+    
+    <!-- Icons -->
+    <link rel="icon" type="image/png" href="/unisync-web-app/favicon.png" />
+    <link rel="apple-touch-icon" href="/unisync-web-app/apple-touch-icon.png" />
+    
+    <title>UNISYNC</title>
+    
+    <!-- GitHub Pages SPA redirect handler -->
+    <script type="text/javascript">
+      (function(l) {
+        if (l.search[1] === '/' ) {
+          var decoded = l.search.slice(1).split('&').map(function(s) { 
+            return s.replace(/~and~/g, '&')
+          }).join('?');
+          window.history.replaceState(null, null,
+              l.pathname.slice(0, -1) + decoded + l.hash
+          );
+        }
+      }(window.location))
+    </script>
+    <script type="module" crossorigin src="/unisync-web-app/assets/index-DJ7NwrDm.js"></script>
+    <link rel="stylesheet" crossorigin href="/unisync-web-app/assets/index-DMQw4zUJ.css">
+  <link rel="manifest" href="/unisync-web-app/manifest.webmanifest"></head>
+  <body class="bg-bg text-text">
+    <div id="root"></div>
+  </body>
+</html>
