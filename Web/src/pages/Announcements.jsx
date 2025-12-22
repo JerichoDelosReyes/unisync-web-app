@@ -876,18 +876,34 @@ export default function Announcements() {
                     <div className="px-4 py-2 border-t border-gray-100">
                       {/* Action Buttons */}
                       <div className="flex items-center justify-start gap-0">
-                        <button
-                          onClick={() => handleToggleReaction(announcement.id, '👍')}
-                          className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 text-sm font-semibold text-gray-700 hover:bg-gray-100 transition-all group"
-                        >
-                          <span className="group-hover:scale-125 transition-transform">👍</span>
-                          <span>Like</span>
-                          {announcement.reactions && Object.values(announcement.reactions).reduce((a, b) => a + b, 0) > 0 && (
-                            <span className="text-xs text-gray-500">
-                              ({Object.values(announcement.reactions).reduce((a, b) => a + b, 0)})
-                            </span>
-                          )}
-                        </button>
+                        {(() => {
+                          const likeReactions = announcement.reactions?.['👍'] || [];
+                          const likeCount = Array.isArray(likeReactions) ? likeReactions.length : 0;
+                          const hasUserLiked = Array.isArray(likeReactions) && likeReactions.some(r => r.uid === user?.uid);
+                          
+                          return (
+                            <button
+                              onClick={() => handleToggleReaction(announcement.id, '👍')}
+                              className={`flex-1 flex items-center justify-center gap-2 px-4 py-2.5 text-sm font-semibold transition-all group ${
+                                hasUserLiked 
+                                  ? 'text-green-600 bg-green-50 hover:bg-green-100' 
+                                  : 'text-gray-700 hover:bg-gray-100'
+                              }`}
+                            >
+                              <span className="group-hover:scale-125 transition-transform">
+                                {hasUserLiked ? '💚' : '👍'}
+                              </span>
+                              <span>{hasUserLiked ? 'Liked' : 'Like'}</span>
+                              {likeCount > 0 && (
+                                <span className={`text-xs px-1.5 py-0.5 rounded-full ${
+                                  hasUserLiked ? 'bg-green-200 text-green-700' : 'bg-gray-200 text-gray-600'
+                                }`}>
+                                  {likeCount}
+                                </span>
+                              )}
+                            </button>
+                          );
+                        })()}
                         <button
                           onClick={() => setSelectedAnnouncement(announcement)}
                           className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 text-sm font-semibold text-gray-700 hover:bg-gray-100 transition-all"
