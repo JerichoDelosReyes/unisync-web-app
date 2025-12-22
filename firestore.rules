@@ -4,7 +4,13 @@ service cloud.firestore {
     
     // Helper function to get user role from their profile
     function getUserRole() {
-      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role;
+      let userDoc = get(/databases/$(database)/documents/users/$(request.auth.uid));
+      return userDoc.data != null ? userDoc.data.role : 'student';
+    }
+    
+    // Check if user document exists
+    function userExists() {
+      return exists(/databases/$(database)/documents/users/$(request.auth.uid));
     }
     
     // Check if user is authenticated
@@ -42,19 +48,19 @@ service cloud.firestore {
       // Anyone authenticated can read users (for user lists, etc.)
       allow read: if isAuthenticated();
       
+      // Users can create their own profile during registration
+      allow create: if isAuthenticated() && request.auth.uid == userId;
+      
       // Users can update their own profile (limited to non-role fields)
       allow update: if isAuthenticated() 
         && request.auth.uid == userId
         && !request.resource.data.diff(resource.data).affectedKeys().hasAny(['role']);
       
-      // Faculty and above can create new users
-      allow create: if isAuthenticated() && isFacultyOrAbove();
-      
-      // Faculty and above can update any user (including role changes)
-      allow update: if isAuthenticated() && isFacultyOrAbove();
+      // Faculty and above can create/update any user (including role changes)
+      allow create, update: if isAuthenticated() && userExists() && isFacultyOrAbove();
       
       // Only Admin and above can delete users
-      allow delete: if isAuthenticated() && isAdminOrAbove();
+      allow delete: if isAuthenticated() && userExists() && isAdminOrAbove();
     }
     
     // ==========================================
