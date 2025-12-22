@@ -236,7 +236,7 @@ export default function AuthPage() {
   return (
     <div className="h-screen flex flex-col lg:grid lg:grid-cols-2 overflow-hidden">
       {/* Left Panel - Brand & Features (hidden on mobile, visible on lg+) */}
-      <div className="hidden lg:flex bg-gradient-to-br from-[#166534] via-[#15803d] to-[#14532d] text-white p-6 xl:p-10 flex-col justify-between relative overflow-hidden">
+      <div className="hidden lg:flex bg-gradient-to-br from-[#166534] via-[#15803d] to-[#14532d] text-white p-6 xl:p-10 flex-col justify-center relative overflow-hidden">
         {/* Background Pattern */}
         <div className="absolute inset-0 opacity-10">
           <div className="absolute top-0 right-0 w-96 h-96 bg-white/20 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2"></div>
