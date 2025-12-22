@@ -4,6 +4,7 @@ node_modules/
 # Production build
 dist/
 build/
+Web/dist/
 
 # Logs
 *.log
@@ -36,3 +37,15 @@ coverage/
 
 # Misc
 *.tsbuildinfo
+
+# Mobile build outputs
+android/.gradle/
+android/app/build/
+android/build/
+ios/App/Pods/
+ios/DerivedData/
+*.xcworkspace
+
+# Firebase
+.firebase/
+firebase-debug.log
