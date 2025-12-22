@@ -463,7 +463,7 @@ export const archiveAnnouncement = async (announcementId) => {
 }
 
 /**
- * Delete an announcement and its media
+ * Delete an announcement and its media and comments permanently
  */
 export const deleteAnnouncement = async (announcementId) => {
   try {
@@ -471,11 +471,19 @@ export const deleteAnnouncement = async (announcementId) => {
     const announcement = await getAnnouncement(announcementId)
     
     if (announcement?.media) {
-      // Delete all media files
+      // Delete all media files from storage
       await Promise.all(announcement.media.map(m => deleteMedia(m.path)))
     }
     
-    // Delete the document
+    // Delete all comments in the subcollection
+    const commentsRef = collection(db, COLLECTION_NAME, announcementId, 'comments')
+    const commentsSnapshot = await getDocs(commentsRef)
+    const deleteCommentsPromises = commentsSnapshot.docs.map(commentDoc => 
+      deleteDoc(doc(db, COLLECTION_NAME, announcementId, 'comments', commentDoc.id))
+    )
+    await Promise.all(deleteCommentsPromises)
+    
+    // Delete the announcement document permanently
     await deleteDoc(doc(db, COLLECTION_NAME, announcementId))
     
     return { success: true }

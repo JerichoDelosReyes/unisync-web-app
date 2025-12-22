@@ -238,12 +238,137 @@ export default function Announcements() {
     })
   }
 
+  // Validate announcement content quality
+  const validateAnnouncementQuality = (title, content) => {
+    const trimmedTitle = title.trim()
+    const trimmedContent = content.trim()
+    
+    // Check minimum title length (at least 5 characters)
+    if (trimmedTitle.length < 5) {
+      return { valid: false, message: 'Title must be at least 5 characters long' }
+    }
+    
+    // Check if title has at least 2 words
+    const titleWords = trimmedTitle.split(/\s+/).filter(word => word.length > 0)
+    if (titleWords.length < 2) {
+      return { valid: false, message: 'Title must contain at least 2 words' }
+    }
+    
+    // Check minimum content length (at least 20 characters)
+    if (trimmedContent.length < 20) {
+      return { valid: false, message: 'Content must be at least 20 characters long' }
+    }
+    
+    // Check if content has at least 3 words
+    const contentWords = trimmedContent.split(/\s+/).filter(word => word.length > 0)
+    if (contentWords.length < 3) {
+      return { valid: false, message: 'Content must contain at least 3 words' }
+    }
+    
+    // Check for repeated characters (e.g., "aaaaaaa", "!!!!!!")
+    const repeatedCharPattern = /(.)\1{4,}/
+    if (repeatedCharPattern.test(trimmedTitle) || repeatedCharPattern.test(trimmedContent)) {
+      return { valid: false, message: 'Please avoid excessive repeated characters' }
+    }
+    
+    // Check for keyboard spam (e.g., "asdfgh", "qwerty")
+    const keyboardSpamPatterns = ['qwerty', 'asdfgh', 'zxcvbn', 'qwertyuiop', 'asdfghjkl', 'zxcvbnm', '12345', '123456', 'awef', 'wef', 'faw', 'awe', 'ewa', 'wae', 'eaw']
+    const lowerTitle = trimmedTitle.toLowerCase()
+    const lowerContent = trimmedContent.toLowerCase()
+    for (const pattern of keyboardSpamPatterns) {
+      // Count occurrences of pattern
+      const titleOccurrences = (lowerTitle.match(new RegExp(pattern, 'g')) || []).length
+      const contentOccurrences = (lowerContent.match(new RegExp(pattern, 'g')) || []).length
+      // If pattern appears 3+ times, it's spam
+      if (titleOccurrences >= 3 || contentOccurrences >= 3) {
+        return { valid: false, message: 'Please enter a meaningful announcement' }
+      }
+    }
+    
+    // Check if content is mostly special characters
+    const alphanumericCount = (trimmedContent.match(/[a-zA-Z0-9]/g) || []).length
+    if (alphanumericCount < trimmedContent.length * 0.5) {
+      return { valid: false, message: 'Content must contain mostly letters and numbers' }
+    }
+    
+    // Check for gibberish/nonsense words
+    const isGibberishWord = (word) => {
+      if (word.length < 5) return false // Short words are OK
+      const lowerWord = word.toLowerCase()
+      
+      // Check for repeated 2-4 letter patterns (e.g., "awefawef", "fawfaw")
+      for (let len = 2; len <= 4; len++) {
+        for (let i = 0; i <= lowerWord.length - len * 2; i++) {
+          const pattern = lowerWord.substring(i, i + len)
+          const rest = lowerWord.substring(i + len)
+          if (rest.includes(pattern)) {
+            return true
+          }
+        }
+      }
+      
+      // Check for alternating patterns (e.g., "aeaeae", "wfwfwf")
+      if (/(.{1,2})\1{2,}/.test(lowerWord)) return true
+      
+      // Check vowel ratio - real words need balanced vowels
+      const vowels = (lowerWord.match(/[aeiou]/g) || []).length
+      const vowelRatio = vowels / lowerWord.length
+      // Too few vowels (< 20%) or too many (> 65%) suggests gibberish for longer words
+      if (lowerWord.length >= 6 && (vowelRatio < 0.2 || vowelRatio > 0.65)) return true
+      
+      // Check for too many consonants in a row (more than 4)
+      if (/[bcdfghjklmnpqrstvwxyz]{5,}/i.test(lowerWord)) return true
+      
+      // Check for same letter repeated 3+ times anywhere in word
+      if (/(.)\1\1/.test(lowerWord)) return true
+      
+      // Check for lack of common letter combinations (real English words have common bigrams)
+      const commonBigrams = ['th', 'he', 'in', 'er', 'an', 'on', 'at', 'en', 'nd', 'ti', 'es', 'or', 'te', 'of', 'ed', 'is', 'it', 'al', 'ar', 'st', 'to', 'nt', 'ng', 'se', 'ha', 're', 'ou', 'le', 've', 'me', 'de', 'hi', 'ri', 'ro', 'ic', 'ne', 'ea', 'ra', 'ce', 'li', 'ch', 'll', 'be', 'ma', 'si', 'om', 'ur']
+      const hasCommonBigram = commonBigrams.some(bg => lowerWord.includes(bg))
+      
+      // Long words without any common bigrams are likely gibberish
+      if (lowerWord.length >= 7 && !hasCommonBigram) return true
+      
+      return false
+    }
+    
+    // Check all words in title and content for gibberish
+    const allWords = [...titleWords, ...contentWords]
+    const gibberishWords = allWords.filter(isGibberishWord)
+    
+    // If more than 20% of words are gibberish, reject (stricter threshold)
+    if (gibberishWords.length > allWords.length * 0.2) {
+      return { valid: false, message: 'Please enter a meaningful announcement without random characters' }
+    }
+    
+    // If most words look similar (likely copy-pasted gibberish)
+    const uniqueWords = new Set(allWords.map(w => w.toLowerCase()))
+    if (allWords.length >= 4 && uniqueWords.size < allWords.length * 0.5) {
+      return { valid: false, message: 'Please avoid repetitive content' }
+    }
+    
+    // Check if any single word is excessively long (likely gibberish)
+    const hasExcessivelyLongWord = allWords.some(word => word.length > 20)
+    if (hasExcessivelyLongWord) {
+      return { valid: false, message: 'Words are too long. Please use proper spacing between words.' }
+    }
+    
+    return { valid: true, message: '' }
+  }
+
   // Handle form submission
   const handleSubmit = async (e) => {
     e.preventDefault()
     
     if (!formData.title.trim() || !formData.content.trim()) {
       showToast('Title and content are required', 'error')
+      return
+    }
+    
+    // Validate content quality
+    const qualityCheck = validateAnnouncementQuality(formData.title, formData.content)
+    if (!qualityCheck.valid) {
+      showToast(qualityCheck.message, 'error')
       return
     }
     
@@ -914,8 +1039,8 @@ export default function Announcements() {
                           </svg>
                           <span>Comment</span>
                           {announcement.comments?.length > 0 && (
-                            <span className="text-xs text-gray-500">
-                              ({announcement.comments.length})
+                            <span className="text-xs px-1.5 py-0.5 rounded-full bg-gray-200 text-gray-600">
+                              {announcement.comments.length}
                             </span>
                           )}
                         </button>
