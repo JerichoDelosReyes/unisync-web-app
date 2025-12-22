@@ -253,7 +253,7 @@ export const getAnnouncement = async (announcementId) => {
 /**
  * Get announcements visible to a user based on their tags
  * @param {Array} userTags - User's tags
- * @param {object} options - { status, priority, limit }
+ * @param {object} options - { status, priority, limit, userId }
  */
 export const getAnnouncementsForUser = async (userTags = [], options = {}) => {
   try {
@@ -270,6 +270,10 @@ export const getAnnouncementsForUser = async (userTags = [], options = {}) => {
     let announcements = querySnapshot.docs
       .map(doc => ({ id: doc.id, ...doc.data() }))
       .filter(announcement => {
+        // Authors can always see their own announcements
+        if (options.userId && announcement.authorId === options.userId) {
+          return true
+        }
         // Campus-wide announcements (no target tags) are visible to everyone
         if (!announcement.targetTags || announcement.targetTags.length === 0) {
           return true

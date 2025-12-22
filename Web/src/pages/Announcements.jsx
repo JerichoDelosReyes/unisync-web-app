@@ -139,7 +139,8 @@ export default function Announcements() {
         setError(null)
         
         const userTags = userProfile?.tags || []
-        const data = await getAnnouncementsForUser(userTags)
+        // Pass userId so authors can always see their own announcements
+        const data = await getAnnouncementsForUser(userTags, { userId: user?.uid })
         setAnnouncements(data)
         
         // Fetch pending if user can moderate
@@ -156,7 +157,7 @@ export default function Announcements() {
     }
 
     fetchAnnouncements()
-  }, [userProfile, canModerate])
+  }, [userProfile, canModerate, user])
 
   // Fetch comments when announcement is selected
   useEffect(() => {
