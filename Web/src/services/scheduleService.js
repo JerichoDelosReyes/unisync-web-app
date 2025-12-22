@@ -20,14 +20,20 @@ const USERS_COLLECTION = 'users';
  * Save or update a student's schedule
  * @param {string} userId - The user's ID
  * @param {Array} scheduleData - Array of schedule items
+ * @param {Object} studentInfo - Additional student info (semester, schoolYear, course, yearLevel)
  * @returns {Promise<void>}
  */
-export const saveStudentSchedule = async (userId, scheduleData) => {
+export const saveStudentSchedule = async (userId, scheduleData, studentInfo = {}) => {
   try {
     const scheduleRef = doc(db, SCHEDULES_COLLECTION, userId);
     await setDoc(scheduleRef, {
       userId,
       schedules: scheduleData,
+      semester: studentInfo.semester || '',
+      schoolYear: studentInfo.schoolYear || '',
+      course: studentInfo.course || '',
+      yearLevel: studentInfo.yearLevel || '',
+      section: studentInfo.section || '',
       updatedAt: serverTimestamp(),
       createdAt: serverTimestamp()
     }, { merge: true });
@@ -40,9 +46,9 @@ export const saveStudentSchedule = async (userId, scheduleData) => {
 };
 
 /**
- * Get a student's schedule
+ * Get a student's schedule with info
  * @param {string} userId - The user's ID
- * @returns {Promise<Array>} - Array of schedule items
+ * @returns {Promise<Object>} - Object with schedules array and student info
  */
 export const getStudentSchedule = async (userId) => {
   try {
@@ -50,9 +56,24 @@ export const getStudentSchedule = async (userId) => {
     const scheduleDoc = await getDoc(scheduleRef);
     
     if (scheduleDoc.exists()) {
-      return scheduleDoc.data().schedules || [];
+      const data = scheduleDoc.data();
+      return {
+        schedules: data.schedules || [],
+        semester: data.semester || '',
+        schoolYear: data.schoolYear || '',
+        course: data.course || '',
+        yearLevel: data.yearLevel || '',
+        section: data.section || ''
+      };
     }
-    return [];
+    return {
+      schedules: [],
+      semester: '',
+      schoolYear: '',
+      course: '',
+      yearLevel: '',
+      section: ''
+    };
   } catch (error) {
     console.error('Error getting schedule:', error);
     throw error;

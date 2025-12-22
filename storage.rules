@@ -1,87 +1,177 @@
 rules_version = '2';
 
-// Firebase Storage Security Rules for UNISYNC
+// ============================================
+// UNISYNC STORAGE SECURITY RULES
+// ============================================
+// Last Updated: December 2024
+// 
+// Security Features:
+// 1. Authentication required for all operations
+// 2. File size limits to prevent abuse
+// 3. File type restrictions (only images/videos)
+// 4. User-specific upload folders
+// 5. Path-based access control
+// ============================================
+
 service firebase.storage {
   match /b/{bucket}/o {
     
-    // Helper function to check if user is authenticated
+    // ==========================================
+    // HELPER FUNCTIONS
+    // ==========================================
+    
+    // Check if user is authenticated
     function isAuthenticated() {
       return request.auth != null;
     }
     
-    // Helper function to check file size (max 50MB)
-    function isValidSize() {
+    // Check if email is verified
+    function isEmailVerified() {
+      return request.auth.token.email_verified == true;
+    }
+    
+    // Check if user has CvSU email
+    function hasCvsuEmail() {
+      return request.auth.token.email.matches('.*@cvsu[.]edu[.]ph$');
+    }
+    
+    // Full authentication check
+    function isFullyAuthenticated() {
+      return isAuthenticated() && isEmailVerified();
+    }
+    
+    // ==========================================
+    // FILE VALIDATION FUNCTIONS
+    // ==========================================
+    
+    // Check file size - max 10MB for images
+    function isValidImageSize() {
+      return request.resource.size < 10 * 1024 * 1024;
+    }
+    
+    // Check file size - max 50MB for videos
+    function isValidVideoSize() {
       return request.resource.size < 50 * 1024 * 1024;
     }
     
-    // Helper function to check if file is an allowed image type
+    // Check file size - max 5MB for profile pictures
+    function isValidProfilePicSize() {
+      return request.resource.size < 5 * 1024 * 1024;
+    }
+    
+    // Check if file is an allowed image type
     function isImage() {
-      return request.resource.contentType.matches('image/.*');
+      return request.resource.contentType.matches('image/(jpeg|jpg|png|gif|webp)');
     }
     
-    // Helper function to check if file is an allowed video type
+    // Check if file is an allowed video type
     function isVideo() {
-      return request.resource.contentType.matches('video/.*');
+      return request.resource.contentType.matches('video/(mp4|webm|mov|avi)');
     }
     
-    // Helper function to check if file type is allowed
-    function isAllowedFileType() {
-      return isImage() || isVideo();
+    // Check if file is a PDF (for documents)
+    function isPDF() {
+      return request.resource.contentType == 'application/pdf';
+    }
+    
+    // Validate file name (no path traversal attacks)
+    function isValidFileName(fileName) {
+      return fileName.size() > 0 
+        && fileName.size() < 256
+        && !fileName.matches('.*[/\\\\].*')
+        && !fileName.matches('^\\..*');
     }
     
     // ==========================================
     // ANNOUNCEMENT MEDIA
     // ==========================================
-    // Path: announcements/{announcementId}/{filename}
     match /announcements/{announcementId}/{fileName} {
-      // Anyone authenticated can read announcement media
-      allow read: if isAuthenticated();
+      // Read: Any authenticated user
+      allow read: if isFullyAuthenticated();
       
-      // Authenticated users can upload media (size and type validated)
-      allow create: if isAuthenticated() 
-        && isValidSize() 
-        && isAllowedFileType();
+      // Create: Authenticated users with validation
+      allow create: if isFullyAuthenticated()
+        && isValidFileName(fileName)
+        && ((isImage() && isValidImageSize()) || (isVideo() && isValidVideoSize()));
       
-      // Only the uploader or admin can delete
-      // Note: We can't check Firestore roles from Storage rules directly
-      // So we allow any authenticated user to delete their uploads
-      allow delete: if isAuthenticated();
+      // Update: Not allowed - must delete and re-upload
+      allow update: if false;
+      
+      // Delete: Only authenticated users (ideally should check ownership via Firestore)
+      allow delete: if isFullyAuthenticated();
     }
     
     // ==========================================
-    // USER PROFILE PICTURES (Future)
+    // USER PROFILE PICTURES
     // ==========================================
-    // Path: profiles/{userId}/{filename}
     match /profiles/{userId}/{fileName} {
-      // Anyone authenticated can view profile pictures
-      allow read: if isAuthenticated();
+      // Read: Any authenticated user
+      allow read: if isFullyAuthenticated();
       
-      // Users can only upload to their own folder
-      allow create: if isAuthenticated() 
+      // Create: Only to own folder, with validation
+      allow create: if isFullyAuthenticated()
         && request.auth.uid == userId
-        && isValidSize()
-        && isImage();
+        && isValidFileName(fileName)
+        && isImage()
+        && isValidProfilePicSize();
       
-      // Users can only delete their own profile pictures
-      allow delete: if isAuthenticated() && request.auth.uid == userId;
+      // Update: Only own profile picture
+      allow update: if isFullyAuthenticated()
+        && request.auth.uid == userId
+        && isImage()
+        && isValidProfilePicSize();
+      
+      // Delete: Only own profile pictures
+      allow delete: if isFullyAuthenticated() && request.auth.uid == userId;
     }
     
     // ==========================================
-    // GENERAL UPLOADS (Future)
+    // USER UPLOADS (General files)
     // ==========================================
-    // Path: uploads/{userId}/{filename}
     match /uploads/{userId}/{fileName} {
-      // Anyone authenticated can read
-      allow read: if isAuthenticated();
+      // Read: Any authenticated user
+      allow read: if isFullyAuthenticated();
       
-      // Users can only upload to their own folder
-      allow create: if isAuthenticated() 
+      // Create: Only to own folder
+      allow create: if isFullyAuthenticated()
         && request.auth.uid == userId
-        && isValidSize()
-        && isAllowedFileType();
+        && isValidFileName(fileName)
+        && ((isImage() && isValidImageSize()) || (isVideo() && isValidVideoSize()));
       
-      // Users can only delete their own uploads
-      allow delete: if isAuthenticated() && request.auth.uid == userId;
+      // Update: Not allowed
+      allow update: if false;
+      
+      // Delete: Only own uploads
+      allow delete: if isFullyAuthenticated() && request.auth.uid == userId;
+    }
+    
+    // ==========================================
+    // SCHEDULE DOCUMENTS (PDF uploads)
+    // ==========================================
+    match /schedules/{userId}/{fileName} {
+      // Read: Owner or faculty+
+      // Note: Can't check Firestore roles from Storage, so allow all authenticated
+      allow read: if isFullyAuthenticated();
+      
+      // Create: Only to own folder, PDF only
+      allow create: if isFullyAuthenticated()
+        && request.auth.uid == userId
+        && isValidFileName(fileName)
+        && isPDF()
+        && request.resource.size < 10 * 1024 * 1024; // 10MB max for PDFs
+      
+      // Update: Not allowed
+      allow update: if false;
+      
+      // Delete: Only own files
+      allow delete: if isFullyAuthenticated() && request.auth.uid == userId;
+    }
+    
+    // ==========================================
+    // CATCH-ALL: Deny everything else
+    // ==========================================
+    match /{allPaths=**} {
+      allow read, write: if false;
     }
   }
 }

@@ -42,6 +42,15 @@ const timeSlots = [
   '13:00', '14:00', '15:00', '16:00', '17:00', '18:00', '19:00', '20:00'
 ]
 
+// Helper function to get year suffix (1st, 2nd, 3rd, 4th)
+const getYearSuffix = (year) => {
+  const num = parseInt(year)
+  if (num === 1) return 'st'
+  if (num === 2) return 'nd'
+  if (num === 3) return 'rd'
+  return 'th'
+}
+
 // Helper function to convert time string to row index
 const getTimeIndex = (time) => {
   const hour = parseInt(time.split(':')[0])
@@ -240,16 +249,130 @@ const parseRegistrationForm = (text) => {
   
   const schedules = []
   
-  // Extract section (e.g., BSCS-3E)
-  let section = 'N/A'
-  const sectionMatch = cleanText.match(/\b(BSIT|BSCS|BSIS|BSEMC)[-\s]*(\d[A-Z])\b/i)
-  if (sectionMatch) {
-    section = `${sectionMatch[1].toUpperCase()}-${sectionMatch[2].toUpperCase()}`
+  // Extract student info from registration form
+  const studentInfo = {
+    semester: '',
+    schoolYear: '',
+    course: '',
+    yearLevel: '',
+    section: ''
   }
-  console.log('Section found:', section)
+  
+  // Extract semester (1st Semester, 2nd Semester, Summer)
+  // Multiple patterns to catch various formats including standalone FIRST/SECOND
+  const semesterPatterns = [
+    /(\d)(?:st|nd|rd|th)?\s*Semester/i,                    // 1st Semester, 2 Semester
+    /(First|Second|Third)\s*Semester/i,                    // First Semester
+    /Semester\s*:?\s*(\d|First|Second|Summer)/i,           // Semester: 1, Semester: First
+    /(Summer)\s*(?:Term|Semester|Class)/i,                 // Summer Term
+    /(?:^|\s)(1st|2nd)\s*Sem(?:ester)?/i,                  // 1st Sem, 2nd Sem
+    /Sem(?:ester)?\s*:?\s*(\d|1st|2nd)/i,                  // Sem: 1, Sem: 1st
+    /\b(FIRST|SECOND)\b/,                                   // Standalone FIRST or SECOND (uppercase)
+    /(?:Semester|Sem)\s*:?\s*(FIRST|SECOND)/i,             // Semester: FIRST
+  ]
+  
+  for (const pattern of semesterPatterns) {
+    const semesterMatch = cleanText.match(pattern)
+    if (semesterMatch) {
+      const sem = (semesterMatch[1] || semesterMatch[0]).toLowerCase().trim()
+      if (sem === '1' || sem === '1st' || sem === 'first') {
+        studentInfo.semester = '1st Semester'
+        break
+      } else if (sem === '2' || sem === '2nd' || sem === 'second') {
+        studentInfo.semester = '2nd Semester'
+        break
+      } else if (sem === '3' || sem === '3rd' || sem === 'third') {
+        studentInfo.semester = '3rd Semester'
+        break
+      } else if (sem.includes('summer')) {
+        studentInfo.semester = 'Summer'
+        break
+      }
+    }
+  }
+  console.log('Semester found:', studentInfo.semester)
+  
+  // Extract school year (e.g., 2024-2025, A.Y. 2024-2025)
+  // More specific regex: looks for A.Y. or School Year label, or consecutive years with hyphen
+  const yearPatterns = [
+    /(?:A\.?Y\.?|School\s*Year|S\.?Y\.?)\s*:?\s*(\d{4})\s*[-–]\s*(\d{4})/i,  // A.Y. 2024-2025 or School Year: 2024-2025
+    /(\d{4})\s*[-–]\s*(\d{4})(?:\s*(?:Semester|sem))/i,  // 2024-2025 followed by Semester
+    /(?:Semester|sem)[^0-9]*(\d{4})\s*[-–]\s*(\d{4})/i,  // Semester ... 2024-2025
+  ]
+  
+  for (const pattern of yearPatterns) {
+    const yearMatch = cleanText.match(pattern)
+    if (yearMatch) {
+      const year1 = parseInt(yearMatch[1])
+      const year2 = parseInt(yearMatch[2])
+      // Validate that the second year is exactly one more than the first
+      if (year2 === year1 + 1 && year1 >= 2000 && year1 <= 2100) {
+        studentInfo.schoolYear = `${year1}-${year2}`
+        break
+      }
+    }
+  }
+  
+  // Fallback: look for any year pattern but validate it
+  if (!studentInfo.schoolYear) {
+    const fallbackMatch = cleanText.match(/(\d{4})\s*[-–]\s*(\d{4})/g)
+    if (fallbackMatch) {
+      for (const match of fallbackMatch) {
+        const years = match.match(/(\d{4})\s*[-–]\s*(\d{4})/)
+        if (years) {
+          const year1 = parseInt(years[1])
+          const year2 = parseInt(years[2])
+          if (year2 === year1 + 1 && year1 >= 2000 && year1 <= 2100) {
+            studentInfo.schoolYear = `${year1}-${year2}`
+            break
+          }
+        }
+      }
+    }
+  }
+  console.log('School Year found:', studentInfo.schoolYear)
+  
+  // Extract course/program (e.g., BSCS, BSIT, BSIS, BSEMC)
+  const courseMatch = cleanText.match(/\b(Bachelor\s+of\s+Science\s+in\s+[A-Za-z\s]+|BSCS|BSIT|BSIS|BSEMC|BS\s+in\s+[A-Za-z\s]+)\b/i)
+  if (courseMatch) {
+    const course = courseMatch[1].toUpperCase()
+    // Normalize course names
+    if (course.includes('COMPUTER SCIENCE') || course === 'BSCS') {
+      studentInfo.course = 'BS Computer Science'
+    } else if (course.includes('INFORMATION TECHNOLOGY') || course === 'BSIT') {
+      studentInfo.course = 'BS Information Technology'
+    } else if (course.includes('INFORMATION SYSTEM') || course === 'BSIS') {
+      studentInfo.course = 'BS Information Systems'
+    } else if (course.includes('ENTERTAINMENT') || course === 'BSEMC') {
+      studentInfo.course = 'BS Entertainment & Multimedia Computing'
+    } else {
+      studentInfo.course = courseMatch[1]
+    }
+  }
+  console.log('Course found:', studentInfo.course)
+  
+  // Extract section (e.g., BSCS-3E) and year level
+  const sectionMatch = cleanText.match(/\b(BSIT|BSCS|BSIS|BSEMC)[-\s]*(\d)([A-Z])\b/i)
+  if (sectionMatch) {
+    const program = sectionMatch[1].toUpperCase()
+    const year = sectionMatch[2]
+    const section = sectionMatch[3].toUpperCase()
+    studentInfo.section = `${program}-${year}${section}`
+    studentInfo.yearLevel = `${year}${getYearSuffix(year)} Year`
+    
+    // If course wasn't found earlier, derive from section
+    if (!studentInfo.course) {
+      if (program === 'BSCS') studentInfo.course = 'BS Computer Science'
+      else if (program === 'BSIT') studentInfo.course = 'BS Information Technology'
+      else if (program === 'BSIS') studentInfo.course = 'BS Information Systems'
+      else if (program === 'BSEMC') studentInfo.course = 'BS Entertainment & Multimedia Computing'
+    }
+  }
+  console.log('Section found:', studentInfo.section)
+  console.log('Year Level found:', studentInfo.yearLevel)
 
-  // Find all course IDs (9 digits starting with 2025)
-  const courseIdPattern = /2025\d{5}/g
+  // Find all course IDs (9 digits starting with year like 2023, 2024, 2025, etc.)
+  const courseIdPattern = /20\d{7}/g
   const courseIds = []
   let idMatch
   while ((idMatch = courseIdPattern.exec(cleanText)) !== null) {
@@ -331,7 +454,7 @@ const parseRegistrationForm = (text) => {
       subject: subjectName,
       room: room1 || 'TBA',
       professor: 'TBA',
-      section: section,
+      section: studentInfo.section || 'N/A',
       day: dayAbbreviations[day1.toUpperCase()] || day1,
       startTime: time1Start,
       endTime: time1End,
@@ -343,7 +466,7 @@ const parseRegistrationForm = (text) => {
       subject: subjectName,
       room: room2 || 'TBA',
       professor: 'TBA',
-      section: section,
+      section: studentInfo.section || 'N/A',
       day: dayAbbreviations[day2.toUpperCase()] || day2,
       startTime: time2Start,
       endTime: time2End,
@@ -351,7 +474,9 @@ const parseRegistrationForm = (text) => {
   }
 
   console.log('Final extracted schedules:', schedules)
-  return schedules
+  console.log('Student info:', studentInfo)
+  
+  return { schedules, studentInfo }
 }
 
 // Manual extraction as fallback
@@ -825,6 +950,13 @@ export default function Schedule() {
   const { user, userProfile } = useAuth()
   const [currentWeek, setCurrentWeek] = useState(new Date())
   const [scheduleData, setScheduleData] = useState([])
+  const [studentInfo, setStudentInfo] = useState({
+    semester: '',
+    schoolYear: '',
+    course: '',
+    yearLevel: '',
+    section: ''
+  })
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [isProcessing, setIsProcessing] = useState(false)
   const [uploadSuccess, setUploadSuccess] = useState(false)
@@ -833,6 +965,7 @@ export default function Schedule() {
   const [isLoading, setIsLoading] = useState(true)
   const [isSaving, setIsSaving] = useState(false)
   const [isUpdatingProfessor, setIsUpdatingProfessor] = useState(false)
+  const [errorModal, setErrorModal] = useState({ isOpen: false, title: '', message: '', details: '' })
 
   // Load saved schedule and professors from Firebase on mount
   useEffect(() => {
@@ -845,9 +978,18 @@ export default function Schedule() {
       setIsLoading(true)
       try {
         // Load schedule from Firebase
-        const savedSchedule = await getStudentSchedule(user.uid)
-        if (savedSchedule && savedSchedule.length > 0) {
-          setScheduleData(savedSchedule)
+        const savedData = await getStudentSchedule(user.uid)
+        if (savedData) {
+          if (savedData.schedules && savedData.schedules.length > 0) {
+            setScheduleData(savedData.schedules)
+          }
+          setStudentInfo({
+            semester: savedData.semester || '',
+            schoolYear: savedData.schoolYear || '',
+            course: savedData.course || '',
+            yearLevel: savedData.yearLevel || '',
+            section: savedData.section || ''
+          })
         }
         
         // Load professors (faculty users) from Firebase
@@ -948,15 +1090,39 @@ export default function Schedule() {
       console.log('Extracted PDF text:', fullText) // For debugging
 
       // Parse the schedule from extracted text using the new parser
-      const extractedSchedule = parseRegistrationForm(fullText)
+      const { schedules: extractedSchedule, studentInfo: extractedStudentInfo } = parseRegistrationForm(fullText)
+      
+      // Validate school year - must be current year (2025-2026) or later
+      const currentYear = new Date().getFullYear()
+      const minAllowedYear = currentYear // 2025
+      
+      if (extractedStudentInfo.schoolYear) {
+        const schoolYearMatch = extractedStudentInfo.schoolYear.match(/(\d{4})-(\d{4})/)
+        if (schoolYearMatch) {
+          const startYear = parseInt(schoolYearMatch[1])
+          if (startYear < minAllowedYear) {
+            setErrorModal({
+              isOpen: true,
+              title: 'Outdated Registration Form',
+              message: `This registration form is from School Year ${extractedStudentInfo.schoolYear}.`,
+              details: `Please upload a current registration form (S.Y. ${minAllowedYear}-${minAllowedYear + 1} or later).`
+            })
+            setIsModalOpen(false)
+            setIsProcessing(false)
+            return
+          }
+        }
+      }
       
       if (extractedSchedule.length > 0) {
-        // Save to Firebase
-        await saveStudentSchedule(user.uid, extractedSchedule)
+        // Save to Firebase with student info
+        await saveStudentSchedule(user.uid, extractedSchedule, extractedStudentInfo)
         setScheduleData(extractedSchedule)
+        setStudentInfo(extractedStudentInfo)
         
         // Also keep localStorage as backup
         localStorage.setItem('studentSchedule', JSON.stringify(extractedSchedule))
+        localStorage.setItem('studentInfo', JSON.stringify(extractedStudentInfo))
         setUploadSuccess(true)
         setTimeout(() => setUploadSuccess(false), 3000)
       } else {
@@ -981,7 +1147,15 @@ export default function Schedule() {
       try {
         await deleteStudentSchedule(user.uid)
         setScheduleData([])
+        setStudentInfo({
+          semester: '',
+          schoolYear: '',
+          course: '',
+          yearLevel: '',
+          section: ''
+        })
         localStorage.removeItem('studentSchedule')
+        localStorage.removeItem('studentInfo')
       } catch (error) {
         console.error('Error clearing schedule:', error)
         alert('Failed to clear schedule. Please try again.')
@@ -1042,6 +1216,52 @@ export default function Schedule() {
               </button>
             </div>
           </div>
+
+      {/* Student Info Card */}
+      {scheduleData.length > 0 && (studentInfo.semester || studentInfo.schoolYear || studentInfo.course || studentInfo.yearLevel) && (
+        <div className="bg-gradient-to-r from-primary/5 to-primary/10 border border-primary/20 rounded-xl p-5">
+          <div className="flex items-center gap-3 mb-4">
+            <div className="w-10 h-10 bg-primary/20 rounded-full flex items-center justify-center">
+              <svg className="w-5 h-5 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+              </svg>
+            </div>
+            <h3 className="text-lg font-semibold text-gray-800">Student Information</h3>
+          </div>
+          <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+            {studentInfo.semester && (
+              <div className="bg-white/60 rounded-lg p-3 border border-white/50">
+                <p className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-1">Semester</p>
+                <p className="text-sm font-semibold text-gray-800">{studentInfo.semester}</p>
+              </div>
+            )}
+            {studentInfo.schoolYear && (
+              <div className="bg-white/60 rounded-lg p-3 border border-white/50">
+                <p className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-1">School Year</p>
+                <p className="text-sm font-semibold text-gray-800">{studentInfo.schoolYear}</p>
+              </div>
+            )}
+            {studentInfo.course && (
+              <div className="bg-white/60 rounded-lg p-3 border border-white/50">
+                <p className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-1">Course</p>
+                <p className="text-sm font-semibold text-gray-800">{studentInfo.course}</p>
+              </div>
+            )}
+            {studentInfo.yearLevel && (
+              <div className="bg-white/60 rounded-lg p-3 border border-white/50">
+                <p className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-1">Year Level</p>
+                <p className="text-sm font-semibold text-gray-800">{studentInfo.yearLevel}</p>
+              </div>
+            )}
+            {studentInfo.section && (
+              <div className="bg-white/60 rounded-lg p-3 border border-white/50">
+                <p className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-1">Section</p>
+                <p className="text-sm font-semibold text-gray-800">{studentInfo.section}</p>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* Success Message */}
       {uploadSuccess && (
@@ -1177,6 +1397,61 @@ export default function Schedule() {
         professors={professors}
         isUpdating={isUpdatingProfessor}
       />
+
+      {/* Error Modal */}
+      {errorModal.isOpen && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full overflow-hidden animate-in fade-in zoom-in duration-200">
+            {/* Header with error icon */}
+            <div className="bg-gradient-to-r from-red-500 to-red-600 px-6 py-8 text-center">
+              <div className="w-16 h-16 bg-white/20 rounded-full flex items-center justify-center mx-auto mb-4">
+                <svg className="w-10 h-10 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                </svg>
+              </div>
+              <h3 className="text-xl font-bold text-white">{errorModal.title}</h3>
+            </div>
+            
+            {/* Content */}
+            <div className="px-6 py-6">
+              <div className="flex items-start gap-3 mb-4">
+                <div className="w-10 h-10 bg-red-100 rounded-full flex items-center justify-center flex-shrink-0">
+                  <svg className="w-5 h-5 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                  </svg>
+                </div>
+                <div>
+                  <p className="text-gray-800 font-medium">{errorModal.message}</p>
+                  <p className="text-gray-500 text-sm mt-1">{errorModal.details}</p>
+                </div>
+              </div>
+              
+              {/* Info box */}
+              <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 mb-6">
+                <div className="flex items-start gap-2">
+                  <svg className="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                  <p className="text-amber-800 text-sm">
+                    Only registration forms from the current school year are accepted to ensure your schedule is up to date.
+                  </p>
+                </div>
+              </div>
+              
+              {/* Button */}
+              <button
+                onClick={() => setErrorModal({ isOpen: false, title: '', message: '', details: '' })}
+                className="w-full px-4 py-3 bg-primary text-white rounded-xl hover:bg-primary/90 transition-colors font-medium flex items-center justify-center gap-2"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+                </svg>
+                Upload Different Form
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
