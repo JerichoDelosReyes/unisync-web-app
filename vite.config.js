@@ -3,9 +3,9 @@ import react from '@vitejs/plugin-react'
 import { VitePWA } from 'vite-plugin-pwa'
 import { resolve } from 'path'
 
-export default defineConfig({
+export default defineConfig(({ command }) => ({
   root: resolve(__dirname, 'Web'),
-  base: '/unisync-web-app/', // GitHub Pages base URL
+  base: command === 'serve' ? '/' : '/unisync-web-app/', // Use / for dev, /unisync-web-app/ for build
   plugins: [
     react(),
     VitePWA({
@@ -75,4 +75,4 @@ export default defineConfig({
     outDir: resolve(__dirname, 'dist'),
     emptyOutDir: true,
   },
-})
+}))

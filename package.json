@@ -9,7 +9,7 @@
     "build": "vite build",
     "preview": "vite preview",
     "predeploy": "npm run build",
-    "deploy": "gh-pages -d Web/dist"
+    "deploy": "gh-pages -d dist"
   },
   "dependencies": {
     "clsx": "^2.1.0",
