@@ -14,6 +14,7 @@ import Unauthorized from './pages/Unauthorized'
 import Dashboard from './pages/Dashboard'
 import Announcements from './pages/Announcements'
 import Schedule from './pages/Schedule'
+import Rooms from './pages/Rooms'
 import UserManagement from './pages/UserManagement'
 import Moderation from './pages/Moderation'
 import SystemSettings from './pages/SystemSettings'
@@ -41,6 +42,7 @@ export default function App() {
           <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/announcements" element={<Announcements />} />
           <Route path="/schedule" element={<Schedule />} />
+          <Route path="/rooms" element={<Rooms />} />
           
           {/* Faculty and above only */}
           <Route

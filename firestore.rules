@@ -114,14 +114,39 @@ service cloud.firestore {
     }
     
     // ==========================================
-    // SCHEDULES / ROOMS COLLECTION
+    // SCHEDULES COLLECTION (Student Schedules)
     // ==========================================
-    match /schedules/{scheduleId} {
-      allow read: if isAuthenticated();
-      allow create, update: if isAuthenticated() && isFacultyOrAbove();
-      allow delete: if isAuthenticated() && isAdminOrAbove();
+    match /schedules/{userId} {
+      // Users can read their own schedule, Faculty+ can read any
+      allow read: if isAuthenticated() && (
+        request.auth.uid == userId || 
+        isFacultyOrAbove()
+      );
+      
+      // Users can create/update their own schedule
+      allow create, update: if isAuthenticated() && request.auth.uid == userId;
+      
+      // Users can delete their own schedule, Admin+ can delete any
+      allow delete: if isAuthenticated() && (
+        request.auth.uid == userId ||
+        isAdminOrAbove()
+      );
     }
     
+    // ==========================================
+    // PROFESSORS COLLECTION
+    // ==========================================
+    match /professors/{docId} {
+      // Anyone authenticated can read professors list
+      allow read: if isAuthenticated();
+      
+      // Anyone authenticated can add/update professors (for adding new names)
+      allow create, update: if isAuthenticated();
+      
+      // Only Admin+ can delete
+      allow delete: if isAuthenticated() && isAdminOrAbove();
+    }
+
     match /rooms/{roomId} {
       allow read: if isAuthenticated();
       allow create, update, delete: if isAuthenticated() && isAdminOrAbove();
