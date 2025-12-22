@@ -603,9 +603,19 @@ export default function Announcements() {
       }
       
       const newComment = await addComment(selectedAnnouncement.id, commentText.trim(), author, null, skipReviewQueue)
-      setComments(prev => [newComment, ...prev])
-      setCommentText('')
-      showToast('Comment added successfully!', 'success')
+      
+      // Show appropriate feedback based on moderation result
+      if (newComment.status === 'rejected') {
+        showToast('Your comment contains inappropriate content and cannot be posted.', 'error')
+      } else if (newComment.status === 'pending_review') {
+        showToast('Your comment is being reviewed by moderators.', 'warning')
+        setComments(prev => [newComment, ...prev])
+        setCommentText('')
+      } else {
+        setComments(prev => [newComment, ...prev])
+        setCommentText('')
+        showToast('Comment added successfully!', 'success')
+      }
     } catch (err) {
       console.error('Error adding comment:', err)
       showToast(err.message || 'Failed to add comment', 'error')
@@ -1838,13 +1848,18 @@ export default function Announcements() {
                 ) : (
                   <div className="space-y-3 max-h-80 overflow-y-auto">
                     {comments.map((comment) => (
-                      <div key={comment.id} className="flex gap-3">
+                      <div key={comment.id} className={`flex gap-3 ${comment.status === 'pending_review' ? 'opacity-60' : ''} ${comment.status === 'rejected' ? 'hidden' : ''}`}>
                         <div className="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center text-white text-xs font-bold flex-shrink-0">
                           {comment.authorName?.charAt(0) || 'U'}
                         </div>
                         <div className="flex-1 min-w-0">
-                          <div className="bg-gray-100 rounded-lg px-3 py-2">
-                            <p className="text-sm font-semibold text-gray-900">{comment.authorName}</p>
+                          <div className={`rounded-lg px-3 py-2 ${comment.status === 'pending_review' ? 'bg-yellow-50 border border-yellow-200' : 'bg-gray-100'}`}>
+                            <div className="flex items-center gap-2">
+                              <p className="text-sm font-semibold text-gray-900">{comment.authorName}</p>
+                              {comment.status === 'pending_review' && (
+                                <span className="text-[10px] px-1.5 py-0.5 bg-yellow-200 text-yellow-800 rounded font-medium">Pending Review</span>
+                              )}
+                            </div>
                             <p className="text-sm text-gray-700 mt-0.5">{comment.content}</p>
                           </div>
                           <p className="text-xs text-gray-500 mt-1">{formatDate(comment.createdAt)}</p>

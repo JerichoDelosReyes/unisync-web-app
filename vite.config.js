@@ -5,6 +5,7 @@ import { resolve } from 'path'
 
 export default defineConfig({
   root: resolve(__dirname, 'Web'),
+  base: '/unisync-web-app/', // GitHub Pages base URL
   plugins: [
     react(),
     VitePWA({

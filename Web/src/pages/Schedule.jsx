@@ -352,12 +352,61 @@ const parseRegistrationForm = (text) => {
   console.log('Course found:', studentInfo.course)
   
   // Extract section (e.g., BSCS-3E) and year level
+  // First check if student is IRREGULAR
+  const irregularMatch = cleanText.match(/\bIRREGULAR\b/i)
+  if (irregularMatch) {
+    studentInfo.section = 'IRREGULAR'
+  }
+  
+  // Try to extract year level (e.g., "3rd Year", "Year 3", "THIRD YEAR", "4TH YEAR", "Year Level: 3")
+  // This works for both regular and irregular students
+  const yearLevelPatterns = [
+    /Year\s*Level\s*:?\s*(\d)/i,                            // Year Level: 3, Year Level 4
+    /(\d)(?:st|nd|rd|th)\s*Year/i,                          // 3rd Year, 4th Year
+    /Year\s*:?\s*(\d)/i,                                    // Year 3, Year: 4
+    /(FIRST|SECOND|THIRD|FOURTH|FIFTH)\s*Year/i,            // FIRST YEAR, THIRD YEAR
+    /\b(\d)(?:st|nd|rd|th)\b/i,                             // Just 4th, 3rd (standalone)
+    /Year\s*Level\s*[:\s]*([1-5])/i,                        // Year Level  4
+  ]
+  
+  for (const pattern of yearLevelPatterns) {
+    const yearLevelMatch = cleanText.match(pattern)
+    if (yearLevelMatch) {
+      let year = yearLevelMatch[1]
+      // Convert word to number if needed
+      const yearLower = year.toLowerCase()
+      if (yearLower === 'first') year = '1'
+      else if (yearLower === 'second') year = '2'
+      else if (yearLower === 'third') year = '3'
+      else if (yearLower === 'fourth') year = '4'
+      else if (yearLower === 'fifth') year = '5'
+      
+      studentInfo.yearLevel = `${year}${getYearSuffix(year)} Year`
+      console.log('Year level matched with pattern:', pattern, 'Value:', year)
+      break
+    }
+  }
+  
+  // If still no year level found, try to find just a number near year-related context
+  if (!studentInfo.yearLevel) {
+    // Look for patterns like "4 IRREGULAR" or course code with year
+    const altYearMatch = cleanText.match(/\b([1-5])\s*(?:IRREGULAR|Irregular)/i) ||
+                         cleanText.match(/(?:BSCS|BSIT|BSIS|BSEMC)\s*[-]?\s*([1-5])/i)
+    if (altYearMatch) {
+      const year = altYearMatch[1]
+      studentInfo.yearLevel = `${year}${getYearSuffix(year)} Year`
+      console.log('Year level matched with alt pattern, Value:', year)
+    }
+  }
+  
+  // Check for regular section pattern (e.g., BSCS-3E)
   const sectionMatch = cleanText.match(/\b(BSIT|BSCS|BSIS|BSEMC)[-\s]*(\d)([A-Z])\b/i)
   if (sectionMatch) {
     const program = sectionMatch[1].toUpperCase()
     const year = sectionMatch[2]
     const section = sectionMatch[3].toUpperCase()
     studentInfo.section = `${program}-${year}${section}`
+    // Override year level from section if found
     studentInfo.yearLevel = `${year}${getYearSuffix(year)} Year`
     
     // If course wasn't found earlier, derive from section
