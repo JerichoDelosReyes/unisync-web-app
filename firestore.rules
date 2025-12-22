@@ -152,5 +152,22 @@ service cloud.firestore {
       allow create: if isAuthenticated() && isAdminOrAbove();
       allow update, delete: if isAuthenticated() && isSuperAdmin();
     }
+    
+    // ==========================================
+    // ANNOUNCEMENT REPORTS
+    // ==========================================
+    match /announcement_reports/{reportId} {
+      // Any authenticated user can submit a report
+      allow create: if isAuthenticated();
+      
+      // Only admins can read reports
+      allow read: if isAuthenticated() && isAdminOrAbove();
+      
+      // Only admins can update report status (reviewed, dismissed, etc.)
+      allow update: if isAuthenticated() && isAdminOrAbove();
+      
+      // Only super admin can delete reports
+      allow delete: if isAuthenticated() && isSuperAdmin();
+    }
   }
 }
