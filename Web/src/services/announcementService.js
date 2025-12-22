@@ -3,12 +3,13 @@
  * 
  * Handles CRUD operations for announcements with:
  * - Media uploads (photos/videos) to Firebase Storage
- * - Tag-based visibility filtering
+ * - Tag-based visibility filtering with sophisticated audience targeting
  * - Moderation integration
  * - Priority levels
  */
 
 import { db, storage } from '../config/firebase'
+import { matchesTargetAudience } from '../constants/targeting'
 import {
   collection,
   doc,
@@ -266,7 +267,7 @@ export const getAnnouncementsForUser = async (userTags = [], options = {}) => {
     )
     const querySnapshot = await getDocs(q)
     
-    // Filter by tags on client side (Firestore doesn't support array-contains-any with empty array check)
+    // Filter by tags on client side using sophisticated matching logic
     let announcements = querySnapshot.docs
       .map(doc => ({ id: doc.id, ...doc.data() }))
       .filter(announcement => {
@@ -278,8 +279,9 @@ export const getAnnouncementsForUser = async (userTags = [], options = {}) => {
         if (!announcement.targetTags || announcement.targetTags.length === 0) {
           return true
         }
-        // Check if user has any matching tag
-        return announcement.targetTags.some(tag => userTags.includes(tag))
+        // Use sophisticated matching logic for targeted announcements
+        // This supports the new tag format: dept:DCS, program:CS, year:3, section:3-E, org:CSG
+        return matchesTargetAudience(userTags, announcement.targetTags)
       })
     
     // Fetch comments count for each announcement

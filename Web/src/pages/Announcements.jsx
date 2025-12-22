@@ -18,6 +18,8 @@ import {
   PRIORITY_LEVELS
 } from '../services/announcementService'
 import { reportAnnouncement } from '../services/reportService'
+import AudienceSelector from '../components/announcements/AudienceSelector'
+import { matchesTargetAudience, DEPARTMENT_CODES } from '../constants/targeting'
 
 // Import organization logos
 import CSGLogo from '../assets/img/CSG-removebg-preview.png'
@@ -105,19 +107,19 @@ export default function Announcements() {
   
   // CvSU Imus Campus Organizations for targeting
   const organizations = [
-    { name: 'Central Student Government', logo: CSGLogo },
-    { name: 'Builders of Innovative Technologist Society', logo: BITSLogo },
-    { name: 'Business Management Society', logo: BMSLogo },
-    { name: 'Cavite Communicators', logo: CaviteCommLogo },
-    { name: 'Circle of Hospitality and Tourism Students', logo: CHLSLogo },
-    { name: 'Cavite Young Leaders for Entrepreneurship', logo: CYLELogo },
-    { name: 'Computer Science Clique', logo: CSCLogo },
-    { name: 'Educators\' Guild for Excellence', logo: EDGELogo },
-    { name: 'Samahan ng mga Magaaral ng Sikolohiya', logo: SikolohiyaLogo },
-    { name: 'Young Office Professional Advocates', logo: YOPALogo },
-    { name: 'Sinag-Tala', logo: SinagTalaLogo },
-    { name: 'The Flare', logo: TheFlareLogo },
-    { name: 'Honor Society', logo: HonorSocLogo }
+    { name: 'Central Student Government', code: 'CSG', logo: CSGLogo },
+    { name: 'Builders of Innovative Technologist Society', code: 'BITS', logo: BITSLogo },
+    { name: 'Business Management Society', code: 'BMS', logo: BMSLogo },
+    { name: 'Cavite Communicators', code: 'CC', logo: CaviteCommLogo },
+    { name: 'Circle of Hospitality and Tourism Students', code: 'CHLS', logo: CHLSLogo },
+    { name: 'Cavite Young Leaders for Entrepreneurship', code: 'CYLE', logo: CYLELogo },
+    { name: 'Computer Science Clique', code: 'CSC', logo: CSCLogo },
+    { name: 'Educators\' Guild for Excellence', code: 'EDGE', logo: EDGELogo },
+    { name: 'Samahan ng mga Magaaral ng Sikolohiya', code: 'SMSP', logo: SikolohiyaLogo },
+    { name: 'Young Office Professional Advocates', code: 'YOPA', logo: YOPALogo },
+    { name: 'Sinag-Tala', code: 'ST', logo: SinagTalaLogo },
+    { name: 'The Flare', code: 'TF', logo: TheFlareLogo },
+    { name: 'Honor Society', code: 'HS', logo: HonorSocLogo }
   ]
   
   const canCreate = hasMinRole(ROLES.CLASS_REP)
@@ -686,13 +688,43 @@ export default function Announcements() {
     }
   }
 
-  // Generate acronym from organization name
-  const getOrgAcronym = (orgName) => {
-    return orgName
+  // Generate display text for target tags (handles new format)
+  const getTagDisplayText = (tag) => {
+    // Handle new format: type:value
+    if (tag.includes(':')) {
+      const [type, value] = tag.split(':')
+      switch (type) {
+        case 'dept':
+          // Look up department acronym from DEPARTMENT_CODES
+          return DEPARTMENT_CODES[value] || value
+        case 'program':
+          return value
+        case 'org':
+          return value
+        case 'year':
+          return `Year ${value}`
+        case 'section':
+          return `Sec ${value}`
+        default:
+          return value
+      }
+    }
+    // Legacy format - generate acronym
+    return tag
       .split(' ')
       .map(word => word.charAt(0).toUpperCase())
       .join('')
       .substring(0, 4)
+  }
+
+  // Get tag color based on type
+  const getTagColor = (tag) => {
+    if (tag.startsWith('dept:')) return 'bg-blue-100 text-blue-700'
+    if (tag.startsWith('program:')) return 'bg-purple-100 text-purple-700'
+    if (tag.startsWith('org:')) return 'bg-orange-100 text-orange-700'
+    if (tag.startsWith('year:')) return 'bg-green-100 text-green-700'
+    if (tag.startsWith('section:')) return 'bg-pink-100 text-pink-700'
+    return 'bg-gray-100 text-gray-700'
   }
 
   // Get priority badge color
@@ -934,12 +966,33 @@ export default function Announcements() {
                           {announcement.priority?.toUpperCase() || 'NORMAL'}
                         </span>
                         {announcement.targetTags?.length > 0 && (
-                          <div className="flex flex-wrap gap-2">
-                            {announcement.targetTags.map((tag, idx) => (
-                              <span key={idx} className="px-2 py-1 text-xs font-bold bg-purple-100 text-purple-700 rounded-full" title={tag}>
-                                {getOrgAcronym(tag)}
+                          <div className="flex flex-wrap gap-1">
+                            {announcement.targetTags.slice(0, 3).map((tag, idx) => (
+                              <span key={idx} className={`px-2 py-0.5 text-xs font-bold rounded-full ${getTagColor(tag)}`} title={tag}>
+                                {getTagDisplayText(tag)}
                               </span>
                             ))}
+                            {announcement.targetTags.length > 3 && (
+                              <div className="relative group">
+                                <span className="px-2 py-0.5 text-xs font-bold bg-gray-200 text-gray-600 rounded-full cursor-pointer">
+                                  +{announcement.targetTags.length - 3}
+                                </span>
+                                {/* Tooltip showing remaining tags */}
+                                <div className="absolute left-0 top-full mt-1 z-50 hidden group-hover:block">
+                                  <div className="bg-gray-800 text-white text-xs rounded-lg py-2 px-3 shadow-lg whitespace-nowrap">
+                                    <div className="flex flex-col gap-1">
+                                      {announcement.targetTags.slice(3).map((tag, idx) => (
+                                        <span key={idx} className={`px-2 py-0.5 font-semibold rounded ${getTagColor(tag)}`}>
+                                          {getTagDisplayText(tag)}
+                                        </span>
+                                      ))}
+                                    </div>
+                                    {/* Arrow */}
+                                    <div className="absolute -top-1 left-3 w-2 h-2 bg-gray-800 rotate-45"></div>
+                                  </div>
+                                </div>
+                              </div>
+                            )}
                           </div>
                         )}
                       </div>
@@ -1062,7 +1115,7 @@ export default function Announcements() {
             {organizations.map((org) => (
               <button
                 key={org.name}
-                onClick={() => setSelectedOrganization(org.name)}
+                onClick={() => setSelectedOrganization(org)}
                 className="flex flex-col items-center gap-4 p-4 rounded-xl border border-gray-200 hover:border-green-600 hover:shadow-lg transition-all cursor-pointer group bg-gradient-to-br from-white to-gray-50"
               >
                 <div className="w-20 h-20 rounded-full bg-white flex items-center justify-center overflow-hidden border-2 border-gray-200 group-hover:border-green-600 group-hover:shadow-md transition-all">
@@ -1088,10 +1141,27 @@ export default function Announcements() {
             >
               ← Back to Organizations
             </button>
-            <h2 className="text-2xl font-bold text-gray-900">Announcements from {selectedOrganization}</h2>
+            <h2 className="text-2xl font-bold text-gray-900">Announcements from {selectedOrganization.name}</h2>
           </div>
           {(() => {
-            const orgAnnouncements = announcements.filter(a => a.targetTags?.includes(selectedOrganization))
+            // Filter by org code in both new format (org:CSC) and legacy format (CSC, Computer Science Clique)
+            const orgCode = selectedOrganization.code
+            const orgName = selectedOrganization.name
+            const orgAnnouncements = announcements.filter(a => {
+              if (!a.targetTags || a.targetTags.length === 0) return false
+              return a.targetTags.some(tag => {
+                const tagLower = tag.toLowerCase()
+                // Match new format: org:CSC
+                if (tagLower === `org:${orgCode.toLowerCase()}`) return true
+                // Match legacy format: just the code
+                if (tagLower === orgCode.toLowerCase()) return true
+                // Match legacy format: full name
+                if (tagLower === orgName.toLowerCase()) return true
+                // Match if tag contains the code (e.g., program:CSC)
+                if (tag.includes(':') && tag.split(':')[1].toLowerCase() === orgCode.toLowerCase()) return true
+                return false
+              })
+            })
             if (orgAnnouncements.length === 0) {
               return (
                 <div className="bg-gray-50 rounded-2xl border-2 border-dashed border-gray-300 p-12 text-center">
@@ -1377,31 +1447,14 @@ export default function Announcements() {
                     </select>
                   </div>
                   
-                  {/* Audience Targeting Note */}
-                  {formData.targetTags.length === 0 ? (
-                    <div className="mt-3 p-3 bg-blue-50 border border-blue-200 rounded-lg text-center">
-                      <p className="text-xs text-blue-900"><span className="font-semibold">ℹ️ Note:</span> If you don't select a target audience, your announcement will reach all campus users.</p>
-                    </div>
-                  ) : (
-                    <div className="mt-3">
-                      <p className="text-xs font-semibold text-gray-600 mb-2">Targeting {formData.targetTags.length} organization{formData.targetTags.length !== 1 ? 's' : ''}:</p>
-                      <div className="flex flex-wrap gap-2">
-                        {formData.targetTags.map((tag) => (
-                          <button
-                            key={tag}
-                            type="button"
-                            onClick={() => toggleTag(tag)}
-                            className="px-2 py-1 text-xs bg-green-100 text-green-700 rounded-full font-semibold hover:bg-green-200 transition-all flex items-center gap-1"
-                          >
-                            {tag}
-                            <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 24 24">
-                              <path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z" />
-                            </svg>
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-                  )}
+                  {/* Audience Targeting Component */}
+                  <div className="mt-4">
+                    <AudienceSelector
+                      value={formData.targetTags}
+                      onChange={(tags) => setFormData(prev => ({ ...prev, targetTags: tags }))}
+                      userProfile={userProfile}
+                    />
+                  </div>
                   
                   {/* Moderation Notice */}
                   {!skipReviewQueue && (
@@ -1442,29 +1495,6 @@ export default function Announcements() {
                     </button>
                   </div>
                 </div>
-                
-                {/* Organization Selector Modal - Collapsible */}
-                {formData.targetTags.length !== undefined && (
-                  <div className="bg-white rounded-2xl border border-gray-200 p-6 shadow-sm">
-                    <p className="text-sm font-bold text-gray-900 mb-4">Select Target Audience (Optional)</p>
-                    <div className="grid grid-cols-2 gap-2">
-                      {organizations.map((org) => (
-                        <button
-                          key={org.name}
-                          type="button"
-                          onClick={() => toggleTag(org.name)}
-                          className={`px-3 py-2.5 text-xs font-semibold rounded-lg transition-all duration-200 text-left ${
-                            formData.targetTags.includes(org.name)
-                              ? 'bg-green-600 text-white shadow-md'
-                              : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                          }`}
-                        >
-                          {org.name}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                )}
               </form>
             </div>
           </div>
@@ -1745,11 +1775,11 @@ export default function Announcements() {
               {/* Target Tags */}
               {selectedAnnouncement.targetTags?.length > 0 && (
                 <div className="px-4 py-3">
-                  <p className="text-xs font-bold text-gray-600 mb-2">👥 Targeted to {selectedAnnouncement.targetTags.length} organization{selectedAnnouncement.targetTags.length !== 1 ? 's' : ''}</p>
+                  <p className="text-xs font-bold text-gray-600 mb-2">👥 Audience Targeting ({selectedAnnouncement.targetTags.length} tag{selectedAnnouncement.targetTags.length !== 1 ? 's' : ''})</p>
                   <div className="flex flex-wrap gap-2">
                     {selectedAnnouncement.targetTags.map((tag, idx) => (
-                      <span key={idx} className="px-2.5 py-1 text-xs font-semibold bg-purple-100 text-purple-700 rounded-full">
-                        {tag}
+                      <span key={idx} className={`px-2.5 py-1 text-xs font-semibold rounded-full ${getTagColor(tag)}`}>
+                        {getTagDisplayText(tag)}
                       </span>
                     ))}
                   </div>
