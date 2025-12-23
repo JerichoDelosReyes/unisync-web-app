@@ -10,6 +10,7 @@ import { ref, uploadBytes, getDownloadURL } from 'firebase/storage'
 import { storage } from '../../config/firebase'
 import { submitFacultyRequest } from '../../services/facultyRequestService'
 import { DEPARTMENTS, DEPARTMENT_CODES } from '../../constants/targeting'
+import ModalOverlay from './ModalOverlay'
 
 export default function FacultyRequestModal({ user, userProfile, onClose, onSuccess }) {
   const [formData, setFormData] = useState({
@@ -128,10 +129,10 @@ export default function FacultyRequestModal({ user, userProfile, onClose, onSucc
   }
 
   return (
-    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-2xl shadow-2xl max-w-lg w-full overflow-hidden animate-in fade-in zoom-in duration-200 max-h-[90vh] overflow-y-auto">
+    <ModalOverlay onClose={onClose}>
+      <div className="bg-white rounded-2xl shadow-2xl max-w-lg w-full overflow-hidden animate-in fade-in zoom-in duration-200 max-h-[90vh] flex flex-col" onClick={(e) => e.stopPropagation()}>
         {/* Header */}
-        <div className="bg-gradient-to-r from-primary to-primary/80 px-6 py-5 sticky top-0">
+        <div className="bg-gradient-to-r from-primary to-primary/80 px-6 py-5 flex-shrink-0">
           <div className="flex items-center gap-3">
             <div className="w-12 h-12 rounded-full bg-white/20 flex items-center justify-center">
               <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -145,8 +146,8 @@ export default function FacultyRequestModal({ user, userProfile, onClose, onSucc
           </div>
         </div>
 
-        {/* Form */}
-        <form onSubmit={handleSubmit} className="p-6 space-y-5">
+        {/* Form - scrollable */}
+        <form onSubmit={handleSubmit} className="p-6 space-y-5 overflow-y-auto flex-1">
           {/* Info Box */}
           <div className="bg-blue-50 border border-blue-100 rounded-lg p-4">
             <div className="flex gap-3">
@@ -301,6 +302,6 @@ export default function FacultyRequestModal({ user, userProfile, onClose, onSucc
           </div>
         </form>
       </div>
-    </div>
+    </ModalOverlay>
   )
 }

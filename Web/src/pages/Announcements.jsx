@@ -20,6 +20,7 @@ import {
 import { reportAnnouncement } from '../services/reportService'
 import AudienceSelector from '../components/announcements/AudienceSelector'
 import { matchesTargetAudience, DEPARTMENT_CODES } from '../constants/targeting'
+import ModalOverlay from '../components/ui/ModalOverlay'
 
 // Import organization logos
 import CSGLogo from '../assets/img/CSG-removebg-preview.png'
@@ -1337,8 +1338,13 @@ export default function Announcements() {
 
       {/* Create Announcement Modal */}
       {showCreateModal && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto shadow-2xl">
+        <ModalOverlay onClose={() => {
+          setShowCreateModal(false)
+          setFormData({ title: '', content: '', priority: PRIORITY_LEVELS.NORMAL, targetTags: [] })
+          setMediaFiles([])
+          setMediaPreview([])
+        }}>
+          <div className="bg-white rounded-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto shadow-2xl mx-4">
             {/* Modal Header */}
             <div className="sticky top-0 bg-white border-b border-gray-200 p-6 flex items-center justify-between z-10">
               <h2 className="text-2xl font-bold text-gray-900">Create Announcement</h2>
@@ -1508,7 +1514,7 @@ export default function Announcements() {
               </form>
             </div>
           </div>
-        </div>
+        </ModalOverlay>
       )}
       
       {/* Old form hidden - keeping reference structure but replaced above */}
@@ -1686,7 +1692,7 @@ export default function Announcements() {
 
       {/* Announcement Detail Modal - Facebook Style */}
       {selectedAnnouncement && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
           <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
             {/* Header - Compact Facebook Style */}
             <div className="sticky top-0 bg-green-600 text-white px-4 py-3 flex items-center justify-between z-10">
@@ -1966,7 +1972,7 @@ export default function Announcements() {
 
       {/* Edit Modal */}
       {editModal.open && editModal.announcement && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
           <div className="absolute inset-0 bg-black/50" onClick={() => setEditModal({ open: false, announcement: null })} />
           <div className="relative bg-white rounded-xl shadow-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
             <div className="sticky top-0 bg-white border-b border-gray-100 px-4 py-3 flex items-center justify-between z-10">

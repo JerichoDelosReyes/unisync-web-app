@@ -370,6 +370,46 @@ service cloud.firestore {
     }
     
     // ==========================================
+    // CLASS SECTIONS (Schedule Code Matchmaking)
+    // ==========================================
+    // This collection links Schedule Codes to Professors
+    // Key: scheduleCode (9-digit code from Registration Form)
+    match /class_sections/{scheduleCode} {
+      // Read: All authenticated users (students need to see professor names)
+      allow read: if isAuthenticated();
+      
+      // Create: 
+      // - Faculty can create (claim a code)
+      // - Students can create (when uploading reg form with new code)
+      allow create: if isAuthenticated()
+        && isReasonableSize();
+      
+      // Update:
+      // - Faculty can claim/update if not claimed by another professor
+      // - The professor who claimed can update their own claim
+      // - Students can update schedule details (subject, room, etc.) but not professor fields
+      allow update: if isAuthenticated()
+        && isReasonableSize()
+        && (
+          // Professor updating their own claim
+          (resource.data.professorId == request.auth.uid)
+          // OR unclaimed code being claimed by faculty
+          || (resource.data.professorId == null && isFacultyOrAbove())
+          // OR student updating schedule details only (not professor fields)
+          || (!request.resource.data.diff(resource.data).affectedKeys().hasAny(['professorId', 'professorName', 'professorEmail', 'department', 'claimedAt']))
+        );
+      
+      // Delete: Only the claiming professor or Admin+
+      allow delete: if isAuthenticated()
+        && (resource.data.professorId == request.auth.uid || isAdminOrAbove());
+    }
+    
+    // Allow listing class_sections for faculty and students
+    match /class_sections/{document=**} {
+      allow list: if isAuthenticated();
+    }
+    
+    // ==========================================
     // CATCH-ALL: Deny everything else
     // ==========================================
     match /{document=**} {

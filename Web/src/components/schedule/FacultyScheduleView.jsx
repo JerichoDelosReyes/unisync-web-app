@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useAuth } from '../../contexts/AuthContext'
 import { getFacultySchedule } from '../../services/scheduleService'
+import ProfessorClasses from './ProfessorClasses'
 
 const days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']
 
@@ -100,7 +101,7 @@ const FacultyScheduleDetailModal = ({ schedule, isOpen, onClose }) => {
   if (!isOpen || !schedule) return null
 
   return (
-    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[100] p-4">
       <div className="bg-white rounded-2xl shadow-2xl max-w-lg w-full max-h-[90vh] overflow-hidden animate-in fade-in zoom-in duration-200">
         {/* Header */}
         <div className={`bg-gradient-to-r ${getSubjectColor(schedule.subject, schedule.id)} px-6 py-6`}>
@@ -278,6 +279,8 @@ export default function FacultyScheduleView() {
   const [error, setError] = useState(null)
   const [pendingClassesCount, setPendingClassesCount] = useState(0)
   const [minimumStudentsRequired, setMinimumStudentsRequired] = useState(5)
+  // Tab state for switching between views
+  const [activeTab, setActiveTab] = useState('schedule') // 'schedule' or 'claim'
 
   // Cell height for calendar view
   const cellHeight = 60
@@ -411,30 +414,71 @@ export default function FacultyScheduleView() {
         <div>
           <h1 className="text-2xl font-bold text-gray-900">My Teaching Schedule</h1>
           <p className="text-gray-500 text-sm mt-1">
-            Auto-generated from student registrations
+            Manage your classes and claim schedule codes
           </p>
         </div>
+        {activeTab === 'schedule' && (
+          <button
+            onClick={handleRefresh}
+            className="flex items-center gap-2 px-4 py-2 bg-primary/10 text-primary rounded-lg hover:bg-primary/20 transition-colors"
+          >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+            </svg>
+            Refresh
+          </button>
+        )}
+      </div>
+
+      {/* Tabs */}
+      <div className="flex border-b border-gray-200 mb-6">
         <button
-          onClick={handleRefresh}
-          className="flex items-center gap-2 px-4 py-2 bg-primary/10 text-primary rounded-lg hover:bg-primary/20 transition-colors"
+          onClick={() => setActiveTab('schedule')}
+          className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
+            activeTab === 'schedule'
+              ? 'border-primary text-primary'
+              : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+          }`}
         >
-          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-          </svg>
-          Refresh
+          <span className="flex items-center gap-2">
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+            </svg>
+            My Schedule
+          </span>
+        </button>
+        <button
+          onClick={() => setActiveTab('claim')}
+          className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
+            activeTab === 'claim'
+              ? 'border-primary text-primary'
+              : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+          }`}
+        >
+          <span className="flex items-center gap-2">
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+            </svg>
+            Claim Classes
+          </span>
         </button>
       </div>
 
-      {/* Statistics */}
-      {statistics && scheduleData.length > 0 && (
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-          <StatCard
-            icon={
-              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
-              </svg>
-            }
-            label="Subjects"
+      {/* Tab Content */}
+      {activeTab === 'claim' ? (
+        <ProfessorClasses />
+      ) : (
+        <>
+          {/* Statistics */}
+          {statistics && scheduleData.length > 0 && (
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+              <StatCard
+                icon={
+                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+                  </svg>
+                }
+                label="Subjects"
             value={statistics.totalSubjects}
             color="primary"
           />
@@ -643,6 +687,8 @@ export default function FacultyScheduleView() {
             </div>
           </div>
         </>
+      )}
+      </>
       )}
 
       {/* Schedule Detail Modal */}

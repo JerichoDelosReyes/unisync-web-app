@@ -4,13 +4,15 @@ import { useAuth, ROLES } from '../contexts/AuthContext'
 import {
   saveStudentSchedule,
   getStudentSchedule,
-  updateScheduleItem,
-  deleteStudentSchedule,
-  getProfessorNames,
-  initializeProfessors
+  deleteStudentSchedule
 } from '../services/scheduleService'
+import {
+  updateClassSectionFromStudent,
+  subscribeToScheduleCodes
+} from '../services/classSectionService'
 import { getSemesterSettings } from '../services/systemSettingsService'
 import FacultyScheduleView from '../components/schedule/FacultyScheduleView'
+import ModalOverlay from '../components/ui/ModalOverlay'
 
 // Set up PDF.js worker using CDN (more reliable for Vite)
 pdfjsLib.GlobalWorkerOptions.workerSrc = `https://unpkg.com/pdfjs-dist@${pdfjsLib.version}/build/pdf.worker.min.mjs`
@@ -498,13 +500,14 @@ const parseRegistrationForm = (text) => {
     
     const subjectName = `${code.trim()} - ${name.trim()}`
     
-    // Create schedule entries
+    // Create schedule entries with schedule code for matchmaking
     // Schedule 1: day1, time1, room1
     schedules.push({
       id: schedules.length + 1,
+      scheduleCode: currentId.id, // 9-digit schedule code for professor matchmaking
       subject: subjectName,
       room: room1 || 'TBA',
-      professor: 'TBA',
+      professor: 'TBA', // Will be updated from class_sections
       section: studentInfo.section || 'N/A',
       day: dayAbbreviations[day1.toUpperCase()] || day1,
       startTime: time1Start,
@@ -514,9 +517,10 @@ const parseRegistrationForm = (text) => {
     // Schedule 2: day2, time2, room2
     schedules.push({
       id: schedules.length + 1,
+      scheduleCode: currentId.id, // Same schedule code for both entries
       subject: subjectName,
       room: room2 || 'TBA',
-      professor: 'TBA',
+      professor: 'TBA', // Will be updated from class_sections
       section: studentInfo.section || 'N/A',
       day: dayAbbreviations[day2.toUpperCase()] || day2,
       startTime: time2Start,
@@ -664,8 +668,8 @@ const UploadModal = ({ isOpen, onClose, onUpload, isProcessing }) => {
   }
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-xl max-w-lg w-full p-6">
+    <ModalOverlay onClose={isProcessing ? null : onClose} closeOnBackdropClick={!isProcessing}>
+      <div className="bg-white rounded-xl max-w-lg w-full p-6" onClick={(e) => e.stopPropagation()}>
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-xl font-bold text-gray-900">Upload Registration Form</h2>
           <button
@@ -725,70 +729,42 @@ const UploadModal = ({ isOpen, onClose, onUpload, isProcessing }) => {
           </div>
         )}
       </div>
-    </div>
+    </ModalOverlay>
   )
 }
 
-// Default empty professors list - will be loaded from Firebase (faculty users)
-const defaultProfessors = []
-
 // Schedule Detail Modal Component
-const ScheduleDetailModal = ({ schedule, isOpen, onClose, onUpdateProfessor, professors, isUpdating }) => {
-  const [isEditingProfessor, setIsEditingProfessor] = useState(false)
-  const [searchQuery, setSearchQuery] = useState('')
-  const searchInputRef = useRef(null)
-
-  // Reset state when modal opens/closes
-  useEffect(() => {
-    if (isOpen) {
-      setIsEditingProfessor(false)
-      setSearchQuery('')
-    }
-  }, [isOpen])
-
-  // Focus search input when editing
-  useEffect(() => {
-    if (isEditingProfessor && searchInputRef.current) {
-      searchInputRef.current.focus()
-    }
-  }, [isEditingProfessor])
+const ScheduleDetailModal = ({ schedule, isOpen, onClose, classSectionProfessors = {} }) => {
+  // Use professor name from Schedule Code Matchmaking if available
+  const displayProfessor = schedule?.scheduleCode && classSectionProfessors[schedule.scheduleCode]
+    ? classSectionProfessors[schedule.scheduleCode]
+    : schedule?.professor || 'TBA'
 
   if (!isOpen || !schedule) return null
 
-  // Filter professors based on search query
-  const filteredProfessors = professors.filter(prof =>
-    prof.toLowerCase().includes(searchQuery.toLowerCase())
-  )
-
-  const handleSelectProfessor = (professor) => {
-    onUpdateProfessor(schedule.id, professor)
-    setIsEditingProfessor(false)
-    setSearchQuery('')
-  }
-
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" onClick={onClose}>
+    <ModalOverlay onClose={onClose}>
       <div 
         className="bg-white rounded-xl max-w-md w-full p-6 shadow-xl max-h-[90vh] overflow-y-auto"
         onClick={(e) => e.stopPropagation()}
       >
-        {/* Loading Overlay */}
-        {isUpdating && (
-          <div className="absolute inset-0 bg-white/80 flex items-center justify-center rounded-xl z-10">
-            <div className="flex flex-col items-center">
-              <div className="w-8 h-8 border-3 border-primary/30 border-t-primary rounded-full animate-spin"></div>
-              <p className="text-sm text-gray-600 mt-2">Saving...</p>
-            </div>
-          </div>
-        )}
-
         {/* Header */}
         <div className="flex items-start justify-between mb-4">
           <div className="flex-1">
             <h2 className="text-xl font-bold text-gray-900">{schedule.subject}</h2>
-            <span className="inline-block mt-2 px-3 py-1 bg-primary/10 text-primary rounded-full text-sm font-medium">
-              {schedule.section}
-            </span>
+            <div className="flex items-center gap-2 mt-2 flex-wrap">
+              <span className="inline-block px-3 py-1 bg-primary/10 text-primary rounded-full text-sm font-medium">
+                {schedule.section}
+              </span>
+              {schedule.scheduleCode && (
+                <span className="inline-flex items-center gap-1 px-3 py-1 bg-yellow-100 text-yellow-800 rounded-full text-sm font-mono">
+                  <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 20l4-16m2 16l4-16M6 9h14M4 15h14" />
+                  </svg>
+                  {schedule.scheduleCode}
+                </span>
+              )}
+            </div>
           </div>
           <button
             onClick={onClose}
@@ -842,6 +818,21 @@ const ScheduleDetailModal = ({ schedule, isOpen, onClose, onUpdateProfessor, pro
             </div>
           </div>
 
+          {/* Schedule Code */}
+          {schedule.scheduleCode && (
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-lg bg-yellow-100 flex items-center justify-center">
+                <svg className="w-5 h-5 text-yellow-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 20l4-16m2 16l4-16M6 9h14M4 15h14" />
+                </svg>
+              </div>
+              <div>
+                <p className="text-sm text-gray-500">Schedule Code</p>
+                <p className="font-mono font-medium text-gray-900">{schedule.scheduleCode}</p>
+              </div>
+            </div>
+          )}
+
           {/* Professor - Editable */}
           <div className="flex items-start gap-3">
             <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0">
@@ -849,99 +840,37 @@ const ScheduleDetailModal = ({ schedule, isOpen, onClose, onUpdateProfessor, pro
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
               </svg>
             </div>
-            <div className="flex-1">
+            <div>
               <p className="text-sm text-gray-500">Professor</p>
-              {!isEditingProfessor ? (
-                <div className="flex items-center gap-2">
-                  <p className="font-medium text-gray-900">{schedule.professor}</p>
-                  <button
-                    onClick={() => setIsEditingProfessor(true)}
-                    className="p-1 hover:bg-gray-100 rounded transition-colors"
-                    title="Change professor"
-                  >
-                    <svg className="w-4 h-4 text-gray-400 hover:text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
-                    </svg>
-                  </button>
-                </div>
-              ) : (
-                <div className="mt-1 space-y-2">
-                  {/* Search Input */}
-                  <div className="relative">
-                    <svg className="w-4 h-4 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                    </svg>
-                    <input
-                      ref={searchInputRef}
-                      type="text"
-                      value={searchQuery}
-                      onChange={(e) => setSearchQuery(e.target.value)}
-                      placeholder="Search professor..."
-                      className="w-full pl-9 pr-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary"
-                    />
-                  </div>
-
-                  {/* Professor List */}
-                  <div className="max-h-40 overflow-y-auto border border-gray-200 rounded-lg divide-y divide-gray-100">
-                    {filteredProfessors.length > 0 ? (
-                      filteredProfessors.map((prof, index) => (
-                        <button
-                          key={index}
-                          onClick={() => handleSelectProfessor(prof)}
-                          className={`w-full px-3 py-2 text-left text-sm hover:bg-primary/5 transition-colors ${
-                            schedule.professor === prof ? 'bg-primary/10 text-primary font-medium' : 'text-gray-700'
-                          }`}
-                        >
-                          {prof}
-                        </button>
-                      ))
-                    ) : (
-                      <div className="px-3 py-4 text-center text-sm text-gray-500">
-                        {professors.length === 0 
-                          ? 'No faculty members found. Add faculty users in User Management.'
-                          : 'No professors match your search'
-                        }
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Info text */}
-                  <p className="text-xs text-gray-400 mt-2">
-                    Professors are loaded from faculty users in the system.
-                  </p>
-
-                  {/* Cancel Button */}
-                  <button
-                    onClick={() => {
-                      setIsEditingProfessor(false)
-                      setSearchQuery('')
-                    }}
-                    className="w-full px-3 py-2 text-sm text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
-                  >
-                    Cancel
-                  </button>
-                </div>
+              <p className="font-medium text-gray-900">{displayProfessor}</p>
+              {displayProfessor === 'TBA' && schedule.scheduleCode && (
+                <p className="text-xs text-gray-400 mt-1">
+                  Waiting for faculty to claim this schedule code
+                </p>
               )}
             </div>
           </div>
         </div>
 
         {/* Close Button */}
-        {!isEditingProfessor && (
-          <button
-            onClick={onClose}
-            className="w-full mt-6 px-4 py-2.5 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors font-medium"
-          >
-            Close
-          </button>
-        )}
+        <button
+          onClick={onClose}
+          className="w-full mt-6 px-4 py-2.5 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors font-medium"
+        >
+          Close
+        </button>
       </div>
-    </div>
+    </ModalOverlay>
   )
 }
 
 // Schedule Card Component
-const ScheduleCard = ({ schedule, style, onClick }) => {
+const ScheduleCard = ({ schedule, style, onClick, classSectionProfessors = {} }) => {
+  // Use professor name from Schedule Code Matchmaking if available, otherwise fall back to stored name
+  const professorName = schedule.scheduleCode && classSectionProfessors[schedule.scheduleCode]
+    ? classSectionProfessors[schedule.scheduleCode]
+    : schedule.professor || 'TBA'
+  
   return (
     <div
       className="absolute left-1 right-1 bg-primary rounded-lg p-2 overflow-hidden cursor-pointer hover:bg-primary/90 hover:scale-[1.02] transition-all shadow-sm hover:shadow-md"
@@ -960,12 +889,17 @@ const ScheduleCard = ({ schedule, style, onClick }) => {
         <svg className="w-3 h-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
         </svg>
-        <span className="truncate">{schedule.professor}</span>
+        <span className="truncate">{professorName}</span>
       </div>
-      <div className="mt-2">
+      <div className="mt-2 flex items-center gap-1.5 flex-wrap">
         <span className="inline-block px-2 py-0.5 bg-white/20 rounded text-white text-xs font-medium">
           {schedule.section}
         </span>
+        {schedule.scheduleCode && (
+          <span className="inline-block px-2 py-0.5 bg-yellow-400/30 rounded text-white text-xs font-mono">
+            {schedule.scheduleCode}
+          </span>
+        )}
       </div>
     </div>
   )
@@ -1028,13 +962,13 @@ function StudentScheduleView() {
   const [isProcessing, setIsProcessing] = useState(false)
   const [uploadSuccess, setUploadSuccess] = useState(false)
   const [selectedSchedule, setSelectedSchedule] = useState(null)
-  const [professors, setProfessors] = useState(defaultProfessors)
   const [isLoading, setIsLoading] = useState(true)
+  // Real-time professor names from Schedule Code Matchmaking
+  const [classSectionProfessors, setClassSectionProfessors] = useState({})
   const [isSaving, setIsSaving] = useState(false)
-  const [isUpdatingProfessor, setIsUpdatingProfessor] = useState(false)
   const [errorModal, setErrorModal] = useState({ isOpen: false, title: '', message: '', details: '' })
 
-  // Load saved schedule and professors from Firebase on mount
+  // Load saved schedule on mount
   useEffect(() => {
     const loadData = async () => {
       if (!user) {
@@ -1058,12 +992,6 @@ function StudentScheduleView() {
             section: savedData.section || ''
           })
         }
-        
-        // Load professors (faculty users) from Firebase
-        const professorsList = await getProfessorNames()
-        if (professorsList && professorsList.length > 0) {
-          setProfessors(professorsList)
-        }
       } catch (error) {
         console.error('Error loading data from Firebase:', error)
         // Fallback to localStorage if Firebase fails
@@ -1082,6 +1010,25 @@ function StudentScheduleView() {
 
     loadData()
   }, [user])
+
+  // Subscribe to schedule codes for real-time professor name updates
+  useEffect(() => {
+    if (!scheduleData || scheduleData.length === 0) return
+
+    // Extract all schedule codes from the schedule data
+    const scheduleCodes = scheduleData
+      .filter(item => item.scheduleCode)
+      .map(item => item.scheduleCode)
+
+    if (scheduleCodes.length === 0) return
+
+    // Subscribe to real-time updates for these schedule codes
+    const unsubscribe = subscribeToScheduleCodes(scheduleCodes, (professorMap) => {
+      setClassSectionProfessors(professorMap)
+    })
+
+    return () => unsubscribe()
+  }, [scheduleData])
 
   const goToPreviousWeek = () => {
     const newDate = new Date(currentWeek)
@@ -1102,28 +1049,6 @@ function StudentScheduleView() {
   // Handle schedule card click
   const handleScheduleClick = (schedule) => {
     setSelectedSchedule(schedule)
-  }
-
-  // Handle professor update
-  const handleUpdateProfessor = async (scheduleId, professor) => {
-    if (!user) return
-    
-    setIsUpdatingProfessor(true)
-    try {
-      // Update the schedule in Firebase
-      const updatedSchedules = await updateScheduleItem(user.uid, scheduleId, { professor })
-      setScheduleData(updatedSchedules)
-      
-      // Update the selected schedule to reflect the change
-      if (selectedSchedule && selectedSchedule.id === scheduleId) {
-        setSelectedSchedule({ ...selectedSchedule, professor })
-      }
-    } catch (error) {
-      console.error('Error updating professor:', error)
-      alert('Failed to update professor. Please try again.')
-    } finally {
-      setIsUpdatingProfessor(false)
-    }
   }
 
   // Handle PDF upload and parsing
@@ -1242,6 +1167,26 @@ function StudentScheduleView() {
         await saveStudentSchedule(user.uid, extractedSchedule, extractedStudentInfo)
         setScheduleData(extractedSchedule)
         setStudentInfo(extractedStudentInfo)
+        
+        // Register each schedule entry with class_sections for Schedule Code Matchmaking
+        // This allows professors to see which classes have students enrolled
+        const updatePromises = extractedSchedule
+          .filter(entry => entry.scheduleCode)
+          .map(entry => 
+            updateClassSectionFromStudent(entry.scheduleCode, {
+              subject: entry.subject,
+              room: entry.room,
+              day: entry.day,
+              startTime: entry.startTime,
+              endTime: entry.endTime,
+              section: extractedStudentInfo.section || entry.section
+            }).catch(err => {
+              console.error(`Error registering schedule code ${entry.scheduleCode}:`, err)
+              // Don't fail the entire upload if one code fails
+            })
+          )
+        
+        await Promise.all(updatePromises)
         
         // Also keep localStorage as backup
         localStorage.setItem('studentSchedule', JSON.stringify(extractedSchedule))
@@ -1485,6 +1430,7 @@ function StudentScheduleView() {
                             key={schedule.id}
                             schedule={schedule}
                             onClick={handleScheduleClick}
+                            classSectionProfessors={classSectionProfessors}
                             style={{
                               top: `${top + 2}px`,
                               height: `${height}px`,
@@ -1516,14 +1462,12 @@ function StudentScheduleView() {
         schedule={selectedSchedule}
         isOpen={!!selectedSchedule}
         onClose={() => setSelectedSchedule(null)}
-        onUpdateProfessor={handleUpdateProfessor}
-        professors={professors}
-        isUpdating={isUpdatingProfessor}
+        classSectionProfessors={classSectionProfessors}
       />
 
       {/* Error Modal */}
       {errorModal.isOpen && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+        <ModalOverlay onClose={() => setErrorModal({ isOpen: false, title: '', message: '' })}>
           <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full overflow-hidden animate-in fade-in zoom-in duration-200">
             {/* Header with error icon */}
             <div className="bg-gradient-to-r from-red-500 to-red-600 px-6 py-8 text-center">
@@ -1573,7 +1517,7 @@ function StudentScheduleView() {
               </button>
             </div>
           </div>
-        </div>
+        </ModalOverlay>
       )}
     </div>
   )
