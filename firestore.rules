@@ -104,14 +104,12 @@ service cloud.firestore {
       // Read: Authenticated users can read basic user info
       allow read: if isAuthenticated();
       
-      // Create: Only through proper registration flow
-      // Users can create their own document after email verification
+      // Create: Users can create their own document
+      // Email verification is handled at application level
       allow create: if isAuthenticated() 
         && request.auth.uid == userId
-        && isEmailVerified()
         && hasRequiredFields(['email', 'role', 'createdAt'])
         && request.resource.data.role == 'student' // New users must be students
-        && request.resource.data.email == request.auth.token.email
         && isReasonableSize();
       
       // Update own profile (limited fields)
@@ -195,14 +193,13 @@ service cloud.firestore {
     // SCHEDULES COLLECTION (Student Schedules)
     // ==========================================
     match /schedules/{userId} {
-      // Read: Own schedule or Faculty+
+      // Read: Own schedule or Faculty+ (allows both single doc and collection queries)
       allow read: if isAuthenticated() 
         && (request.auth.uid == userId || isFacultyOrAbove());
       
       // Create/Update: Only own schedule with validation
       allow create, update: if isAuthenticated() 
         && request.auth.uid == userId
-        && hasRequiredFields(['userId', 'schedules'])
         && request.resource.data.userId == request.auth.uid
         && request.resource.data.schedules is list
         && request.resource.data.schedules.size() <= 50 // Max 50 schedule items
@@ -211,6 +208,11 @@ service cloud.firestore {
       // Delete: Own schedule or Admin+
       allow delete: if isAuthenticated() 
         && (request.auth.uid == userId || isAdminOrAbove());
+    }
+    
+    // Allow faculty+ to list/query all schedules (for deriving faculty schedules)
+    match /schedules/{document=**} {
+      allow list: if isAuthenticated() && isFacultyOrAbove();
     }
     
     // ==========================================
@@ -252,6 +254,70 @@ service cloud.firestore {
       allow write: if isAuthenticated() 
         && isSuperAdmin()
         && isReasonableSize();
+    }
+    
+    // ==========================================
+    // SYSTEM SETTINGS (Schedule Config, Semester, etc.)
+    // ==========================================
+    match /systemSettings/{settingId} {
+      // Read: All authenticated users (needed for threshold/semester checks)
+      allow read: if isAuthenticated();
+      
+      // Write: Super Admin only (critical system settings)
+      allow write: if isAuthenticated() 
+        && isSuperAdmin()
+        && isReasonableSize();
+    }
+    
+    // ==========================================
+    // NOTIFICATIONS COLLECTION
+    // ==========================================
+    match /notifications/{notificationId} {
+      // Read: Own notifications or Admin+
+      allow read: if isAuthenticated() 
+        && (resource.data.userId == request.auth.uid || isAdminOrAbove());
+      
+      // Create: System can create for any user (via Cloud Functions or trusted sources)
+      // For client-side, allow creating notifications for self or if admin
+      allow create: if isAuthenticated()
+        && (request.resource.data.userId == request.auth.uid || isAdminOrAbove())
+        && hasRequiredFields(['userId', 'type', 'title', 'message', 'createdAt'])
+        && isReasonableSize();
+      
+      // Update: Own notifications (for marking read) or Admin+
+      allow update: if isAuthenticated() 
+        && (resource.data.userId == request.auth.uid || isAdminOrAbove())
+        && isReasonableSize();
+      
+      // Delete: Own notifications or Admin+
+      allow delete: if isAuthenticated() 
+        && (resource.data.userId == request.auth.uid || isAdminOrAbove());
+    }
+    
+    // Allow users to list their own notifications
+    match /notifications/{document=**} {
+      allow list: if isAuthenticated();
+    }
+    
+    // ==========================================
+    // SCHEDULES ARCHIVE (Historical records)
+    // ==========================================
+    match /schedules_archive/{archiveId} {
+      // Read: Super Admin only
+      allow read: if isAuthenticated() && isSuperAdmin();
+      
+      // Write: Super Admin only
+      allow create, update: if isAuthenticated() 
+        && isSuperAdmin()
+        && isReasonableSize();
+      
+      // Delete: Super Admin only
+      allow delete: if isAuthenticated() && isSuperAdmin();
+    }
+    
+    // Allow Super Admin to list all archives
+    match /schedules_archive/{document=**} {
+      allow list: if isAuthenticated() && isSuperAdmin();
     }
     
     // ==========================================

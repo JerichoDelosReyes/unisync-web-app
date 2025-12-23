@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react'
 import * as pdfjsLib from 'pdfjs-dist'
-import { useAuth } from '../contexts/AuthContext'
+import { useAuth, ROLES } from '../contexts/AuthContext'
 import {
   saveStudentSchedule,
   getStudentSchedule,
@@ -9,6 +9,8 @@ import {
   getProfessorNames,
   initializeProfessors
 } from '../services/scheduleService'
+import { getSemesterSettings } from '../services/systemSettingsService'
+import FacultyScheduleView from '../components/schedule/FacultyScheduleView'
 
 // Set up PDF.js worker using CDN (more reliable for Vite)
 pdfjsLib.GlobalWorkerOptions.workerSrc = `https://unpkg.com/pdfjs-dist@${pdfjsLib.version}/build/pdf.worker.min.mjs`
@@ -996,6 +998,22 @@ const EmptyState = ({ onUploadClick }) => {
 }
 
 export default function Schedule() {
+  const { user, userProfile, hasMinRole } = useAuth()
+  
+  // Check if user is faculty or above - show faculty view
+  const isFacultyOrAbove = hasMinRole(ROLES.FACULTY)
+  
+  // If faculty or above, render the FacultyScheduleView
+  if (isFacultyOrAbove) {
+    return <FacultyScheduleView />
+  }
+  
+  // Otherwise, render the student schedule view
+  return <StudentScheduleView />
+}
+
+// Student Schedule View Component (original Schedule component logic)
+function StudentScheduleView() {
   const { user, userProfile } = useAuth()
   const [currentWeek, setCurrentWeek] = useState(new Date())
   const [scheduleData, setScheduleData] = useState([])
@@ -1161,6 +1179,62 @@ export default function Schedule() {
             return
           }
         }
+      }
+      
+      // Validate against current semester settings from system configuration
+      try {
+        const semesterSettings = await getSemesterSettings()
+        const systemSemester = semesterSettings.currentSemester
+        const systemSchoolYear = semesterSettings.currentSchoolYear
+        
+        // Check if the registration form matches the current semester settings
+        if (systemSchoolYear && extractedStudentInfo.schoolYear) {
+          const formSchoolYear = extractedStudentInfo.schoolYear.trim()
+          const settingsSchoolYear = systemSchoolYear.trim()
+          
+          if (formSchoolYear !== settingsSchoolYear) {
+            setErrorModal({
+              isOpen: true,
+              title: 'School Year Mismatch',
+              message: `This registration form is for School Year ${formSchoolYear}.`,
+              details: `The current academic period is set to S.Y. ${settingsSchoolYear}. Please upload a registration form for the current school year.`
+            })
+            setIsModalOpen(false)
+            setIsProcessing(false)
+            return
+          }
+        }
+        
+        if (systemSemester && extractedStudentInfo.semester) {
+          const formSemester = extractedStudentInfo.semester.trim().toLowerCase()
+          const settingsSemester = systemSemester.trim().toLowerCase()
+          
+          // Normalize semester names for comparison
+          const normalizeSemester = (sem) => {
+            if (sem.includes('1st') || sem.includes('first')) return '1st semester'
+            if (sem.includes('2nd') || sem.includes('second')) return '2nd semester'
+            if (sem.includes('summer') || sem.includes('mid')) return 'summer'
+            return sem
+          }
+          
+          const normalizedFormSemester = normalizeSemester(formSemester)
+          const normalizedSettingsSemester = normalizeSemester(settingsSemester)
+          
+          if (normalizedFormSemester !== normalizedSettingsSemester) {
+            setErrorModal({
+              isOpen: true,
+              title: 'Semester Mismatch',
+              message: `This registration form is for the ${extractedStudentInfo.semester}.`,
+              details: `The current academic period is set to ${systemSemester}. Please upload a registration form for the current semester.`
+            })
+            setIsModalOpen(false)
+            setIsProcessing(false)
+            return
+          }
+        }
+      } catch (semesterError) {
+        console.error('Error checking semester settings:', semesterError)
+        // Continue if we can't check settings (fallback to basic validation)
       }
       
       if (extractedSchedule.length > 0) {

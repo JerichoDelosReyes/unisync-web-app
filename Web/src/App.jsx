@@ -18,6 +18,7 @@ import Rooms from './pages/Rooms'
 import UserManagement from './pages/UserManagement'
 import Moderation from './pages/Moderation'
 import SystemSettings from './pages/SystemSettings'
+import ScheduleArchive from './pages/ScheduleArchive'
 
 export default function App() {
   return (
@@ -70,6 +71,14 @@ export default function App() {
             element={
               <SuperAdminRoute>
                 <SystemSettings />
+              </SuperAdminRoute>
+            }
+          />
+          <Route
+            path="/archives"
+            element={
+              <SuperAdminRoute>
+                <ScheduleArchive />
               </SuperAdminRoute>
             }
           />
