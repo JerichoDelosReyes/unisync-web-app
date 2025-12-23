@@ -19,6 +19,7 @@ import UserManagement from './pages/UserManagement'
 import Moderation from './pages/Moderation'
 import SystemSettings from './pages/SystemSettings'
 import ScheduleArchive from './pages/ScheduleArchive'
+import FacultyRequests from './pages/FacultyRequests'
 
 export default function App() {
   return (
@@ -61,6 +62,14 @@ export default function App() {
             element={
               <AdminRoute>
                 <Moderation />
+              </AdminRoute>
+            }
+          />
+          <Route
+            path="/faculty-requests"
+            element={
+              <AdminRoute>
+                <FacultyRequests />
               </AdminRoute>
             }
           />

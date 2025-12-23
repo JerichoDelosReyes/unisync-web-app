@@ -168,6 +168,26 @@ service firebase.storage {
     }
     
     // ==========================================
+    // FACULTY REQUEST ID PHOTOS
+    // ==========================================
+    match /faculty_requests/{fileName} {
+      // Read: Authenticated users (admins will need to view)
+      allow read: if isFullyAuthenticated();
+      
+      // Create: Any authenticated user can upload their ID
+      allow create: if isFullyAuthenticated()
+        && isValidFileName(fileName)
+        && isImage()
+        && request.resource.size < 5 * 1024 * 1024; // 5MB max
+      
+      // Update: Not allowed
+      allow update: if false;
+      
+      // Delete: Not allowed (admin may need evidence)
+      allow delete: if false;
+    }
+    
+    // ==========================================
     // CATCH-ALL: Deny everything else
     // ==========================================
     match /{allPaths=**} {

@@ -150,7 +150,12 @@ service cloud.firestore {
         && isValidString(request.resource.data.content, 1, 10000)
         && isReasonableSize();
       
-      // Update: Author or Admin+ (for moderation)
+      // Update reactions/comments: Any authenticated user can react or comment
+      allow update: if isAuthenticated() 
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['reactions', 'commentCount', 'updatedAt'])
+        && isReasonableSize();
+      
+      // Update content: Author or Admin+ (for moderation)
       allow update: if isAuthenticated() 
         && (resource.data.authorId == request.auth.uid || isAdminOrAbove())
         && isReasonableSize();
@@ -331,6 +336,37 @@ service cloud.firestore {
         && isReasonableSize();
       
       allow update, delete: if isAuthenticated() && isSuperAdmin();
+    }
+    
+    // ==========================================
+    // FACULTY ROLE REQUESTS
+    // ==========================================
+    match /faculty_role_requests/{requestId} {
+      // Users can read their own requests
+      allow read: if isAuthenticated() 
+        && (resource.data.userId == request.auth.uid || isAdminOrAbove());
+      
+      // Users can create their own requests (students/class_reps only)
+      allow create: if isAuthenticated()
+        && request.resource.data.userId == request.auth.uid
+        && request.resource.data.status == 'pending'
+        && hasRequiredFields(['userId', 'userEmail', 'userName', 'department', 'reason', 'status', 'createdAt'])
+        && isReasonableSize();
+      
+      // Only admins can approve/reject requests
+      allow update: if isAuthenticated()
+        && isAdminOrAbove()
+        && isReasonableSize();
+      
+      // Users can delete their own pending requests (cancel)
+      allow delete: if isAuthenticated()
+        && resource.data.userId == request.auth.uid
+        && resource.data.status == 'pending';
+    }
+    
+    // Allow admins to list all faculty requests
+    match /faculty_role_requests/{document=**} {
+      allow list: if isAuthenticated() && isAdminOrAbove();
     }
     
     // ==========================================

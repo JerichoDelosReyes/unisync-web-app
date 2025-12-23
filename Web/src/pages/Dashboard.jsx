@@ -2,7 +2,9 @@ import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth, ROLE_DISPLAY_NAMES, ROLES } from '../contexts/AuthContext'
 import { getAnnouncementsForUser, getPendingAnnouncements, PRIORITY_LEVELS } from '../services/announcementService'
+import { getUserPendingRequest, getUserRequestHistory } from '../services/facultyRequestService'
 import FacultyOnboardingModal from '../components/ui/FacultyOnboardingModal'
+import FacultyRequestModal from '../components/ui/FacultyRequestModal'
 
 /**
  * Dashboard Page
@@ -17,6 +19,9 @@ export default function Dashboard() {
   const [pendingCount, setPendingCount] = useState(0)
   const [loading, setLoading] = useState(true)
   const [showFacultyOnboarding, setShowFacultyOnboarding] = useState(false)
+  const [showFacultyRequestModal, setShowFacultyRequestModal] = useState(false)
+  const [pendingFacultyRequest, setPendingFacultyRequest] = useState(null)
+  const [facultyRequestHistory, setFacultyRequestHistory] = useState([])
 
   // Check if faculty needs onboarding
   useEffect(() => {
@@ -40,6 +45,29 @@ export default function Dashboard() {
       await refreshProfile()
     }
   }
+
+  // Check for pending faculty request
+  useEffect(() => {
+    const checkFacultyRequest = async () => {
+      if (!user || !userProfile) return
+      
+      // Only check for students and class reps
+      const canRequest = userProfile.role === ROLES.STUDENT || userProfile.role === ROLES.CLASS_REP
+      if (!canRequest) return
+      
+      try {
+        const pending = await getUserPendingRequest(user.uid)
+        setPendingFacultyRequest(pending)
+        
+        const history = await getUserRequestHistory(user.uid)
+        setFacultyRequestHistory(history)
+      } catch (error) {
+        console.error('Error checking faculty request:', error)
+      }
+    }
+    
+    checkFacultyRequest()
+  }, [user, userProfile])
 
   // Fetch real announcement data
   useEffect(() => {
@@ -181,6 +209,62 @@ export default function Dashboard() {
         ))}
       </div>
 
+      {/* Faculty Role Request Card - Only for students/class reps */}
+      {(userProfile?.role === ROLES.STUDENT || userProfile?.role === ROLES.CLASS_REP) && (
+        <div className="bg-gradient-to-r from-indigo-50 to-purple-50 rounded-xl border border-indigo-100 p-6">
+          <div className="flex items-start justify-between gap-4">
+            <div className="flex items-start gap-4">
+              <div className="w-12 h-12 rounded-xl bg-indigo-100 flex items-center justify-center flex-shrink-0">
+                <svg className="w-6 h-6 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+                </svg>
+              </div>
+              <div>
+                <h3 className="text-lg font-semibold text-gray-900">Faculty Role Verification</h3>
+                {pendingFacultyRequest ? (
+                  <div className="mt-2">
+                    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-yellow-100 text-yellow-700 rounded-full text-sm font-medium">
+                      <svg className="w-4 h-4 animate-pulse" fill="currentColor" viewBox="0 0 8 8">
+                        <circle cx="4" cy="4" r="3" />
+                      </svg>
+                      Request Pending
+                    </span>
+                    <p className="text-sm text-gray-600 mt-2">
+                      Your faculty role request is being reviewed. You'll be notified once it's processed.
+                    </p>
+                    <p className="text-xs text-gray-500 mt-1">
+                      Submitted: {pendingFacultyRequest.createdAt?.toDate?.().toLocaleDateString() || 'Recently'}
+                    </p>
+                  </div>
+                ) : facultyRequestHistory.find(r => r.status === 'rejected') ? (
+                  <div className="mt-2">
+                    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-red-100 text-red-700 rounded-full text-sm font-medium">
+                      Previous Request Rejected
+                    </span>
+                    <p className="text-sm text-gray-600 mt-2">
+                      {facultyRequestHistory.find(r => r.status === 'rejected')?.rejectionReason || 'Your previous request was not approved.'}
+                    </p>
+                    <p className="text-sm text-gray-600 mt-1">You can submit a new request with updated information.</p>
+                  </div>
+                ) : (
+                  <p className="text-sm text-gray-600 mt-1">
+                    Are you a faculty member? Request verification to access faculty features like viewing your class schedules.
+                  </p>
+                )}
+              </div>
+            </div>
+            {!pendingFacultyRequest && (
+              <button
+                onClick={() => setShowFacultyRequestModal(true)}
+                className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors text-sm font-medium flex-shrink-0"
+              >
+                Request Faculty Role
+              </button>
+            )}
+          </div>
+        </div>
+      )}
+
       {/* Quick Actions */}
       <div className="bg-white rounded-xl border border-gray-200 p-6">
         <h2 className="text-lg font-semibold text-gray-900 mb-4">Quick Actions</h2>
@@ -314,6 +398,19 @@ export default function Dashboard() {
         userProfile={userProfile}
         onComplete={handleFacultyOnboardingComplete}
       />
+
+      {/* Faculty Request Modal */}
+      {showFacultyRequestModal && (
+        <FacultyRequestModal
+          user={user}
+          userProfile={userProfile}
+          onClose={() => setShowFacultyRequestModal(false)}
+          onSuccess={async () => {
+            const pending = await getUserPendingRequest(user.uid)
+            setPendingFacultyRequest(pending)
+          }}
+        />
+      )}
     </div>
   )
 }
