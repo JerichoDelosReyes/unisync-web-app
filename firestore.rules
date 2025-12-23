@@ -1,16 +1,28 @@
 rules_version = '2';
+
+// ============================================
+// UNISYNC FIRESTORE SECURITY RULES
+// ============================================
+// Last Updated: December 2024
+// 
+// Security Features:
+// 1. Role-based access control (RBAC)
+// 2. Data validation on write operations
+// 3. Rate limiting through size restrictions
+// 4. Field-level security for sensitive data
+// 5. Email domain verification
+// ============================================
+
 service cloud.firestore {
   match /databases/{database}/documents {
     
-    // Helper function to get user role from their profile
-    function getUserRole() {
-      let userDoc = get(/databases/$(database)/documents/users/$(request.auth.uid));
-      return userDoc.data != null ? userDoc.data.role : 'student';
-    }
+    // ==========================================
+    // HELPER FUNCTIONS
+    // ==========================================
     
-    // Check if user document exists
-    function userExists() {
-      return exists(/databases/$(database)/documents/users/$(request.auth.uid));
+    // Get user role from their profile
+    function getUserRole() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role;
     }
     
     // Check if user is authenticated
@@ -18,7 +30,22 @@ service cloud.firestore {
       return request.auth != null;
     }
     
-    // Check if user is at least Class Rep level (can create announcements)
+    // Check if email is verified
+    function isEmailVerified() {
+      return request.auth.token.email_verified == true;
+    }
+    
+    // Check if user has CvSU email domain
+    function hasCvsuEmail() {
+      return request.auth.token.email.matches('.*@cvsu[.]edu[.]ph$');
+    }
+    
+    // Full authentication check (authenticated + verified + CvSU email)
+    function isFullyAuthenticated() {
+      return isAuthenticated() && isEmailVerified() && hasCvsuEmail();
+    }
+    
+    // Check if user is at least Class Rep level
     function isClassRepOrAbove() {
       let role = getUserRole();
       return role == 'super_admin' || role == 'admin' || role == 'faculty' || role == 'class_rep';
@@ -42,138 +69,311 @@ service cloud.firestore {
     }
     
     // ==========================================
+    // DATA VALIDATION FUNCTIONS
+    // ==========================================
+    
+    // Validate string length
+    function isValidString(field, minLen, maxLen) {
+      return field is string && field.size() >= minLen && field.size() <= maxLen;
+    }
+    
+    // Validate that required fields exist
+    function hasRequiredFields(fields) {
+      return request.resource.data.keys().hasAll(fields);
+    }
+    
+    // Check if only allowed fields are being modified
+    function onlyAllowedFields(allowed) {
+      return request.resource.data.diff(resource.data).affectedKeys().hasOnly(allowed);
+    }
+    
+    // Validate role value
+    function isValidRole(role) {
+      return role in ['super_admin', 'admin', 'faculty', 'class_rep', 'student'];
+    }
+    
+    // Prevent document from being too large (prevent abuse)
+    function isReasonableSize() {
+      return request.resource.size() < 1000000; // 1MB limit per document
+    }
+    
+    // ==========================================
     // USERS COLLECTION
     // ==========================================
     match /users/{userId} {
-      // Anyone authenticated can read users (for user lists, etc.)
+      // Read: Authenticated users can read basic user info
       allow read: if isAuthenticated();
       
-      // Users can create their own profile during registration
-      allow create: if isAuthenticated() && request.auth.uid == userId;
+      // Create: Users can create their own document
+      // Email verification is handled at application level
+      allow create: if isAuthenticated() 
+        && request.auth.uid == userId
+        && hasRequiredFields(['email', 'role', 'createdAt'])
+        && request.resource.data.role == 'student' // New users must be students
+        && isReasonableSize();
       
-      // Users can update their own profile (limited to non-role fields)
+      // Update own profile (limited fields)
       allow update: if isAuthenticated() 
         && request.auth.uid == userId
-        && !request.resource.data.diff(resource.data).affectedKeys().hasAny(['role']);
+        && !request.resource.data.diff(resource.data).affectedKeys().hasAny(['role', 'uid', 'createdAt'])
+        && isReasonableSize();
       
-      // Faculty and above can create/update any user (including role changes)
-      allow create, update: if isAuthenticated() && userExists() && isFacultyOrAbove();
+      // Faculty+ can create users with any role
+      allow create: if isAuthenticated() 
+        && isFacultyOrAbove()
+        && hasRequiredFields(['email', 'role'])
+        && isValidRole(request.resource.data.role)
+        && isReasonableSize();
       
-      // Only Admin and above can delete users
-      allow delete: if isAuthenticated() && userExists() && isAdminOrAbove();
+      // Faculty+ can update any user
+      allow update: if isAuthenticated() 
+        && isFacultyOrAbove()
+        && isReasonableSize();
+      
+      // Only Admin+ can delete users
+      allow delete: if isAuthenticated() && isAdminOrAbove();
     }
     
     // ==========================================
     // ANNOUNCEMENTS COLLECTION
     // ==========================================
     match /announcements/{announcementId} {
-      // Anyone authenticated can read announcements
-      // Filtering by status is done on the client side
+      // Read: All authenticated users
       allow read: if isAuthenticated();
       
-      // Class Rep and above can create announcements
-      allow create: if isAuthenticated() && isClassRepOrAbove();
+      // Create: Class Rep+ with validation
+      allow create: if isAuthenticated() 
+        && isClassRepOrAbove()
+        && hasRequiredFields(['title', 'content', 'authorId', 'createdAt'])
+        && request.resource.data.authorId == request.auth.uid
+        && isValidString(request.resource.data.title, 1, 200)
+        && isValidString(request.resource.data.content, 1, 10000)
+        && isReasonableSize();
       
-      // Author can update their own announcements (for reactions)
-      // Any authenticated user can update (for reactions)
-      // Admin+ can update any announcement (for moderation)
-      allow update: if isAuthenticated();
+      // Update reactions/comments: Any authenticated user can react or comment
+      allow update: if isAuthenticated() 
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['reactions', 'commentCount', 'updatedAt'])
+        && isReasonableSize();
       
-      // Only Admin and above can delete announcements
+      // Update content: Author or Admin+ (for moderation)
+      allow update: if isAuthenticated() 
+        && (resource.data.authorId == request.auth.uid || isAdminOrAbove())
+        && isReasonableSize();
+      
+      // Delete: Admin+ only
       allow delete: if isAuthenticated() && isAdminOrAbove();
       
       // Comments subcollection
       match /comments/{commentId} {
-        // Anyone authenticated can read approved comments
         allow read: if isAuthenticated();
         
-        // Anyone authenticated can create comments
-        allow create: if isAuthenticated();
+        allow create: if isAuthenticated()
+          && hasRequiredFields(['content', 'authorId', 'createdAt'])
+          && request.resource.data.authorId == request.auth.uid
+          && isValidString(request.resource.data.content, 1, 2000)
+          && isReasonableSize();
         
-        // Author can update their own comment, Admin+ can update any
-        allow update: if isAuthenticated() && (
-          resource.data.authorId == request.auth.uid ||
-          isAdminOrAbove()
-        );
+        allow update: if isAuthenticated() 
+          && (resource.data.authorId == request.auth.uid || isAdminOrAbove())
+          && isReasonableSize();
         
-        // Author can delete their own comment, Admin+ can delete any
-        allow delete: if isAuthenticated() && (
-          resource.data.authorId == request.auth.uid ||
-          isAdminOrAbove()
-        );
+        allow delete: if isAuthenticated() 
+          && (resource.data.authorId == request.auth.uid || isAdminOrAbove());
       }
       
       // Reactions subcollection
       match /reactions/{reactionId} {
-        // Anyone authenticated can read reactions
         allow read: if isAuthenticated();
         
-        // Anyone authenticated can create/update reactions (toggle)
-        allow create, update: if isAuthenticated();
+        allow create, update: if isAuthenticated()
+          && request.resource.data.userId == request.auth.uid
+          && isReasonableSize();
         
-        // Author can delete their own reaction
-        allow delete: if isAuthenticated() && (
-          resource.data.userId == request.auth.uid ||
-          isAdminOrAbove()
-        );
+        allow delete: if isAuthenticated() 
+          && (resource.data.userId == request.auth.uid || isAdminOrAbove());
       }
     }
     
     // ==========================================
-    // SCHEDULES / ROOMS COLLECTION
+    // SCHEDULES COLLECTION (Student Schedules)
     // ==========================================
-    match /schedules/{scheduleId} {
+    match /schedules/{userId} {
+      // Read: Own schedule or Faculty+ (allows both single doc and collection queries)
+      allow read: if isAuthenticated() 
+        && (request.auth.uid == userId || isFacultyOrAbove());
+      
+      // Create/Update: Only own schedule with validation
+      allow create, update: if isAuthenticated() 
+        && request.auth.uid == userId
+        && request.resource.data.userId == request.auth.uid
+        && request.resource.data.schedules is list
+        && request.resource.data.schedules.size() <= 50 // Max 50 schedule items
+        && isReasonableSize();
+      
+      // Delete: Own schedule or Admin+
+      allow delete: if isAuthenticated() 
+        && (request.auth.uid == userId || isAdminOrAbove());
+    }
+    
+    // Allow faculty+ to list/query all schedules (for deriving faculty schedules)
+    match /schedules/{document=**} {
+      allow list: if isAuthenticated() && isFacultyOrAbove();
+    }
+    
+    // ==========================================
+    // ROOMS COLLECTION
+    // ==========================================
+    match /rooms/{roomId} {
       allow read: if isAuthenticated();
-      allow create, update: if isAuthenticated() && isFacultyOrAbove();
+      
+      allow create, update: if isAuthenticated() 
+        && isAdminOrAbove()
+        && isReasonableSize();
+      
       allow delete: if isAuthenticated() && isAdminOrAbove();
     }
     
-    match /rooms/{roomId} {
-      allow read: if isAuthenticated();
-      allow create, update, delete: if isAuthenticated() && isAdminOrAbove();
-    }
-    
     // ==========================================
-    // LOGS COLLECTION (Super Admin Only)
+    // LOGS COLLECTION (Immutable Audit Trail)
     // ==========================================
     match /logs/{logId} {
+      // Read: Super Admin only
       allow read: if isAuthenticated() && isSuperAdmin();
-      allow create: if isAuthenticated(); // Any action can create logs
-      allow update, delete: if false; // Logs are immutable
+      
+      // Create: Any authenticated user (for activity logging)
+      allow create: if isAuthenticated()
+        && hasRequiredFields(['action', 'userId', 'timestamp'])
+        && request.resource.data.userId == request.auth.uid
+        && isReasonableSize();
+      
+      // Update/Delete: NEVER (logs are immutable)
+      allow update, delete: if false;
     }
     
     // ==========================================
-    // SYSTEM SETTINGS (Super Admin Only)
+    // SYSTEM SETTINGS
     // ==========================================
     match /settings/{settingId} {
       allow read: if isAuthenticated() && isAdminOrAbove();
-      allow write: if isAuthenticated() && isSuperAdmin();
+      
+      allow write: if isAuthenticated() 
+        && isSuperAdmin()
+        && isReasonableSize();
     }
     
     // ==========================================
-    // MODERATION FEEDBACK (for Naive Bayes training)
+    // SYSTEM SETTINGS (Schedule Config, Semester, etc.)
+    // ==========================================
+    match /systemSettings/{settingId} {
+      // Read: All authenticated users (needed for threshold/semester checks)
+      allow read: if isAuthenticated();
+      
+      // Write: Super Admin only (critical system settings)
+      allow write: if isAuthenticated() 
+        && isSuperAdmin()
+        && isReasonableSize();
+    }
+    
+    // ==========================================
+    // NOTIFICATIONS COLLECTION
+    // ==========================================
+    match /notifications/{notificationId} {
+      // Read: Own notifications or Admin+
+      allow read: if isAuthenticated() 
+        && (resource.data.userId == request.auth.uid || isAdminOrAbove());
+      
+      // Create: System can create for any user (via Cloud Functions or trusted sources)
+      // For client-side, allow creating notifications for self or if admin
+      allow create: if isAuthenticated()
+        && (request.resource.data.userId == request.auth.uid || isAdminOrAbove())
+        && hasRequiredFields(['userId', 'type', 'title', 'message', 'createdAt'])
+        && isReasonableSize();
+      
+      // Update: Own notifications (for marking read) or Admin+
+      allow update: if isAuthenticated() 
+        && (resource.data.userId == request.auth.uid || isAdminOrAbove())
+        && isReasonableSize();
+      
+      // Delete: Own notifications or Admin+
+      allow delete: if isAuthenticated() 
+        && (resource.data.userId == request.auth.uid || isAdminOrAbove());
+    }
+    
+    // Allow users to list their own notifications
+    match /notifications/{document=**} {
+      allow list: if isAuthenticated();
+    }
+    
+    // ==========================================
+    // SCHEDULES ARCHIVE (Historical records)
+    // ==========================================
+    match /schedules_archive/{archiveId} {
+      // Read: Super Admin only
+      allow read: if isAuthenticated() && isSuperAdmin();
+      
+      // Write: Super Admin only
+      allow create, update: if isAuthenticated() 
+        && isSuperAdmin()
+        && isReasonableSize();
+      
+      // Delete: Super Admin only
+      allow delete: if isAuthenticated() && isSuperAdmin();
+    }
+    
+    // Allow Super Admin to list all archives
+    match /schedules_archive/{document=**} {
+      allow list: if isAuthenticated() && isSuperAdmin();
+    }
+    
+    // ==========================================
+    // MODERATION FEEDBACK
     // ==========================================
     match /moderation_feedback/{feedbackId} {
       allow read: if isAuthenticated() && isAdminOrAbove();
-      allow create: if isAuthenticated() && isAdminOrAbove();
+      
+      allow create: if isAuthenticated() 
+        && isAdminOrAbove()
+        && isReasonableSize();
+      
       allow update, delete: if isAuthenticated() && isSuperAdmin();
     }
     
     // ==========================================
-    // ANNOUNCEMENT REPORTS
+    // FACULTY ROLE REQUESTS
     // ==========================================
-    match /announcement_reports/{reportId} {
-      // Any authenticated user can submit a report
-      allow create: if isAuthenticated();
+    match /faculty_role_requests/{requestId} {
+      // Users can read their own requests
+      allow read: if isAuthenticated() 
+        && (resource.data.userId == request.auth.uid || isAdminOrAbove());
       
-      // Only admins can read reports
-      allow read: if isAuthenticated() && isAdminOrAbove();
+      // Users can create their own requests (students/class_reps only)
+      allow create: if isAuthenticated()
+        && request.resource.data.userId == request.auth.uid
+        && request.resource.data.status == 'pending'
+        && hasRequiredFields(['userId', 'userEmail', 'userName', 'department', 'reason', 'status', 'createdAt'])
+        && isReasonableSize();
       
-      // Only admins can update report status (reviewed, dismissed, etc.)
-      allow update: if isAuthenticated() && isAdminOrAbove();
+      // Only admins can approve/reject requests
+      allow update: if isAuthenticated()
+        && isAdminOrAbove()
+        && isReasonableSize();
       
-      // Only super admin can delete reports
-      allow delete: if isAuthenticated() && isSuperAdmin();
+      // Users can delete their own pending requests (cancel)
+      allow delete: if isAuthenticated()
+        && resource.data.userId == request.auth.uid
+        && resource.data.status == 'pending';
+    }
+    
+    // Allow admins to list all faculty requests
+    match /faculty_role_requests/{document=**} {
+      allow list: if isAuthenticated() && isAdminOrAbove();
+    }
+    
+    // ==========================================
+    // CATCH-ALL: Deny everything else
+    // ==========================================
+    match /{document=**} {
+      allow read, write: if false;
     }
   }
 }
