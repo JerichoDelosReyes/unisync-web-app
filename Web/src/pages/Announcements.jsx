@@ -94,6 +94,7 @@ export default function Announcements() {
   const [loadingComments, setLoadingComments] = useState(false)
   const [commentText, setCommentText] = useState('')
   const [submittingComment, setSubmittingComment] = useState(false)
+  const [replyingTo, setReplyingTo] = useState(null) // { id, authorName } of comment being replied to
   
   // Create form state
   const [formData, setFormData] = useState({
@@ -204,6 +205,7 @@ export default function Announcements() {
       
       fetchCommentsData()
       setCommentText('')
+      setReplyingTo(null)
     }
   }, [selectedAnnouncement])
 
@@ -398,7 +400,8 @@ export default function Announcements() {
       const author = {
         uid: user.uid,
         name: `${userProfile.givenName} ${userProfile.lastName}`,
-        role: userProfile.role
+        role: userProfile.role,
+        photoURL: userProfile.photoURL || null
       }
       
       const result = await createAnnouncement(
@@ -617,22 +620,25 @@ export default function Announcements() {
       const author = {
         uid: user.uid,
         name: `${userProfile.givenName} ${userProfile.lastName}`,
-        role: userProfile.role
+        role: userProfile.role,
+        photoURL: userProfile.photoURL || null
       }
       
-      const newComment = await addComment(selectedAnnouncement.id, commentText.trim(), author, null, skipReviewQueue)
+      const newComment = await addComment(selectedAnnouncement.id, commentText.trim(), author, replyingTo?.id || null, skipReviewQueue)
       
       // Show appropriate feedback based on moderation result
       if (newComment.status === 'rejected') {
         showToast('Your comment contains inappropriate content and cannot be posted.', 'error')
       } else if (newComment.status === 'pending_review') {
         showToast('Your comment is being reviewed by moderators.', 'warning')
-        setComments(prev => [newComment, ...prev])
+        setComments(prev => [...prev, newComment])
         setCommentText('')
+        setReplyingTo(null)
       } else {
-        setComments(prev => [newComment, ...prev])
+        setComments(prev => [...prev, newComment])
         setCommentText('')
-        showToast('Comment added successfully!', 'success')
+        setReplyingTo(null)
+        showToast(replyingTo ? 'Reply added successfully!' : 'Comment added successfully!', 'success')
       }
     } catch (err) {
       console.error('Error adding comment:', err)
@@ -942,9 +948,13 @@ export default function Announcements() {
                     <div className="px-4 py-3 border-b border-gray-100">
                       <div className="flex items-start justify-between mb-3">
                         <div className="flex items-center gap-3 flex-1">
-                          <div className="w-10 h-10 rounded-full bg-green-600 flex items-center justify-center text-white font-bold text-sm flex-shrink-0">
-                            {announcement.authorName?.charAt(0) || 'U'}
-                          </div>
+                          {announcement.authorPhotoURL ? (
+                            <img src={announcement.authorPhotoURL} alt="" className="w-10 h-10 rounded-full object-cover flex-shrink-0" />
+                          ) : (
+                            <div className="w-10 h-10 rounded-full bg-green-600 flex items-center justify-center text-white font-bold text-sm flex-shrink-0">
+                              {announcement.authorName?.charAt(0) || 'U'}
+                            </div>
+                          )}
                           <div className="flex-1 min-w-0">
                             <p className="text-sm font-bold text-gray-900">{announcement.authorName}</p>
                             <p className="text-xs text-gray-500">{ROLE_DISPLAY_NAMES[announcement.authorRole]} • {formatDate(announcement.createdAt)}</p>
@@ -1236,9 +1246,13 @@ export default function Announcements() {
                     <div className="px-4 py-3 border-b border-gray-100">
                       <div className="flex items-start justify-between mb-3">
                         <div className="flex items-center gap-3 flex-1">
-                          <div className="w-10 h-10 rounded-full bg-green-600 flex items-center justify-center text-white font-bold text-sm flex-shrink-0">
-                            {announcement.authorName?.charAt(0) || 'U'}
-                          </div>
+                          {announcement.authorPhotoURL ? (
+                            <img src={announcement.authorPhotoURL} alt="" className="w-10 h-10 rounded-full object-cover flex-shrink-0" />
+                          ) : (
+                            <div className="w-10 h-10 rounded-full bg-green-600 flex items-center justify-center text-white font-bold text-sm flex-shrink-0">
+                              {announcement.authorName?.charAt(0) || 'U'}
+                            </div>
+                          )}
                           <div className="flex-1 min-w-0">
                             <p className="text-sm font-bold text-gray-900">{announcement.authorName}</p>
                             <p className="text-xs text-gray-500">{ROLE_DISPLAY_NAMES[announcement.authorRole]} • {formatDate(announcement.createdAt)}</p>
@@ -1292,9 +1306,13 @@ export default function Announcements() {
                   <div className="px-4 py-3 border-b border-amber-100">
                     <div className="flex items-start justify-between mb-3">
                       <div className="flex items-center gap-3 flex-1">
-                        <div className="w-10 h-10 rounded-full bg-green-600 flex items-center justify-center text-white font-bold text-sm flex-shrink-0">
-                          {announcement.authorName?.charAt(0) || 'U'}
-                        </div>
+                        {announcement.authorPhotoURL ? (
+                          <img src={announcement.authorPhotoURL} alt="" className="w-10 h-10 rounded-full object-cover flex-shrink-0" />
+                        ) : (
+                          <div className="w-10 h-10 rounded-full bg-green-600 flex items-center justify-center text-white font-bold text-sm flex-shrink-0">
+                            {announcement.authorName?.charAt(0) || 'U'}
+                          </div>
+                        )}
                         <div className="flex-1 min-w-0">
                           <p className="text-sm font-bold text-gray-900">{announcement.authorName}</p>
                           <p className="text-xs text-gray-500">{ROLE_DISPLAY_NAMES[announcement.authorRole]} • {formatDate(announcement.createdAt)}</p>
@@ -1763,9 +1781,13 @@ export default function Announcements() {
               <div className="px-4 py-3">
                 <div className="flex items-start justify-between mb-3">
                   <div className="flex items-center gap-3 flex-1">
-                    <div className="w-10 h-10 rounded-full bg-green-600 flex items-center justify-center text-white font-bold text-sm flex-shrink-0">
-                      {selectedAnnouncement.authorName?.charAt(0) || 'U'}
-                    </div>
+                    {selectedAnnouncement.authorPhotoURL ? (
+                      <img src={selectedAnnouncement.authorPhotoURL} alt="" className="w-10 h-10 rounded-full object-cover flex-shrink-0" />
+                    ) : (
+                      <div className="w-10 h-10 rounded-full bg-green-600 flex items-center justify-center text-white font-bold text-sm flex-shrink-0">
+                        {selectedAnnouncement.authorName?.charAt(0) || 'U'}
+                      </div>
+                    )}
                     <div className="flex-1 min-w-0">
                       <p className="font-bold text-gray-900 text-sm">{selectedAnnouncement.authorName}</p>
                       <p className="text-xs text-gray-500">{ROLE_DISPLAY_NAMES[selectedAnnouncement.authorRole]}</p>
@@ -1850,24 +1872,49 @@ export default function Announcements() {
               <div className="px-4 py-3 border-t border-gray-200">
                 <h3 className="text-sm font-bold text-gray-900 mb-4">Comments ({comments.length})</h3>
                 
+                {/* Reply indicator */}
+                {replyingTo && (
+                  <div className="mb-3 px-3 py-2 bg-blue-50 border border-blue-200 rounded-lg flex items-center justify-between">
+                    <p className="text-xs text-blue-700">
+                      Replying to <span className="font-semibold">{replyingTo.authorName}</span>
+                    </p>
+                    <button
+                      type="button"
+                      onClick={() => setReplyingTo(null)}
+                      className="text-blue-600 hover:text-blue-800"
+                    >
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                      </svg>
+                    </button>
+                  </div>
+                )}
+                
                 {/* Comment Input */}
                 <form onSubmit={handleAddComment} className="mb-4">
                   <div className="flex gap-3 mb-3">
-                    <div className="w-8 h-8 rounded-full bg-green-600 flex items-center justify-center text-white text-xs font-bold flex-shrink-0">
-                      {userProfile?.givenName?.charAt(0) || 'U'}
-                    </div>
+                    {userProfile?.photoURL ? (
+                      <img src={userProfile.photoURL} alt="" className="w-8 h-8 rounded-full object-cover flex-shrink-0" />
+                    ) : (
+                      <div className="w-8 h-8 rounded-full bg-green-600 flex items-center justify-center text-white text-xs font-bold flex-shrink-0">
+                        {userProfile?.givenName?.charAt(0) || 'U'}
+                      </div>
+                    )}
                     <div className="flex-1">
                       <textarea
                         value={commentText}
                         onChange={(e) => setCommentText(e.target.value)}
-                        placeholder="Share your thoughts..."
+                        placeholder={replyingTo ? `Reply to ${replyingTo.authorName}...` : "Share your thoughts..."}
                         rows={2}
                         className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent resize-none text-sm"
                       />
                       <div className="flex justify-end gap-2 mt-2">
                         <button
                           type="button"
-                          onClick={() => setCommentText('')}
+                          onClick={() => {
+                            setCommentText('')
+                            setReplyingTo(null)
+                          }}
                           className="px-3 py-1.5 text-xs font-semibold text-gray-600 bg-gray-100 rounded-lg hover:bg-gray-200 transition-all"
                         >
                           Cancel
@@ -1877,7 +1924,7 @@ export default function Announcements() {
                           disabled={submittingComment || !commentText.trim()}
                           className="px-3 py-1.5 text-xs font-semibold text-white bg-green-600 rounded-lg hover:bg-green-700 disabled:opacity-50 transition-all"
                         >
-                          {submittingComment ? 'Posting...' : 'Post'}
+                          {submittingComment ? 'Posting...' : (replyingTo ? 'Reply' : 'Post')}
                         </button>
                       </div>
                     </div>
@@ -1897,23 +1944,63 @@ export default function Announcements() {
                   <p className="text-center text-sm text-gray-500 py-8">No comments yet. Be the first to share your thoughts!</p>
                 ) : (
                   <div className="space-y-3 max-h-80 overflow-y-auto">
-                    {comments.map((comment) => (
-                      <div key={comment.id} className={`flex gap-3 ${comment.status === 'pending_review' ? 'opacity-60' : ''} ${comment.status === 'rejected' ? 'hidden' : ''}`}>
-                        <div className="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center text-white text-xs font-bold flex-shrink-0">
-                          {comment.authorName?.charAt(0) || 'U'}
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <div className={`rounded-lg px-3 py-2 ${comment.status === 'pending_review' ? 'bg-yellow-50 border border-yellow-200' : 'bg-gray-100'}`}>
-                            <div className="flex items-center gap-2">
-                              <p className="text-sm font-semibold text-gray-900">{comment.authorName}</p>
-                              {comment.status === 'pending_review' && (
-                                <span className="text-[10px] px-1.5 py-0.5 bg-yellow-200 text-yellow-800 rounded font-medium">Pending Review</span>
-                              )}
+                    {/* Parent comments (no parentId) */}
+                    {comments.filter(c => !c.parentId).map((comment) => (
+                      <div key={comment.id} className={`${comment.status === 'pending_review' ? 'opacity-60' : ''} ${comment.status === 'rejected' ? 'hidden' : ''}`}>
+                        <div className="flex gap-3">
+                          {comment.authorPhotoURL ? (
+                            <img src={comment.authorPhotoURL} alt="" className="w-8 h-8 rounded-full object-cover flex-shrink-0" />
+                          ) : (
+                            <div className="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center text-white text-xs font-bold flex-shrink-0">
+                              {comment.authorName?.charAt(0) || 'U'}
                             </div>
-                            <p className="text-sm text-gray-700 mt-0.5">{comment.content}</p>
+                          )}
+                          <div className="flex-1 min-w-0">
+                            <div className={`rounded-lg px-3 py-2 ${comment.status === 'pending_review' ? 'bg-yellow-50 border border-yellow-200' : 'bg-gray-100'}`}>
+                              <div className="flex items-center gap-2">
+                                <p className="text-sm font-semibold text-gray-900">{comment.authorName}</p>
+                                {comment.status === 'pending_review' && (
+                                  <span className="text-[10px] px-1.5 py-0.5 bg-yellow-200 text-yellow-800 rounded font-medium">Pending Review</span>
+                                )}
+                              </div>
+                              <p className="text-sm text-gray-700 mt-0.5">{comment.content}</p>
+                            </div>
+                            <div className="flex items-center gap-3 mt-1">
+                              <p className="text-xs text-gray-500">{formatDate(comment.createdAt)}</p>
+                              <button
+                                onClick={() => setReplyingTo({ id: comment.id, authorName: comment.authorName })}
+                                className="text-xs text-primary hover:text-primary/80 font-medium"
+                              >
+                                Reply
+                              </button>
+                            </div>
                           </div>
-                          <p className="text-xs text-gray-500 mt-1">{formatDate(comment.createdAt)}</p>
                         </div>
+                        
+                        {/* Replies to this comment */}
+                        {comments.filter(reply => reply.parentId === comment.id).map((reply) => (
+                          <div key={reply.id} className={`flex gap-3 ml-10 mt-2 ${reply.status === 'pending_review' ? 'opacity-60' : ''} ${reply.status === 'rejected' ? 'hidden' : ''}`}>
+                            {reply.authorPhotoURL ? (
+                              <img src={reply.authorPhotoURL} alt="" className="w-7 h-7 rounded-full object-cover flex-shrink-0" />
+                            ) : (
+                              <div className="w-7 h-7 rounded-full bg-green-600 flex items-center justify-center text-white text-[10px] font-bold flex-shrink-0">
+                                {reply.authorName?.charAt(0) || 'U'}
+                              </div>
+                            )}
+                            <div className="flex-1 min-w-0">
+                              <div className={`rounded-lg px-3 py-2 ${reply.status === 'pending_review' ? 'bg-yellow-50 border border-yellow-200' : 'bg-gray-50'}`}>
+                                <div className="flex items-center gap-2">
+                                  <p className="text-xs font-semibold text-gray-900">{reply.authorName}</p>
+                                  {reply.status === 'pending_review' && (
+                                    <span className="text-[10px] px-1.5 py-0.5 bg-yellow-200 text-yellow-800 rounded font-medium">Pending</span>
+                                  )}
+                                </div>
+                                <p className="text-xs text-gray-700 mt-0.5">{reply.content}</p>
+                              </div>
+                              <p className="text-[10px] text-gray-500 mt-1">{formatDate(reply.createdAt)}</p>
+                            </div>
+                          </div>
+                        ))}
                       </div>
                     ))}
                   </div>

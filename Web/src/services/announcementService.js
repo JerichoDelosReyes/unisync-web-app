@@ -35,6 +35,13 @@ import {
   deleteObject
 } from 'firebase/storage'
 import { moderateContent, addModerationFeedback } from './moderationService'
+import { 
+  notifyAnnouncementApproved, 
+  notifyAnnouncementRejected,
+  notifyUrgentAnnouncement,
+  notifyAnnouncementReaction,
+  notifyAnnouncementComment
+} from './notificationService'
 
 // Collection name
 const COLLECTION_NAME = 'announcements'
@@ -188,6 +195,7 @@ export const createAnnouncement = async (data, files = [], author, skipReviewQue
       authorId: author.uid,
       authorName: author.name,
       authorRole: author.role,
+      authorPhotoURL: author.photoURL || null,
       status,
       moderationResult: {
         confidence: moderationResult.confidence ?? 1.0,
@@ -219,6 +227,28 @@ export const createAnnouncement = async (data, files = [], author, skipReviewQue
         media: mediaItems,
         updatedAt: serverTimestamp()
       })
+    }
+
+    // Send urgent announcement notifications if approved and urgent
+    if (status === ANNOUNCEMENT_STATUS.APPROVED && data.priority === PRIORITY_LEVELS.URGENT) {
+      try {
+        // Get all users to notify (for urgent announcements, notify everyone)
+        const usersSnapshot = await getDocs(collection(db, 'users'))
+        const userIds = usersSnapshot.docs
+          .map(doc => doc.id)
+          .filter(uid => uid !== author.uid) // Don't notify the author
+        
+        if (userIds.length > 0) {
+          await notifyUrgentAnnouncement(userIds, {
+            id: announcementId,
+            title: data.title,
+            authorName: author.name
+          })
+        }
+      } catch (notifyError) {
+        console.error('Error sending urgent announcement notifications:', notifyError)
+        // Don't fail the announcement creation if notifications fail
+      }
     }
     
     return {
@@ -412,6 +442,16 @@ export const approveAnnouncement = async (announcementId, reviewerNote = '') => 
       reviewedAt: serverTimestamp(),
       updatedAt: serverTimestamp()
     })
+
+    // Notify the author that their announcement was approved
+    try {
+      await notifyAnnouncementApproved(announcement.authorId, {
+        id: announcementId,
+        title: announcement.title
+      })
+    } catch (notifyError) {
+      console.error('Error sending approval notification:', notifyError)
+    }
     
     return { success: true }
   } catch (error) {
@@ -440,6 +480,16 @@ export const rejectAnnouncement = async (announcementId, rejectionReason = '') =
       reviewedAt: serverTimestamp(),
       updatedAt: serverTimestamp()
     })
+
+    // Notify the author that their announcement was rejected
+    try {
+      await notifyAnnouncementRejected(announcement.authorId, {
+        id: announcementId,
+        title: announcement.title
+      }, rejectionReason)
+    } catch (notifyError) {
+      console.error('Error sending rejection notification:', notifyError)
+    }
     
     return { success: true }
   } catch (error) {
@@ -572,6 +622,7 @@ export const toggleReaction = async (announcementId, reactionType, user) => {
     const existingReactionIndex = currentReactionUsers.findIndex(r => r.uid === user.uid)
     
     let updatedReactions = { ...reactions }
+    let isAddingReaction = false
     
     if (existingReactionIndex >= 0) {
       // Remove reaction
@@ -594,12 +645,29 @@ export const toggleReaction = async (announcementId, reactionType, user) => {
         uid: user.uid, 
         name: user.displayName || user.name || 'Unknown' 
       }]
+      isAddingReaction = true
     }
     
     await updateDoc(announcementRef, {
       reactions: updatedReactions,
       updatedAt: serverTimestamp()
     })
+
+    // Notify announcement author about new reaction (only when adding, not removing)
+    if (isAddingReaction && announcement.authorId !== user.uid) {
+      try {
+        await notifyAnnouncementReaction(announcement.authorId, {
+          announcementId,
+          announcementTitle: announcement.title,
+          reactorId: user.uid,
+          reactorName: user.displayName || user.name || 'Someone',
+          reactionType: reactionKey,
+          reactionEmoji: REACTIONS[reactionType.toUpperCase()] || '👍'
+        })
+      } catch (notifyError) {
+        console.error('Error sending reaction notification:', notifyError)
+      }
+    }
     
     return {
       reactions: updatedReactions,
@@ -667,6 +735,7 @@ export const addComment = async (announcementId, content, author, parentId = nul
       authorId: author.uid,
       authorName: author.name,
       authorRole: author.role,
+      authorPhotoURL: author.photoURL || null,
       parentId,
       status,
       moderationResult: {
@@ -688,6 +757,25 @@ export const addComment = async (announcementId, content, author, parentId = nul
       commentCount: increment(1),
       updatedAt: serverTimestamp()
     })
+
+    // Notify announcement author about new comment (only if approved)
+    if (status === COMMENT_STATUS.APPROVED) {
+      try {
+        const announcement = await getAnnouncement(announcementId)
+        if (announcement && announcement.authorId !== author.uid) {
+          await notifyAnnouncementComment(announcement.authorId, {
+            announcementId,
+            commentId: docRef.id,
+            announcementTitle: announcement.title,
+            commenterId: author.uid,
+            commenterName: author.name,
+            commentContent: content
+          })
+        }
+      } catch (notifyError) {
+        console.error('Error sending comment notification:', notifyError)
+      }
+    }
     
     return {
       id: docRef.id,

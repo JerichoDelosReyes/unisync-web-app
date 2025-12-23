@@ -18,6 +18,7 @@ import {
   updateDoc,
   serverTimestamp
 } from 'firebase/firestore';
+import { notifyWelcome } from './notificationService';
 
 // ============================================
 // CONSTANTS
@@ -246,6 +247,15 @@ export const completeRegistration = async (userData) => {
       try {
         await setDoc(doc(db, 'users', user.uid), userDocData);
         console.log('✅ User document created in Firestore');
+        
+        // Send welcome notification
+        try {
+          await notifyWelcome(user.uid, givenName);
+        } catch (notifyError) {
+          console.error('Error sending welcome notification:', notifyError);
+          // Don't fail registration if notification fails
+        }
+        
         return {
           success: true,
           message: 'Account created successfully!'

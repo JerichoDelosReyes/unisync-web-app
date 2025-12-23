@@ -282,11 +282,11 @@ service cloud.firestore {
       allow read: if isAuthenticated() 
         && (resource.data.userId == request.auth.uid || isAdminOrAbove());
       
-      // Create: System can create for any user (via Cloud Functions or trusted sources)
-      // For client-side, allow creating notifications for self or if admin
+      // Create: Any authenticated user can create notifications
+      // This allows the system to send notifications between users
+      // (e.g., notify post author when someone comments)
       allow create: if isAuthenticated()
-        && (request.resource.data.userId == request.auth.uid || isAdminOrAbove())
-        && hasRequiredFields(['userId', 'type', 'title', 'message', 'createdAt'])
+        && hasRequiredFields(['userId', 'type', 'title', 'message'])
         && isReasonableSize();
       
       // Update: Own notifications (for marking read) or Admin+

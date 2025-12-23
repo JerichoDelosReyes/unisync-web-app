@@ -29,6 +29,7 @@ import {
   arrayUnion,
   arrayRemove
 } from 'firebase/firestore';
+import { notifyNewStudentEnrolled, notifyScheduleCodeClaimed } from './notificationService';
 
 const CLASS_SECTIONS_COLLECTION = 'class_sections';
 
@@ -54,9 +55,11 @@ export const claimScheduleCode = async (scheduleCode, professor) => {
 
     const sectionRef = doc(db, CLASS_SECTIONS_COLLECTION, cleanCode);
     const existingDoc = await getDoc(sectionRef);
+    let enrolledStudents = [];
 
     if (existingDoc.exists()) {
       const existingData = existingDoc.data();
+      enrolledStudents = existingData.enrolledStudents || [];
       
       // Check if already claimed by another professor
       if (existingData.professorId && existingData.professorId !== professor.uid) {
@@ -87,6 +90,7 @@ export const claimScheduleCode = async (scheduleCode, professor) => {
         startTime: null,
         endTime: null,
         section: null,
+        enrolledStudents: [],
         studentCount: 0,
         claimedAt: serverTimestamp(),
         createdAt: serverTimestamp(),
@@ -96,10 +100,29 @@ export const claimScheduleCode = async (scheduleCode, professor) => {
 
     // Return the updated document
     const updatedDoc = await getDoc(sectionRef);
-    return {
+    const result = {
       id: updatedDoc.id,
       ...updatedDoc.data()
     };
+
+    // Notify enrolled students about the professor assignment
+    if (enrolledStudents.length > 0 && result.subject) {
+      try {
+        await notifyScheduleCodeClaimed(enrolledStudents, {
+          scheduleCode: cleanCode,
+          subject: result.subject,
+          professorName: result.professorName,
+          day: result.day,
+          startTime: result.startTime,
+          endTime: result.endTime
+        });
+      } catch (notifyError) {
+        console.error('Error sending notifications:', notifyError);
+        // Don't fail the claim operation if notifications fail
+      }
+    }
+
+    return result;
   } catch (error) {
     console.error('Error claiming schedule code:', error);
     throw error;
@@ -246,23 +269,32 @@ export const updateClassSectionFromStudent = async (scheduleCode, scheduleDetail
       updatedAt: serverTimestamp()
     };
 
+    let isNewEnrollment = false;
+    let professorId = null;
+    let newStudentCount = 1;
+
     if (existingDoc.exists()) {
       const existingData = existingDoc.data();
       const enrolledStudents = existingData.enrolledStudents || [];
+      professorId = existingData.professorId;
       
       // Only add if student not already enrolled
       if (studentUid && !enrolledStudents.includes(studentUid)) {
+        isNewEnrollment = true;
+        newStudentCount = enrolledStudents.length + 1;
         await updateDoc(sectionRef, {
           ...updateData,
           enrolledStudents: arrayUnion(studentUid),
-          studentCount: enrolledStudents.length + 1
+          studentCount: newStudentCount
         });
       } else {
         // Student already enrolled, just update details without incrementing count
+        newStudentCount = enrolledStudents.length;
         await updateDoc(sectionRef, updateData);
       }
     } else {
       // Create new document (no professor yet - TBA scenario)
+      isNewEnrollment = true;
       await setDoc(sectionRef, {
         scheduleCode: cleanCode,
         ...updateData,
@@ -278,10 +310,27 @@ export const updateClassSectionFromStudent = async (scheduleCode, scheduleDetail
     }
 
     const updatedDoc = await getDoc(sectionRef);
-    return {
+    const result = {
       id: updatedDoc.id,
       ...updatedDoc.data()
     };
+
+    // Notify professor about new student enrollment (if professor is assigned)
+    if (isNewEnrollment && professorId && scheduleDetails.subject) {
+      try {
+        await notifyNewStudentEnrolled(professorId, {
+          scheduleCode: cleanCode,
+          subject: scheduleDetails.subject,
+          section: scheduleDetails.section || 'Unknown',
+          studentCount: newStudentCount
+        });
+      } catch (notifyError) {
+        console.error('Error sending enrollment notification:', notifyError);
+        // Don't fail the enrollment if notification fails
+      }
+    }
+
+    return result;
   } catch (error) {
     console.error('Error updating class section from student:', error);
     throw error;

@@ -20,6 +20,7 @@ import Moderation from './pages/Moderation'
 import SystemSettings from './pages/SystemSettings'
 import ScheduleArchive from './pages/ScheduleArchive'
 import FacultyRequests from './pages/FacultyRequests'
+import Profile from './pages/Profile'
 
 export default function App() {
   return (
@@ -45,6 +46,7 @@ export default function App() {
           <Route path="/announcements" element={<Announcements />} />
           <Route path="/schedule" element={<Schedule />} />
           <Route path="/rooms" element={<Rooms />} />
+          <Route path="/profile" element={<Profile />} />
           
           {/* Faculty and above only */}
           <Route

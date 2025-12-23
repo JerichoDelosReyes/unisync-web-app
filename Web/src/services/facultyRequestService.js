@@ -23,6 +23,7 @@ import {
 } from 'firebase/firestore'
 import { db } from '../config/firebase'
 import { updateDocument } from './dbService'
+import { notifyFacultyRequestApproved, notifyFacultyRequestRejected } from './notificationService'
 
 const FACULTY_REQUESTS_COLLECTION = 'faculty_role_requests'
 
@@ -210,6 +211,16 @@ export async function approveFacultyRequest(requestId, reviewerId) {
     facultyApprovedAt: serverTimestamp(),
     facultyApprovedBy: reviewerId
   })
+
+  // Send notification to user
+  try {
+    await notifyFacultyRequestApproved(requestData.userId, {
+      department: requestData.department
+    })
+  } catch (notifyError) {
+    console.error('Error sending approval notification:', notifyError)
+    // Don't fail the approval if notification fails
+  }
 }
 
 /**
@@ -240,6 +251,14 @@ export async function rejectFacultyRequest(requestId, reviewerId, reason) {
     rejectionReason: reason.trim(),
     updatedAt: serverTimestamp()
   })
+
+  // Send notification to user
+  try {
+    await notifyFacultyRequestRejected(requestData.userId, reason.trim())
+  } catch (notifyError) {
+    console.error('Error sending rejection notification:', notifyError)
+    // Don't fail the rejection if notification fails
+  }
 }
 
 /**

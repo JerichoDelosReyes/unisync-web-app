@@ -42,6 +42,8 @@ export const saveStudentSchedule = async (userId, scheduleData, studentInfo = {}
       course: studentInfo.course || '',
       yearLevel: studentInfo.yearLevel || '',
       section: studentInfo.section || '',
+      studentId: studentInfo.studentId || '',
+      studentName: studentInfo.studentName || '',
       updatedAt: serverTimestamp(),
       createdAt: serverTimestamp()
     }, { merge: true });
@@ -71,7 +73,9 @@ export const getStudentSchedule = async (userId) => {
         schoolYear: data.schoolYear || '',
         course: data.course || '',
         yearLevel: data.yearLevel || '',
-        section: data.section || ''
+        section: data.section || '',
+        studentId: data.studentId || '',
+        studentName: data.studentName || ''
       };
     }
     return {
@@ -80,7 +84,9 @@ export const getStudentSchedule = async (userId) => {
       schoolYear: '',
       course: '',
       yearLevel: '',
-      section: ''
+      section: '',
+      studentId: '',
+      studentName: ''
     };
   } catch (error) {
     console.error('Error getting schedule:', error);

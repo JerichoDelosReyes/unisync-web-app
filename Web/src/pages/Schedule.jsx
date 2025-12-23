@@ -1,6 +1,8 @@
 import { useState, useRef, useEffect } from 'react'
 import * as pdfjsLib from 'pdfjs-dist'
 import { useAuth, ROLES } from '../contexts/AuthContext'
+import { doc, updateDoc, serverTimestamp } from 'firebase/firestore'
+import { db } from '../config/firebase'
 import {
   saveStudentSchedule,
   getStudentSchedule,
@@ -260,7 +262,40 @@ const parseRegistrationForm = (text) => {
     schoolYear: '',
     course: '',
     yearLevel: '',
-    section: ''
+    section: '',
+    studentId: '',
+    studentName: ''
+  }
+  
+  // Extract Student Number (e.g., "Student Number: 202221022" or "Student No.: 202221022")
+  const studentIdPatterns = [
+    /Student\s*(?:Number|No\.?)\s*:?\s*(\d{9,12})/i,    // Student Number: 202221022
+    /(?:Student\s*)?ID\s*(?:Number|No\.?)?\s*:?\s*(\d{9,12})/i,  // ID Number: 202221022
+    /(?:^|\s)(\d{9})(?:\s|$)/,  // 9-digit number standalone (common student ID format)
+  ]
+  
+  for (const pattern of studentIdPatterns) {
+    const studentIdMatch = cleanText.match(pattern)
+    if (studentIdMatch) {
+      studentInfo.studentId = studentIdMatch[1]
+      console.log('Student ID found:', studentInfo.studentId)
+      break
+    }
+  }
+  
+  // Extract Student Name (e.g., "Student Name: DELA CRUZ, JUAN MIGUEL B.")
+  const studentNamePatterns = [
+    /Student\s*Name\s*:?\s*([A-Z][A-Z\s\.,]+?)(?:\s+(?:Student|Course|Year|Semester|FIRST|SECOND|IRREGULAR|\d{4}|BSCS|BSIT|BSIS|BSEMC))/i,
+    /Name\s*:?\s*([A-Z][A-Z\s\.,]+?)(?:\s+(?:Student|Course|Year|Semester))/i,
+  ]
+  
+  for (const pattern of studentNamePatterns) {
+    const nameMatch = cleanText.match(pattern)
+    if (nameMatch) {
+      studentInfo.studentName = nameMatch[1].trim()
+      console.log('Student Name found:', studentInfo.studentName)
+      break
+    }
   }
   
   // Extract semester (1st Semester, 2nd Semester, Summer)
@@ -1099,7 +1134,7 @@ export default function Schedule() {
 
 // Student Schedule View Component (original Schedule component logic)
 function StudentScheduleView() {
-  const { user, userProfile } = useAuth()
+  const { user, userProfile, refreshProfile } = useAuth()
   const [currentWeek, setCurrentWeek] = useState(new Date())
   const [scheduleData, setScheduleData] = useState([])
   const [studentInfo, setStudentInfo] = useState({
@@ -1319,6 +1354,39 @@ function StudentScheduleView() {
         await saveStudentSchedule(user.uid, extractedSchedule, extractedStudentInfo)
         setScheduleData(extractedSchedule)
         setStudentInfo(extractedStudentInfo)
+        
+        // Auto-update user profile with extracted student information
+        try {
+          const profileUpdateData = {
+            updatedAt: serverTimestamp()
+          }
+          
+          // Add student info fields if they were extracted
+          if (extractedStudentInfo.studentId) {
+            profileUpdateData.studentId = extractedStudentInfo.studentId
+          }
+          if (extractedStudentInfo.course) {
+            profileUpdateData.course = extractedStudentInfo.course
+          }
+          if (extractedStudentInfo.yearLevel) {
+            profileUpdateData.yearLevel = extractedStudentInfo.yearLevel
+          }
+          if (extractedStudentInfo.section) {
+            profileUpdateData.section = extractedStudentInfo.section
+          }
+          
+          // Update user profile in Firestore
+          await updateDoc(doc(db, 'users', user.uid), profileUpdateData)
+          console.log('User profile updated with student info:', profileUpdateData)
+          
+          // Refresh user profile in context so UI updates immediately
+          if (refreshProfile) {
+            await refreshProfile()
+          }
+        } catch (profileError) {
+          console.error('Error updating user profile:', profileError)
+          // Don't fail the entire upload if profile update fails
+        }
         
         // Register each schedule entry with class_sections for Schedule Code Matchmaking
         // This allows professors to see which classes have students enrolled
