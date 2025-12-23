@@ -1792,9 +1792,9 @@ export default function Announcements() {
               {selectedAnnouncement.media?.length > 0 && (
                 <div className="bg-gray-100">
                   {selectedAnnouncement.media.length === 1 ? (
-                    <div className="w-full max-h-96 overflow-hidden cursor-pointer" onClick={() => openMediaViewer(selectedAnnouncement.media[0], 0, selectedAnnouncement.media)}>
+                    <div className="w-full cursor-pointer" onClick={() => openMediaViewer(selectedAnnouncement.media[0], 0, selectedAnnouncement.media)}>
                       {selectedAnnouncement.media[0].type === 'image' ? (
-                        <img src={selectedAnnouncement.media[0].url} alt="" className="w-full h-full object-cover hover:scale-105 transition-transform" />
+                        <img src={selectedAnnouncement.media[0].url} alt="" className="w-full h-auto object-contain hover:opacity-90 transition-opacity" />
                       ) : (
                         <div className="w-full aspect-video flex items-center justify-center bg-gray-300">
                           <svg className="w-16 h-16 text-gray-600" fill="currentColor" viewBox="0 0 24 24">
@@ -1952,7 +1952,7 @@ export default function Announcements() {
 
       {/* Media Viewer Modal */}
       {mediaViewer.open && mediaViewer.media && (
-        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/90">
+        <div className="fixed inset-0 z-[150] flex items-center justify-center bg-black/90">
           {/* Close button */}
           <button
             onClick={() => setMediaViewer({ open: false, media: null, index: 0, allMedia: [] })}
