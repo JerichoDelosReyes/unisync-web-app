@@ -964,7 +964,7 @@ const ScheduleDetailModal = ({
   )
 }
 
-// Schedule Card Component
+// Schedule Card Component - Adaptive design that shows all details
 const ScheduleCard = ({ schedule, style, onClick, classSectionProfessors = {} }) => {
   // Use professor name from Schedule Code Matchmaking if available, otherwise fall back to stored name
   const professorName = schedule.scheduleCode && classSectionProfessors[schedule.scheduleCode]
@@ -974,41 +974,84 @@ const ScheduleCard = ({ schedule, style, onClick, classSectionProfessors = {} })
   // Display classSection if set (for irregulars), otherwise use schedule.section
   const displaySection = schedule.classSection || schedule.section
   
+  // Get card height from style to determine layout
+  const cardHeight = parseInt(style?.height) || 0
+  
+  // Determine layout based on available height
+  // Tiny: < 45px - just subject
+  // Small: 45-70px - subject + room inline
+  // Medium: 70-110px - subject, room/professor inline, badges
+  // Large: > 110px - full layout with spacing
+  const isTiny = cardHeight < 45
+  const isSmall = cardHeight >= 45 && cardHeight < 70
+  const isMedium = cardHeight >= 70 && cardHeight < 110
+  const isLarge = cardHeight >= 110
+  
   return (
     <div
-      className="absolute left-1 right-1 bg-primary rounded-lg p-2 overflow-hidden cursor-pointer hover:bg-primary/90 hover:scale-[1.02] transition-all shadow-sm hover:shadow-md"
+      className="absolute left-1 right-1 bg-primary rounded-md overflow-hidden cursor-pointer hover:bg-primary/90 hover:shadow-md transition-all"
       style={style}
       onClick={() => onClick(schedule)}
+      title={`${schedule.subject}\n${schedule.room} • ${displaySection}\n${schedule.startTime} - ${schedule.endTime}\n${professorName}`}
     >
-      <h4 className="font-semibold text-white text-sm truncate">{schedule.subject}</h4>
-      <div className="flex items-center gap-1 text-white/80 text-xs mt-1">
-        <svg className="w-3 h-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
-        </svg>
-        <span className="truncate">{schedule.room}</span>
-      </div>
-      <div className="flex items-center gap-1 text-white/80 text-xs mt-0.5">
-        <svg className="w-3 h-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-        </svg>
-        <span className="truncate">{professorName}</span>
-      </div>
-      <div className="mt-2 flex items-center gap-1.5 flex-wrap">
-        <span className="inline-block px-2 py-0.5 bg-white/20 rounded text-white text-xs font-medium">
-          {displaySection}
-        </span>
-        {schedule.classSection && schedule.classSection !== schedule.section && (
-          <span className="inline-block px-1.5 py-0.5 bg-purple-400/40 rounded text-white text-[10px]">
-            Class
-          </span>
-        )}
-        {schedule.scheduleCode && (
-          <span className="inline-block px-2 py-0.5 bg-yellow-400/30 rounded text-white text-xs font-mono">
-            {schedule.scheduleCode}
-          </span>
-        )}
-      </div>
+      {/* Tiny View - Subject only */}
+      {isTiny && (
+        <div className="px-1.5 py-0.5 h-full flex items-center">
+          <h4 className="font-medium text-white text-[10px] leading-tight truncate">{schedule.subject}</h4>
+        </div>
+      )}
+      
+      {/* Small View - Subject + Room inline */}
+      {isSmall && (
+        <div className="p-1.5 h-full flex flex-col justify-center">
+          <h4 className="font-semibold text-white text-[11px] leading-tight truncate">{schedule.subject}</h4>
+          <div className="text-white/80 text-[9px] truncate mt-0.5">
+            {schedule.room}
+          </div>
+        </div>
+      )}
+      
+      {/* Medium View - Compact full info */}
+      {isMedium && (
+        <div className="p-1.5 h-full flex flex-col">
+          <h4 className="font-semibold text-white text-xs leading-tight line-clamp-2">{schedule.subject}</h4>
+          <div className="flex-1 min-h-0 flex flex-col justify-end">
+            <div className="text-white/80 text-[9px] truncate">{schedule.room}</div>
+            <div className="text-white/70 text-[9px] truncate">{professorName}</div>
+            <div className="flex items-center gap-0.5 mt-0.5">
+              <span className="px-1 py-0.5 bg-white/20 rounded text-white text-[8px] font-medium truncate max-w-[70px]">
+                {displaySection}
+              </span>
+              {schedule.scheduleCode && (
+                <span className="px-1 py-0.5 bg-yellow-400/30 rounded text-white text-[8px] font-mono">
+                  {schedule.scheduleCode.slice(-4)}
+                </span>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+      
+      {/* Large View - Full layout with better spacing */}
+      {isLarge && (
+        <div className="p-2 h-full flex flex-col">
+          <h4 className="font-semibold text-white text-sm leading-tight line-clamp-2">{schedule.subject}</h4>
+          <div className="flex-1 min-h-0 flex flex-col justify-center mt-1 space-y-0.5">
+            <div className="text-white/90 text-[11px] truncate">{schedule.room}</div>
+            <div className="text-white/80 text-[11px] truncate">{professorName}</div>
+          </div>
+          <div className="flex items-center gap-1 mt-1 flex-wrap">
+            <span className="px-1.5 py-0.5 bg-white/20 rounded text-white text-[9px] font-medium">
+              {displaySection}
+            </span>
+            {schedule.scheduleCode && (
+              <span className="px-1.5 py-0.5 bg-yellow-400/30 rounded text-white text-[9px] font-mono">
+                {schedule.scheduleCode.slice(-4)}
+              </span>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   )
 }
@@ -1074,6 +1117,7 @@ function StudentScheduleView() {
   // Real-time professor names from Schedule Code Matchmaking
   const [classSectionProfessors, setClassSectionProfessors] = useState({})
   const [isSaving, setIsSaving] = useState(false)
+  const [viewMode, setViewMode] = useState('grid') // 'grid' or 'list'
   const [errorModal, setErrorModal] = useState({ isOpen: false, title: '', message: '', details: '' })
 
   // Load saved schedule on mount
@@ -1353,36 +1397,60 @@ function StudentScheduleView() {
   }
 
   // Update class section for irregular students
+  // When setting a section for a course, apply to ALL schedules with the same course code
   const handleUpdateClassSection = async (scheduleId, newClassSection) => {
     if (!user) return
     
     try {
-      // Update local state
-      const updatedSchedule = scheduleData.map(item => 
-        item.id === scheduleId 
-          ? { ...item, classSection: newClassSection }
-          : item
-      )
+      // Find the schedule item being updated
+      const targetSchedule = scheduleData.find(item => item.id === scheduleId)
+      if (!targetSchedule) return
+      
+      // Extract course code from subject (e.g., "COSC 101" from "COSC 101 - CS ELECTIVE 1")
+      const courseCodeMatch = targetSchedule.subject?.match(/^([A-Z]+\s*\d+)/i)
+      const courseCode = courseCodeMatch ? courseCodeMatch[1].toUpperCase() : null
+      
+      // Update local state - apply to ALL schedules with the same course code
+      const updatedSchedule = scheduleData.map(item => {
+        // Check if this item has the same course code
+        const itemCourseMatch = item.subject?.match(/^([A-Z]+\s*\d+)/i)
+        const itemCourseCode = itemCourseMatch ? itemCourseMatch[1].toUpperCase() : null
+        
+        if (courseCode && itemCourseCode === courseCode) {
+          // Same course code - apply the section change
+          return { ...item, classSection: newClassSection }
+        }
+        return item
+      })
       setScheduleData(updatedSchedule)
       
-      // Update selected schedule if it's the one being edited
-      if (selectedSchedule && selectedSchedule.id === scheduleId) {
-        setSelectedSchedule({ ...selectedSchedule, classSection: newClassSection })
+      // Update selected schedule if it's one of the affected ones
+      if (selectedSchedule) {
+        const selectedCourseMatch = selectedSchedule.subject?.match(/^([A-Z]+\s*\d+)/i)
+        const selectedCourseCode = selectedCourseMatch ? selectedCourseMatch[1].toUpperCase() : null
+        if (courseCode && selectedCourseCode === courseCode) {
+          setSelectedSchedule({ ...selectedSchedule, classSection: newClassSection })
+        }
       }
       
       // Save to Firebase
       await saveStudentSchedule(user.uid, updatedSchedule, studentInfo)
       
-      // Update class_sections with the new section for this schedule code
-      const scheduleItem = scheduleData.find(item => item.id === scheduleId)
-      if (scheduleItem?.scheduleCode) {
+      // Update class_sections for ALL affected schedule codes
+      const affectedSchedules = updatedSchedule.filter(item => {
+        const itemCourseMatch = item.subject?.match(/^([A-Z]+\s*\d+)/i)
+        const itemCourseCode = itemCourseMatch ? itemCourseMatch[1].toUpperCase() : null
+        return courseCode && itemCourseCode === courseCode && item.scheduleCode
+      })
+      
+      for (const scheduleItem of affectedSchedules) {
         await updateClassSectionFromStudent(scheduleItem.scheduleCode, {
           subject: scheduleItem.subject,
           room: scheduleItem.room,
           day: scheduleItem.day,
           startTime: scheduleItem.startTime,
           endTime: scheduleItem.endTime,
-          section: newClassSection // Use the irregular's chosen class section
+          section: newClassSection
         }, user.uid)
       }
       
@@ -1402,7 +1470,7 @@ function StudentScheduleView() {
     return scheduleData.filter(schedule => schedule.day === day)
   }
 
-  const cellHeight = 60 // Height of each time slot cell in pixels
+  const cellHeight = 50 // Height of each time slot cell in pixels (optimized for 1-hour slots)
 
   return (
     <div className="space-y-6">
@@ -1451,7 +1519,7 @@ function StudentScheduleView() {
 
       {/* Student Info Card */}
       {scheduleData.length > 0 && (studentInfo.semester || studentInfo.schoolYear || studentInfo.course || studentInfo.yearLevel) && (
-        <div className="bg-gradient-to-r from-primary/5 to-primary/10 border border-primary/20 rounded-xl p-5">
+        <div className="bg-primary/5 border border-primary/20 rounded-xl p-5">
           <div className="flex items-center gap-3 mb-4">
             <div className="w-10 h-10 bg-primary/20 rounded-full flex items-center justify-center">
               <svg className="w-5 h-5 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1509,36 +1577,140 @@ function StudentScheduleView() {
         <EmptyState onUploadClick={() => setIsModalOpen(true)} />
       ) : (
         <>
-          {/* Week Navigation */}
-          <div className="flex items-center gap-2">
-            <button
-              onClick={goToPreviousWeek}
-              className="p-2 rounded-lg border border-gray-300 hover:bg-gray-50 transition-colors"
-            >
-              <svg className="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-              </svg>
-            </button>
-            <button
-              onClick={goToCurrentWeek}
-              className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
-            >
-              This Week
-            </button>
-            <button
-              onClick={goToNextWeek}
-              className="p-2 rounded-lg border border-gray-300 hover:bg-gray-50 transition-colors"
-            >
-              <svg className="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-              </svg>
-            </button>
-            <span className="ml-2 text-sm text-gray-500">
-              {scheduleData.length} class{scheduleData.length !== 1 ? 'es' : ''} scheduled
-            </span>
+          {/* Controls: Week Navigation + View Toggle */}
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div className="flex items-center gap-2">
+              <button
+                onClick={goToPreviousWeek}
+                className="p-2 rounded-lg border border-gray-300 hover:bg-gray-50 transition-colors"
+              >
+                <svg className="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                </svg>
+              </button>
+              <button
+                onClick={goToCurrentWeek}
+                className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+              >
+                This Week
+              </button>
+              <button
+                onClick={goToNextWeek}
+                className="p-2 rounded-lg border border-gray-300 hover:bg-gray-50 transition-colors"
+              >
+                <svg className="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                </svg>
+              </button>
+              <span className="ml-2 text-sm text-gray-500">
+                {scheduleData.length} class{scheduleData.length !== 1 ? 'es' : ''}
+              </span>
+            </div>
+            
+            {/* View Toggle */}
+            <div className="flex items-center bg-gray-100 rounded-lg p-1">
+              <button
+                onClick={() => setViewMode('grid')}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
+                  viewMode === 'grid' 
+                    ? 'bg-white text-gray-900 shadow-sm' 
+                    : 'text-gray-600 hover:text-gray-900'
+                }`}
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
+                </svg>
+                Grid
+              </button>
+              <button
+                onClick={() => setViewMode('list')}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
+                  viewMode === 'list' 
+                    ? 'bg-white text-gray-900 shadow-sm' 
+                    : 'text-gray-600 hover:text-gray-900'
+                }`}
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 10h16M4 14h16M4 18h16" />
+                </svg>
+                List
+              </button>
+            </div>
           </div>
 
-          {/* Schedule Grid */}
+          {/* List View */}
+          {viewMode === 'list' && (
+            <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+              <div className="divide-y divide-gray-100">
+                {days.map((day) => {
+                  const daySchedules = getSchedulesForDay(day)
+                  if (daySchedules.length === 0) return null
+                  
+                  return (
+                    <div key={day}>
+                      <div className="bg-gray-50 px-4 py-2 border-b border-gray-200">
+                        <h3 className="font-semibold text-gray-700">{day}</h3>
+                      </div>
+                      <div className="divide-y divide-gray-50">
+                        {daySchedules
+                          .sort((a, b) => a.startTime.localeCompare(b.startTime))
+                          .map((schedule) => {
+                            const professorName = schedule.scheduleCode && classSectionProfessors[schedule.scheduleCode]
+                              ? classSectionProfessors[schedule.scheduleCode]
+                              : schedule.professor || 'TBA'
+                            const displaySection = schedule.classSection || schedule.section
+                            
+                            return (
+                              <div
+                                key={schedule.id}
+                                onClick={() => handleScheduleClick(schedule)}
+                                className="px-4 py-3 hover:bg-gray-50 cursor-pointer transition-colors flex items-start gap-4"
+                              >
+                                <div className="flex-shrink-0 w-20 text-center">
+                                  <div className="text-sm font-semibold text-primary">{schedule.startTime}</div>
+                                  <div className="text-xs text-gray-400">to</div>
+                                  <div className="text-sm font-semibold text-primary">{schedule.endTime}</div>
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                  <h4 className="font-semibold text-gray-900">{schedule.subject}</h4>
+                                  <div className="flex flex-wrap items-center gap-x-3 gap-y-1 mt-1 text-sm text-gray-600">
+                                    <span className="flex items-center gap-1">
+                                      <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                                      </svg>
+                                      {schedule.room}
+                                    </span>
+                                    <span className="flex items-center gap-1">
+                                      <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                                      </svg>
+                                      {professorName}
+                                    </span>
+                                  </div>
+                                </div>
+                                <div className="flex flex-col items-end gap-1 flex-shrink-0">
+                                  <span className="px-2 py-0.5 bg-primary/10 text-primary rounded text-xs font-medium">
+                                    {displaySection}
+                                  </span>
+                                  {schedule.scheduleCode && (
+                                    <span className="px-2 py-0.5 bg-yellow-100 text-yellow-800 rounded text-xs font-mono">
+                                      {schedule.scheduleCode}
+                                    </span>
+                                  )}
+                                </div>
+                              </div>
+                            )
+                          })}
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+            </div>
+          )}
+
+          {/* Grid View - Schedule Grid */}
+          {viewMode === 'grid' && (
           <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
             <div className="overflow-x-auto">
               <div className="min-w-[900px]">
@@ -1560,11 +1732,11 @@ function StudentScheduleView() {
                 {/* Time Slots Grid */}
                 <div className="grid grid-cols-[80px_repeat(6,1fr)]">
                   {/* Time Column */}
-                  <div className="border-r border-gray-200">
+                  <div className="border-r border-gray-200 bg-gray-50">
                     {timeSlots.map((time) => (
                       <div
                         key={time}
-                        className="h-[60px] px-3 flex items-start pt-1 text-sm text-gray-500 border-b border-gray-100"
+                        className="h-[50px] px-2 flex items-start pt-1 text-xs text-gray-500 border-b border-gray-100 font-medium"
                       >
                         {time}
                       </div>
@@ -1573,12 +1745,12 @@ function StudentScheduleView() {
 
                   {/* Day Columns */}
                   {days.map((day) => (
-                    <div key={day} className="relative border-r border-gray-200 last:border-r-0">
+                    <div key={day} className="relative border-r border-gray-200 last:border-r-0 min-w-0">
                       {/* Time slot backgrounds */}
                       {timeSlots.map((time) => (
                         <div
                           key={`${day}-${time}`}
-                          className="h-[60px] border-b border-gray-100"
+                          className="h-[50px] border-b border-gray-100"
                         />
                       ))}
 
@@ -1608,6 +1780,7 @@ function StudentScheduleView() {
               </div>
             </div>
           </div>
+          )}
         </>
       )}
     </>
@@ -1636,7 +1809,7 @@ function StudentScheduleView() {
         <ModalOverlay onClose={() => setErrorModal({ isOpen: false, title: '', message: '' })}>
           <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full overflow-hidden animate-in fade-in zoom-in duration-200">
             {/* Header with error icon */}
-            <div className="bg-gradient-to-r from-red-500 to-red-600 px-6 py-8 text-center">
+            <div className="bg-red-500 px-6 py-8 text-center">
               <div className="w-16 h-16 bg-white/20 rounded-full flex items-center justify-center mx-auto mb-4">
                 <svg className="w-10 h-10 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />

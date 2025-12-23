@@ -4,7 +4,33 @@ import { getDocuments, updateDocument, addDocument } from '../services/dbService
 import { createUserWithEmailAndPassword, sendEmailVerification } from 'firebase/auth'
 import { auth } from '../config/firebase'
 import { ALLOWED_DOMAIN } from '../services/authService'
-import { DEPARTMENTS, DEPARTMENT_CODES, DEPT_ORG_MAPPING, STUDENT_ORGS } from '../constants/targeting'
+import { DEPARTMENTS, DEPARTMENT_CODES, DEPT_ORG_MAPPING, STUDENT_ORGS, YEAR_LEVELS } from '../constants/targeting'
+
+/**
+ * Get pastel tag color based on tag type
+ * Returns Tailwind classes for pastel pill design
+ */
+const getTagColor = (tag) => {
+  if (tag.startsWith('dept:')) return 'bg-blue-100 text-blue-800'
+  if (tag.startsWith('program:')) return 'bg-purple-100 text-purple-800'
+  if (tag.startsWith('org:')) return 'bg-orange-100 text-orange-800'
+  if (tag.startsWith('year:')) return 'bg-green-100 text-green-800'
+  if (tag.startsWith('section:')) return 'bg-pink-100 text-pink-800'
+  if (tag.startsWith('college:')) return 'bg-indigo-100 text-indigo-800'
+  return 'bg-gray-100 text-gray-800'
+}
+
+/**
+ * Format tag for display by removing prefixes like dept:, org:, year:, etc.
+ */
+const formatTagDisplay = (tag) => {
+  if (!tag) return ''
+  const colonIndex = tag.indexOf(':')
+  if (colonIndex !== -1) {
+    return tag.substring(colonIndex + 1)
+  }
+  return tag
+}
 
 /**
  * User Management Page
@@ -29,6 +55,8 @@ export default function UserManagement() {
   const [newTag, setNewTag] = useState('')
   const [selectedOrg, setSelectedOrg] = useState('')
   const [selectedPosition, setSelectedPosition] = useState('')
+  const [selectedSection, setSelectedSection] = useState('')
+  const [selectedYearLevel, setSelectedYearLevel] = useState('')
   const [savingTags, setSavingTags] = useState(false)
   
   // Faculty department/org management
@@ -634,8 +662,8 @@ export default function UserManagement() {
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-1 flex-wrap">
                         {(user.tags || []).slice(0, 2).map((tag, idx) => (
-                          <span key={idx} className="px-2 py-0.5 text-xs bg-gray-100 text-gray-600 rounded-full">
-                            {tag}
+                          <span key={idx} className={`px-2 py-0.5 text-xs rounded-full ${getTagColor(tag)}`}>
+                            {formatTagDisplay(tag)}
                           </span>
                         ))}
                         {(user.tags || []).length > 2 && (
@@ -647,7 +675,7 @@ export default function UserManagement() {
                             <div className="absolute left-1/2 -translate-x-1/2 bottom-full mb-2 z-[100] invisible opacity-0 group-hover:visible group-hover:opacity-100 transition-opacity duration-150">
                               <div className="bg-gray-800 text-white text-xs rounded-lg py-2 px-3 shadow-lg whitespace-nowrap">
                                 {user.tags.slice(2).map((tag, idx) => (
-                                  <div key={idx} className="py-0.5">{tag}</div>
+                                  <div key={idx} className="py-0.5">{formatTagDisplay(tag)}</div>
                                 ))}
                               </div>
                               {/* Arrow */}
@@ -658,6 +686,9 @@ export default function UserManagement() {
                         <button
                           onClick={() => {
                             setTagModalUser(user)
+                            // Reset section and year level states
+                            setSelectedSection('')
+                            setSelectedYearLevel('')
                             // Initialize faculty state if user is faculty
                             if (user.role === ROLES.FACULTY || user.role === 'faculty') {
                               setFacultyDepartment(user.department || '')
@@ -859,9 +890,9 @@ export default function UserManagement() {
                   (tagModalUser.tags || []).map((tag, idx) => (
                     <span 
                       key={idx} 
-                      className="inline-flex items-center gap-1 px-2 py-1 text-xs bg-primary/10 text-primary rounded-full"
+                      className={`inline-flex items-center gap-1 px-2 py-1 text-xs rounded-full ${getTagColor(tag)}`}
                     >
-                      {tag}
+                      {formatTagDisplay(tag)}
                       <button
                         onClick={() => handleRemoveTag(tag)}
                         disabled={savingTags}
@@ -879,9 +910,59 @@ export default function UserManagement() {
             
             {/* Add Organization & Position Tag (for students only - not faculty) */}
             {tagModalUser.role !== ROLES.FACULTY && tagModalUser.role !== 'faculty' && (
-              <div className="mb-4">
-                <label className="text-sm font-medium text-gray-700 mb-2 block">Add Organization & Position</label>
-                <p className="text-xs text-gray-500 mb-2">For student organization members/officers</p>
+              <>
+                {/* Year Level and Section (for Class Rep validation) */}
+                <div className="mb-4">
+                  <label className="text-sm font-medium text-gray-700 mb-2 block">Year Level & Section</label>
+                  <p className="text-xs text-gray-500 mb-2">Required for Class Rep role validation</p>
+                  
+                  <div className="grid grid-cols-[1fr_1fr_auto] gap-2">
+                    {/* Year Level Selection */}
+                    <select
+                      value={selectedYearLevel}
+                      onChange={(e) => setSelectedYearLevel(e.target.value)}
+                      className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary bg-white"
+                    >
+                      <option value="">Year Level</option>
+                      {YEAR_LEVELS.map((year) => (
+                        <option key={year.value} value={year.value}>{year.label}</option>
+                      ))}
+                    </select>
+                    
+                    {/* Section Input */}
+                    <input
+                      type="text"
+                      value={selectedSection}
+                      onChange={(e) => setSelectedSection(e.target.value.toUpperCase())}
+                      placeholder="Section (e.g., A, B, 1A)"
+                      maxLength={5}
+                      className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary bg-white"
+                    />
+                    
+                    {/* Add Button */}
+                    <button
+                      onClick={async () => {
+                        if (selectedYearLevel) {
+                          await handleAddTag(`year:${selectedYearLevel}`)
+                        }
+                        if (selectedSection.trim()) {
+                          await handleAddTag(`section:${selectedSection.trim().toUpperCase()}`)
+                        }
+                        setSelectedYearLevel('')
+                        setSelectedSection('')
+                      }}
+                      disabled={(!selectedYearLevel && !selectedSection.trim()) || savingTags}
+                      className="px-4 py-2 bg-primary text-white text-sm font-medium rounded-lg hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors whitespace-nowrap"
+                    >
+                      {savingTags ? '...' : 'Add'}
+                    </button>
+                  </div>
+                </div>
+
+                {/* Organization & Position */}
+                <div className="mb-4">
+                  <label className="text-sm font-medium text-gray-700 mb-2 block">Add Organization & Position</label>
+                  <p className="text-xs text-gray-500 mb-2">For student organization members/officers</p>
                 
                 <div className="grid grid-cols-[1fr_1fr_auto] gap-2">
                   {/* Organization Selection */}
@@ -929,6 +1010,7 @@ export default function UserManagement() {
                   </button>
                 </div>
               </div>
+              </>
             )}
 
             <div className="relative flex items-center my-4">

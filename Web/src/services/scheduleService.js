@@ -269,20 +269,18 @@ export const removeProfessor = async (professorName) => {
 // FACULTY SCHEDULE (Auto-derived from students)
 // ============================================
 
+const CLASS_SECTIONS_COLLECTION = 'class_sections';
+
 /**
- * Get a faculty member's schedule derived from all student schedules
- * This aggregates all classes where students have assigned the faculty member as professor
- * Classes are ONLY shown (validated) when they have >= minimum students threshold
+ * Get a faculty member's schedule from claimed schedule codes
+ * Uses the Schedule Code Matchmaking system where professors claim schedule codes
  * @param {string} facultyUserId - The faculty user's ID
  * @param {Object} options - Options for filtering (includeUnvalidated for admin view)
- * @returns {Promise<Object>} - Object with derived schedule and statistics
+ * @returns {Promise<Object>} - Object with schedule and statistics
  */
 export const getFacultySchedule = async (facultyUserId, options = {}) => {
   try {
-    // Get the minimum students threshold from settings
-    const minimumStudents = await getMinimumStudentsThreshold();
-    
-    // Get faculty user details for name matching
+    // Get faculty user details
     const facultyDoc = await getDoc(doc(db, USERS_COLLECTION, facultyUserId));
     if (!facultyDoc.exists()) {
       throw new Error('Faculty user not found');
@@ -290,139 +288,83 @@ export const getFacultySchedule = async (facultyUserId, options = {}) => {
     
     const facultyData = facultyDoc.data();
     
-    // Build faculty name variations for matching
-    const firstName = (facultyData.givenName || facultyData.firstName || '').toLowerCase().trim();
-    const lastName = (facultyData.lastName || '').toLowerCase().trim();
-    const middleName = (facultyData.middleName || '').toLowerCase().trim();
-    const displayName = (facultyData.displayName || '').toLowerCase().trim();
-    const fullName = `${firstName} ${lastName}`.toLowerCase().trim();
-    const fullNameWithMiddle = `${firstName} ${middleName} ${lastName}`.toLowerCase().trim();
+    // Query class_sections where professorId matches the faculty user
+    const classSectionsQuery = query(
+      collection(db, CLASS_SECTIONS_COLLECTION),
+      where('professorId', '==', facultyUserId)
+    );
     
-    // Get all student schedules
-    const allSchedules = await getAllSchedules();
+    const classSectionsSnapshot = await getDocs(classSectionsQuery);
     
-    // Map to track unique classes (by subject + day + time combination)
+    // Map to aggregate classes by subject + day + time combination
     const classMap = new Map();
     
-    // Filter and aggregate schedule items where professor matches faculty name
-    for (const studentSchedule of allSchedules) {
-      if (!studentSchedule.schedules || !Array.isArray(studentSchedule.schedules)) continue;
+    for (const docSnapshot of classSectionsSnapshot.docs) {
+      const data = docSnapshot.data();
       
-      for (const item of studentSchedule.schedules) {
-        if (!item.professor || item.professor === 'TBA') continue;
-        
-        const professorName = item.professor.toLowerCase().trim();
-        
-        // Check if professor name matches faculty (flexible matching)
-        const isMatch = 
-          // Exact full name match
-          professorName === fullName ||
-          professorName === fullNameWithMiddle ||
-          professorName === displayName ||
-          // Last name match (handles "Dr. Dela Cruz", "Prof. Dela Cruz", etc.)
-          (lastName && professorName.includes(lastName) && 
-            (firstName ? professorName.includes(firstName.charAt(0)) || professorName.includes(firstName) : true)) ||
-          // First and last name anywhere in string
-          (firstName && lastName && professorName.includes(firstName) && professorName.includes(lastName));
-        
-        if (isMatch) {
-          // Create unique key for this class slot
-          const classKey = `${item.subject}-${item.day}-${item.startTime}-${item.endTime}`;
-          
-          if (classMap.has(classKey)) {
-            // Add student to existing class
-            const existingClass = classMap.get(classKey);
-            existingClass.studentCount += 1;
-            if (!existingClass.sections.includes(studentSchedule.section)) {
-              existingClass.sections.push(studentSchedule.section);
-            }
-            // Update room if was TBA and now we have a real room
-            if (existingClass.room === 'TBA' && item.room !== 'TBA') {
-              existingClass.room = item.room;
-            }
-            // Update validation status
-            existingClass.validated = existingClass.studentCount >= minimumStudents;
-            existingClass.studentsNeeded = Math.max(0, minimumStudents - existingClass.studentCount);
-          } else {
-            // Create new class entry
-            const studentCount = 1;
-            classMap.set(classKey, {
-              id: classMap.size + 1,
-              subject: item.subject,
-              day: item.day,
-              startTime: item.startTime,
-              endTime: item.endTime,
-              room: item.room || 'TBA',
-              sections: [studentSchedule.section || 'Unknown'],
-              studentCount: studentCount,
-              validated: studentCount >= minimumStudents,
-              studentsNeeded: Math.max(0, minimumStudents - studentCount),
-              classKey: classKey
-            });
-          }
-        }
+      // Skip entries without schedule details (claimed but no students yet)
+      if (!data.subject || !data.day || !data.startTime) {
+        continue;
       }
-    }
-    
-    // Check for newly validated classes and send notifications
-    const currentValidatedClasses = new Map();
-    for (const [classKey, classData] of classMap) {
-      if (classData.validated) {
-        currentValidatedClasses.set(classKey, classData);
-        
-        // Check if this class just became validated (wasn't validated before)
-        const wasValidated = previousValidatedClasses.get(`${facultyUserId}-${classKey}`);
-        if (!wasValidated) {
-          // Check if notification already sent (persistent check)
-          const hasNotification = await hasValidationNotification(facultyUserId, classKey);
-          if (!hasNotification) {
-            // Send notification for newly validated class
-            try {
-              await notifyScheduleValidated(facultyUserId, {
-                ...classData,
-                classKey: classKey
-              });
-              console.log(`Notification sent for validated class: ${classKey}`);
-            } catch (notifyError) {
-              console.error('Error sending validation notification:', notifyError);
-            }
-          }
+      
+      // Create unique key for this class slot
+      const classKey = `${data.subject}-${data.day}-${data.startTime}-${data.endTime}`;
+      
+      // Get student count from enrolledStudents array or studentCount field
+      const studentCount = data.enrolledStudents?.length || data.studentCount || 0;
+      const section = data.section || 'Unknown';
+      
+      if (classMap.has(classKey)) {
+        // Aggregate with existing class entry
+        const existingClass = classMap.get(classKey);
+        existingClass.studentCount += studentCount;
+        existingClass.scheduleCodes.push(docSnapshot.id);
+        if (!existingClass.sections.includes(section)) {
+          existingClass.sections.push(section);
         }
-        // Update cache
-        previousValidatedClasses.set(`${facultyUserId}-${classKey}`, true);
+        // Update room if was TBA and now we have a real room
+        if (existingClass.room === 'TBA' && data.room && data.room !== 'TBA') {
+          existingClass.room = data.room;
+        }
+      } else {
+        // Create new class entry
+        classMap.set(classKey, {
+          id: classMap.size + 1,
+          subject: data.subject,
+          day: data.day,
+          startTime: data.startTime,
+          endTime: data.endTime,
+          room: data.room || 'TBA',
+          sections: [section],
+          studentCount: studentCount,
+          scheduleCodes: [docSnapshot.id],
+          classKey: classKey,
+          validated: true, // All claimed classes are valid
+          studentsNeeded: 0
+        });
       }
     }
     
     // Convert map to array and sort by day and time
     const dayOrder = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
-    let derivedSchedule = Array.from(classMap.values()).sort((a, b) => {
+    const derivedSchedule = Array.from(classMap.values()).sort((a, b) => {
       const dayCompare = dayOrder.indexOf(a.day) - dayOrder.indexOf(b.day);
       if (dayCompare !== 0) return dayCompare;
       return a.startTime.localeCompare(b.startTime);
     });
     
-    // Store all classes (for admin view) and pending classes count
-    const allClasses = [...derivedSchedule];
-    const pendingClasses = derivedSchedule.filter(c => !c.validated);
-    const validatedClasses = derivedSchedule.filter(c => c.validated);
-    
-    // Filter to only show validated classes (unless includeUnvalidated option is set)
-    if (!options.includeUnvalidated) {
-      derivedSchedule = validatedClasses;
-    }
-    
-    // Calculate statistics (based on validated classes only for display)
-    const totalClasses = validatedClasses.length;
-    const totalStudents = validatedClasses.reduce((sum, c) => sum + c.studentCount, 0);
-    const uniqueSections = [...new Set(validatedClasses.flatMap(c => c.sections))];
-    const uniqueSubjects = [...new Set(validatedClasses.map(c => c.subject))];
+    // Calculate statistics
+    const totalClasses = derivedSchedule.length;
+    const totalStudents = derivedSchedule.reduce((sum, c) => sum + c.studentCount, 0);
+    const uniqueSections = [...new Set(derivedSchedule.flatMap(c => c.sections))];
+    const uniqueSubjects = [...new Set(derivedSchedule.map(c => c.subject))];
     
     return {
       schedules: derivedSchedule,
-      allClasses: allClasses, // For admin view
-      pendingClasses: pendingClasses,
-      validatedClasses: validatedClasses,
-      minimumStudentsRequired: minimumStudents,
+      allClasses: derivedSchedule,
+      pendingClasses: [],
+      validatedClasses: derivedSchedule,
+      minimumStudentsRequired: 0,
       statistics: {
         totalClasses,
         totalStudents,
@@ -430,9 +372,9 @@ export const getFacultySchedule = async (facultyUserId, options = {}) => {
         totalSubjects: uniqueSubjects.length,
         sections: uniqueSections,
         subjects: uniqueSubjects,
-        pendingClassesCount: pendingClasses.length,
-        validatedClassesCount: validatedClasses.length,
-        totalAllClasses: allClasses.length
+        pendingClassesCount: 0,
+        validatedClassesCount: totalClasses,
+        totalAllClasses: totalClasses
       },
       facultyInfo: {
         name: facultyData.displayName || `${facultyData.givenName || ''} ${facultyData.lastName || ''}`.trim(),

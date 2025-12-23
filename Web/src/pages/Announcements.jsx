@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
+import { useLocation } from 'react-router-dom'
 import { useAuth, ROLES, ROLE_HIERARCHY, ROLE_DISPLAY_NAMES } from '../contexts/AuthContext'
 import {
   createAnnouncement,
@@ -48,6 +49,7 @@ import HonorSocLogo from '../assets/img/HONORSOC-removebg-preview.png'
  */
 export default function Announcements() {
   const { user, userProfile, hasMinRole } = useAuth()
+  const location = useLocation()
   
   // State
   const [announcements, setAnnouncements] = useState([])
@@ -105,6 +107,7 @@ export default function Announcements() {
   const [submitting, setSubmitting] = useState(false)
   const [moderationPreview, setModerationPreview] = useState(null)
   const fileInputRef = useRef(null)
+  const initialNavHandledRef = useRef(false) // Track if initial navigation state was handled
   
   // CvSU Imus Campus Organizations for targeting
   const organizations = [
@@ -161,6 +164,20 @@ export default function Announcements() {
 
     fetchAnnouncements()
   }, [userProfile, canModerate, user])
+
+  // Handle navigation state to open specific announcement (only once on initial load)
+  useEffect(() => {
+    if (location.state?.selectedAnnouncementId && announcements.length > 0 && !loading && !initialNavHandledRef.current) {
+      const targetAnnouncement = announcements.find(a => a.id === location.state.selectedAnnouncementId)
+      if (targetAnnouncement) {
+        setSelectedAnnouncement(targetAnnouncement)
+        // Mark as handled so it doesn't re-trigger
+        initialNavHandledRef.current = true
+        // Clear the navigation state from browser history
+        window.history.replaceState({}, document.title)
+      }
+    }
+  }, [location.state?.selectedAnnouncementId, announcements, loading])
 
   // Fetch comments when announcement is selected
   useEffect(() => {
@@ -699,15 +716,20 @@ export default function Announcements() {
     }
   }
 
-  // Generate display text for target tags (handles new format)
+  // Generate display text for target tags - strips prefixes for cleaner display
   const getTagDisplayText = (tag) => {
-    // Handle new format: type:value
+    if (!tag) return ''
+    
+    // Handle new format: type:value - strip the prefix
     if (tag.includes(':')) {
-      const [type, value] = tag.split(':')
+      const colonIndex = tag.indexOf(':')
+      const type = tag.substring(0, colonIndex)
+      const value = tag.substring(colonIndex + 1)
+      
       switch (type) {
         case 'dept':
-          // Look up department acronym from DEPARTMENT_CODES
-          return DEPARTMENT_CODES[value] || value
+          // Just show the department code value (e.g., "DCS" instead of "dept:DCS")
+          return value
         case 'program':
           return value
         case 'org':
@@ -720,22 +742,36 @@ export default function Announcements() {
           return value
       }
     }
-    // Legacy format - generate acronym
+    // Legacy format - just return as is or generate acronym if too long
+    if (tag.length > 10) {
+      return tag
+        .split(' ')
+        .map(word => word.charAt(0).toUpperCase())
+        .join('')
+        .substring(0, 4)
+    }
     return tag
-      .split(' ')
-      .map(word => word.charAt(0).toUpperCase())
-      .join('')
-      .substring(0, 4)
   }
 
-  // Get tag color based on type
+  // Get tag color based on type - pastel pill design with dark text
   const getTagColor = (tag) => {
-    if (tag.startsWith('dept:')) return 'bg-blue-100 text-blue-700'
-    if (tag.startsWith('program:')) return 'bg-purple-100 text-purple-700'
-    if (tag.startsWith('org:')) return 'bg-orange-100 text-orange-700'
-    if (tag.startsWith('year:')) return 'bg-green-100 text-green-700'
-    if (tag.startsWith('section:')) return 'bg-pink-100 text-pink-700'
-    return 'bg-gray-100 text-gray-700'
+    if (tag.startsWith('dept:')) return 'bg-blue-100 text-blue-800'
+    if (tag.startsWith('program:')) return 'bg-purple-100 text-purple-800'
+    if (tag.startsWith('org:')) return 'bg-orange-100 text-orange-800'
+    if (tag.startsWith('year:')) return 'bg-green-100 text-green-800'
+    if (tag.startsWith('section:')) return 'bg-pink-100 text-pink-800'
+    if (tag.startsWith('college:')) return 'bg-indigo-100 text-indigo-800'
+    return 'bg-gray-100 text-gray-800'
+  }
+
+  // Format tag for display by removing prefixes like dept:, org:, year:, etc.
+  const formatTagDisplay = (tag) => {
+    if (!tag) return ''
+    const colonIndex = tag.indexOf(':')
+    if (colonIndex !== -1) {
+      return tag.substring(colonIndex + 1)
+    }
+    return tag
   }
 
   // Get priority badge color
@@ -1026,11 +1062,11 @@ export default function Announcements() {
                         onClick={() => setSelectedAnnouncement(announcement)}
                       >
                         {announcement.media.length === 1 ? (
-                          <div className="w-full aspect-video overflow-hidden">
+                          <div className="w-full max-h-64 overflow-hidden">
                             {announcement.media[0].type === 'image' ? (
                               <img src={announcement.media[0].url} alt="" className="w-full h-full object-cover hover:scale-105 transition-transform duration-300" />
                             ) : (
-                              <div className="w-full h-full flex items-center justify-center bg-gray-300">
+                              <div className="w-full h-48 flex items-center justify-center bg-gray-300">
                                 <svg className="w-12 h-12 text-gray-600" fill="currentColor" viewBox="0 0 24 24">
                                   <path d="M8 5v14l11-7z" />
                                 </svg>
@@ -1040,7 +1076,7 @@ export default function Announcements() {
                         ) : (
                           <div className="grid grid-cols-2 gap-1">
                             {announcement.media.slice(0, 4).map((media, idx) => (
-                              <div key={idx} className="aspect-square overflow-hidden relative bg-gray-300">
+                              <div key={idx} className="h-32 overflow-hidden relative bg-gray-300">
                                 {media.type === 'image' ? (
                                   <img src={media.url} alt="" className="w-full h-full object-cover hover:scale-105 transition-transform duration-300" />
                                 ) : (
@@ -1081,7 +1117,15 @@ export default function Announcements() {
                               }`}
                             >
                               <span className="group-hover:scale-125 transition-transform">
-                                {hasUserLiked ? '💚' : '👍'}
+                                {hasUserLiked ? (
+                                  <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+                                    <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
+                                  </svg>
+                                ) : (
+                                  <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth={1.5} viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" d="M21 8.25c0-2.485-2.099-4.5-4.688-4.5-1.935 0-3.597 1.126-4.312 2.733-.715-1.607-2.377-2.733-4.313-2.733C5.1 3.75 3 5.765 3 8.25c0 7.22 9 12 9 12s9-4.78 9-12z" />
+                                  </svg>
+                                )}
                               </span>
                               <span>{hasUserLiked ? 'Liked' : 'Like'}</span>
                               {likeCount > 0 && (
@@ -1457,9 +1501,9 @@ export default function Announcements() {
                       onChange={(e) => setFormData(prev => ({ ...prev, priority: e.target.value }))}
                       className="flex-1 flex items-center justify-center gap-2 px-3 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-100 rounded-lg transition-all bg-transparent border-0 cursor-pointer text-center"
                     >
-                      <option value={PRIORITY_LEVELS.LOW}>📍 Low</option>
-                      <option value={PRIORITY_LEVELS.NORMAL}>📌 Normal</option>
-                      <option value={PRIORITY_LEVELS.URGENT}>🔴 Urgent</option>
+                      <option value={PRIORITY_LEVELS.LOW}>● Low</option>
+                      <option value={PRIORITY_LEVELS.NORMAL}>● Normal</option>
+                      <option value={PRIORITY_LEVELS.URGENT}>● Urgent</option>
                     </select>
                   </div>
                   
@@ -1475,7 +1519,7 @@ export default function Announcements() {
                   {/* Moderation Notice */}
                   {!skipReviewQueue && (
                     <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
-                      <p className="text-xs text-blue-900"><span className="font-semibold">⚠️ Content Review:</span> Your post will be reviewed before publishing.</p>
+                      <p className="text-xs text-blue-900"><span className="font-semibold">Note:</span> Your post will be reviewed before publishing.</p>
                     </div>
                   )}
                   
@@ -1554,10 +1598,10 @@ export default function Announcements() {
                 onChange={(e) => setFormData(prev => ({ ...prev, priority: e.target.value }))}
                 className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all text-base"
               >
-                <option value={PRIORITY_LEVELS.LOW}>📍 Low Priority</option>
-                <option value={PRIORITY_LEVELS.NORMAL}>📌 Normal Priority</option>
-                <option value={PRIORITY_LEVELS.HIGH}>📍 High Priority</option>
-                <option value={PRIORITY_LEVELS.URGENT}>🔴 Urgent Priority</option>
+                <option value={PRIORITY_LEVELS.LOW}>● Low Priority</option>
+                <option value={PRIORITY_LEVELS.NORMAL}>● Normal Priority</option>
+                <option value={PRIORITY_LEVELS.HIGH}>● High Priority</option>
+                <option value={PRIORITY_LEVELS.URGENT}>● Urgent Priority</option>
               </select>
             </div>
             
@@ -1585,7 +1629,7 @@ export default function Announcements() {
               </div>
               {formData.targetTags.length === 0 && (
                 <p className="text-sm text-gray-500 mt-3 flex items-center gap-2">
-                  <span>📢</span> This announcement will reach all campus users
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M11 5.882V19.24a1.76 1.76 0 01-3.417.592l-2.147-6.15M18 13a3 3 0 100-6M5.436 13.683A4.001 4.001 0 017 6h1.832c4.1 0 7.625-1.234 9.168-3v14c-1.543-1.766-5.067-3-9.168-3H7a3.988 3.988 0 01-1.564-.317z" /></svg> This announcement will reach all campus users
                 </p>
               )}
               {formData.targetTags.length > 0 && (
@@ -1650,7 +1694,7 @@ export default function Announcements() {
                         </svg>
                       </button>
                       <span className="absolute bottom-2 left-2 px-2 py-1 bg-black/60 text-white text-xs font-bold rounded-lg">
-                        {media.type === 'image' ? '📷' : '🎥'}
+                        {media.type === 'image' ? 'IMG' : 'VID'}
                       </span>
                     </div>
                   ))}
@@ -1791,7 +1835,7 @@ export default function Announcements() {
               {/* Target Tags */}
               {selectedAnnouncement.targetTags?.length > 0 && (
                 <div className="px-4 py-3">
-                  <p className="text-xs font-bold text-gray-600 mb-2">👥 Audience Targeting ({selectedAnnouncement.targetTags.length} tag{selectedAnnouncement.targetTags.length !== 1 ? 's' : ''})</p>
+                  <p className="text-xs font-bold text-gray-600 mb-2">Audience Targeting ({selectedAnnouncement.targetTags.length} tag{selectedAnnouncement.targetTags.length !== 1 ? 's' : ''})</p>
                   <div className="flex flex-wrap gap-2">
                     {selectedAnnouncement.targetTags.map((tag, idx) => (
                       <span key={idx} className={`px-2.5 py-1 text-xs font-semibold rounded-full ${getTagColor(tag)}`}>

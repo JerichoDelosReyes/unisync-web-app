@@ -7,6 +7,33 @@ import FacultyOnboardingModal from '../components/ui/FacultyOnboardingModal'
 import FacultyRequestModal from '../components/ui/FacultyRequestModal'
 
 /**
+ * Get pastel tag color based on tag type
+ * Returns Tailwind classes for pastel pill design
+ */
+const getTagColor = (tag) => {
+  if (tag.startsWith('dept:')) return 'bg-blue-100 text-blue-800'
+  if (tag.startsWith('program:')) return 'bg-purple-100 text-purple-800'
+  if (tag.startsWith('org:')) return 'bg-orange-100 text-orange-800'
+  if (tag.startsWith('year:')) return 'bg-green-100 text-green-800'
+  if (tag.startsWith('section:')) return 'bg-pink-100 text-pink-800'
+  if (tag.startsWith('college:')) return 'bg-indigo-100 text-indigo-800'
+  return 'bg-gray-100 text-gray-800'
+}
+
+/**
+ * Format tag for display by removing prefixes like dept:, org:, year:, etc.
+ */
+const formatTagDisplay = (tag) => {
+  if (!tag) return ''
+  // Remove prefixes like dept:, org:, program:, year:, section:, college:
+  const colonIndex = tag.indexOf(':')
+  if (colonIndex !== -1) {
+    return tag.substring(colonIndex + 1)
+  }
+  return tag
+}
+
+/**
  * Dashboard Page
  * 
  * Main landing page after login. Shows role-specific content with real data.
@@ -22,6 +49,16 @@ export default function Dashboard() {
   const [showFacultyRequestModal, setShowFacultyRequestModal] = useState(false)
   const [pendingFacultyRequest, setPendingFacultyRequest] = useState(null)
   const [facultyRequestHistory, setFacultyRequestHistory] = useState([])
+  const [facultyCardDismissed, setFacultyCardDismissed] = useState(() => {
+    // Check localStorage on init
+    return localStorage.getItem('facultyRequestCardDismissed') === 'true'
+  })
+
+  // Function to dismiss faculty request card
+  const dismissFacultyCard = () => {
+    localStorage.setItem('facultyRequestCardDismissed', 'true')
+    setFacultyCardDismissed(true)
+  }
 
   // Check if faculty needs onboarding
   useEffect(() => {
@@ -112,19 +149,53 @@ export default function Dashboard() {
   // Get user's organization count from tags
   const userOrgsCount = userProfile?.tags?.length || 0
 
+  // Minimalist SVG icons for stats
+  const StatIcons = {
+    announcement: (
+      <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M11 5.882V19.24a1.76 1.76 0 01-3.417.592l-2.147-6.15M18 13a3 3 0 100-6M5.436 13.683A4.001 4.001 0 017 6h1.832c4.1 0 7.625-1.234 9.168-3v14c-1.543-1.766-5.067-3-9.168-3H7a3.988 3.988 0 01-1.564-.317z" />
+      </svg>
+    ),
+    calendar: (
+      <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+      </svg>
+    ),
+    users: (
+      <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+      </svg>
+    ),
+    bolt: (
+      <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M13 10V3L4 14h7v7l9-11h-7z" />
+      </svg>
+    ),
+    warning: (
+      <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+      </svg>
+    ),
+    priority: (
+      <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+      </svg>
+    )
+  }
+
   // Dynamic stats based on real data
   const studentStats = [
-    { label: 'Total Announcements', value: announcements.length.toString(), icon: '📢', color: 'bg-blue-50 text-blue-600' },
-    { label: 'Today\'s Posts', value: todayAnnouncements.length.toString(), icon: '📅', color: 'bg-green-50 text-green-600' },
-    { label: 'My Organizations', value: userOrgsCount.toString(), icon: '👥', color: 'bg-purple-50 text-purple-600' },
-    { label: 'Important', value: urgentAnnouncements.length.toString(), icon: '⚡', color: 'bg-orange-50 text-orange-600' }
+    { label: 'Total Announcements', value: announcements.length.toString(), icon: StatIcons.announcement, color: 'bg-blue-50 text-blue-600' },
+    { label: 'Today\'s Posts', value: todayAnnouncements.length.toString(), icon: StatIcons.calendar, color: 'bg-green-50 text-green-600' },
+    { label: 'My Organizations', value: userOrgsCount.toString(), icon: StatIcons.users, color: 'bg-purple-50 text-purple-600' },
+    { label: 'Important', value: urgentAnnouncements.length.toString(), icon: StatIcons.bolt, color: 'bg-orange-50 text-orange-600' }
   ]
 
   const adminStats = [
-    { label: 'Pending Moderation', value: pendingCount.toString(), icon: '⚠️', color: 'bg-yellow-50 text-yellow-600' },
-    { label: 'Total Announcements', value: announcements.length.toString(), icon: '📢', color: 'bg-blue-50 text-blue-600' },
-    { label: 'Today\'s Posts', value: todayAnnouncements.length.toString(), icon: '📅', color: 'bg-green-50 text-green-600' },
-    { label: 'Urgent/High Priority', value: urgentAnnouncements.length.toString(), icon: '🔴', color: 'bg-red-50 text-red-600' }
+    { label: 'Pending Moderation', value: pendingCount.toString(), icon: StatIcons.warning, color: 'bg-yellow-50 text-yellow-600' },
+    { label: 'Total Announcements', value: announcements.length.toString(), icon: StatIcons.announcement, color: 'bg-blue-50 text-blue-600' },
+    { label: 'Today\'s Posts', value: todayAnnouncements.length.toString(), icon: StatIcons.calendar, color: 'bg-green-50 text-green-600' },
+    { label: 'Urgent/High Priority', value: urgentAnnouncements.length.toString(), icon: StatIcons.priority, color: 'bg-red-50 text-red-600' }
   ]
 
   const stats = hasMinRole(ROLES.ADMIN) ? adminStats : studentStats
@@ -179,8 +250,8 @@ export default function Dashboard() {
         </span>
         {userProfile?.tags?.length > 0 && (
           userProfile.tags.map((tag, index) => (
-            <span key={index} className="px-3 py-1 text-sm font-medium bg-gray-100 text-gray-700 rounded-full">
-              {tag}
+            <span key={index} className={`px-3 py-1 text-sm font-medium rounded-full ${getTagColor(tag)}`}>
+              {formatTagDisplay(tag)}
             </span>
           ))
         )}
@@ -209,10 +280,20 @@ export default function Dashboard() {
         ))}
       </div>
 
-      {/* Faculty Role Request Card - Only for students/class reps */}
-      {(userProfile?.role === ROLES.STUDENT || userProfile?.role === ROLES.CLASS_REP) && (
-        <div className="bg-gradient-to-r from-indigo-50 to-purple-50 rounded-xl border border-indigo-100 p-6">
-          <div className="flex items-start justify-between gap-4">
+      {/* Faculty Role Request Card - Only for students/class reps, hidden if dismissed */}
+      {(userProfile?.role === ROLES.STUDENT || userProfile?.role === ROLES.CLASS_REP) && !facultyCardDismissed && (
+        <div className="bg-gradient-to-r from-indigo-50 to-purple-50 rounded-xl border border-indigo-100 p-6 relative">
+          {/* Dismiss/Close Button */}
+          <button
+            onClick={dismissFacultyCard}
+            className="absolute top-3 right-3 p-1.5 text-gray-400 hover:text-gray-600 hover:bg-white/50 rounded-full transition-colors"
+            title="Don't show again"
+          >
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+          <div className="flex items-start justify-between gap-4 pr-8">
             <div className="flex items-start gap-4">
               <div className="w-12 h-12 rounded-xl bg-indigo-100 flex items-center justify-center flex-shrink-0">
                 <svg className="w-6 h-6 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -358,14 +439,18 @@ export default function Dashboard() {
             {announcements.slice(0, 5).map((announcement) => (
               <div 
                 key={announcement.id} 
-                onClick={() => navigate('/announcements')}
+                onClick={() => navigate('/announcements', { state: { selectedAnnouncementId: announcement.id } })}
                 className="flex items-start gap-4 p-3 rounded-lg hover:bg-gray-50 cursor-pointer transition-colors"
               >
                 <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0">
                   {announcement.priority === PRIORITY_LEVELS.URGENT ? (
-                    <span className="text-lg">🔴</span>
+                    <svg className="w-5 h-5 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                    </svg>
                   ) : announcement.priority === PRIORITY_LEVELS.HIGH ? (
-                    <span className="text-lg">🟠</span>
+                    <svg className="w-5 h-5 text-orange-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                    </svg>
                   ) : (
                     <svg className="w-5 h-5 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5.882V19.24a1.76 1.76 0 01-3.417.592l-2.147-6.15M18 13a3 3 0 100-6M5.436 13.683A4.001 4.001 0 017 6h1.832c4.1 0 7.625-1.234 9.168-3v14c-1.543-1.766-5.067-3-9.168-3H7a3.988 3.988 0 01-1.564-.317z" />

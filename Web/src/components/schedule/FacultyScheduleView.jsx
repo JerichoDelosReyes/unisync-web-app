@@ -25,21 +25,9 @@ const getDuration = (startTime, endTime) => {
   return (endHour + endMin/60) - (startHour + startMin/60)
 }
 
-// Color palette for schedule cards based on subject
+// Uniform primary color for all schedule cards
 const getSubjectColor = (subject, index) => {
-  const colors = [
-    'from-violet-500 to-purple-600',
-    'from-blue-500 to-indigo-600',
-    'from-emerald-500 to-teal-600',
-    'from-orange-500 to-red-600',
-    'from-pink-500 to-rose-600',
-    'from-cyan-500 to-blue-600',
-    'from-amber-500 to-orange-600',
-    'from-green-500 to-emerald-600',
-  ]
-  // Use subject name hash to get consistent color
-  const hash = subject.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0)
-  return colors[hash % colors.length]
+  return 'bg-primary'
 }
 
 // Faculty Schedule Card Component
@@ -49,14 +37,12 @@ const FacultyScheduleCard = ({ schedule, onClick, style }) => {
   return (
     <div
       onClick={() => onClick(schedule)}
-      className={`absolute left-1 right-1 bg-gradient-to-br ${colorClass} rounded-lg shadow-lg cursor-pointer 
-        hover:shadow-xl hover:scale-[1.02] transition-all duration-200 p-2 overflow-hidden group`}
+      className={`absolute left-1 right-1 ${colorClass} rounded-md cursor-pointer 
+        hover:opacity-90 transition-all duration-200 p-2 overflow-hidden`}
       style={style}
     >
-      {/* Decorative pattern */}
-      <div className="absolute top-0 right-0 w-20 h-20 bg-white/10 rounded-full -translate-y-10 translate-x-10 group-hover:scale-150 transition-transform duration-500" />
       
-      <div className="relative z-10">
+      <div>
         <h3 className="font-semibold text-white text-sm leading-tight mb-1 line-clamp-2">
           {schedule.subject}
         </h3>
@@ -104,7 +90,7 @@ const FacultyScheduleDetailModal = ({ schedule, isOpen, onClose }) => {
     <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[100] p-4">
       <div className="bg-white rounded-2xl shadow-2xl max-w-lg w-full max-h-[90vh] overflow-hidden animate-in fade-in zoom-in duration-200">
         {/* Header */}
-        <div className={`bg-gradient-to-r ${getSubjectColor(schedule.subject, schedule.id)} px-6 py-6`}>
+        <div className={`${getSubjectColor(schedule.subject, schedule.id)} px-6 py-6`}>
           <div className="flex items-start justify-between">
             <div className="flex-1 pr-4">
               <h2 className="text-xl font-bold text-white mb-1">{schedule.subject}</h2>
@@ -638,7 +624,7 @@ export default function FacultyScheduleView() {
                 return (
                   <div 
                     key={idx}
-                    className={`bg-gradient-to-r ${getSubjectColor(subject, idx)} rounded-xl p-4 text-white`}
+                    className={`${getSubjectColor(subject, idx)} rounded-xl p-4 text-white`}
                   >
                     <div className="flex items-center justify-between">
                       <div>
