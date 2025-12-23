@@ -8,8 +8,6 @@
 import { useState, useEffect } from 'react'
 import { useAuth } from '../contexts/AuthContext'
 import { 
-  getScheduleSettings, 
-  updateScheduleSettings,
   getSemesterSettings,
   updateSemesterSettings 
 } from '../services/systemSettingsService'
@@ -18,18 +16,9 @@ import {
   getArchiveHistory,
   getAllSchedules 
 } from '../services/scheduleService'
-import { DEFAULT_MINIMUM_STUDENTS_FOR_VALIDATION } from '../constants/scheduleConfig'
 
 export default function SystemSettings() {
   const { user } = useAuth()
-  
-  // Schedule Settings State
-  const [scheduleSettings, setScheduleSettings] = useState({
-    minimumStudentsForValidation: DEFAULT_MINIMUM_STUDENTS_FOR_VALIDATION
-  })
-  const [isLoadingScheduleSettings, setIsLoadingScheduleSettings] = useState(true)
-  const [isSavingScheduleSettings, setIsSavingScheduleSettings] = useState(false)
-  const [scheduleSettingsMessage, setScheduleSettingsMessage] = useState(null)
   
   // Semester Settings State
   const [semesterSettings, setSemesterSettings] = useState({
@@ -52,19 +41,6 @@ export default function SystemSettings() {
   // Load all settings on mount
   useEffect(() => {
     const loadAllSettings = async () => {
-      // Load schedule validation settings
-      setIsLoadingScheduleSettings(true)
-      try {
-        const settings = await getScheduleSettings()
-        setScheduleSettings({
-          minimumStudentsForValidation: settings.minimumStudentsForValidation
-        })
-      } catch (error) {
-        console.error('Error loading schedule settings:', error)
-      } finally {
-        setIsLoadingScheduleSettings(false)
-      }
-      
       // Load semester settings
       setIsLoadingSemesterSettings(true)
       try {
@@ -103,23 +79,6 @@ export default function SystemSettings() {
       console.error('Error loading archive history:', error)
     } finally {
       setIsLoadingArchives(false)
-    }
-  }
-  
-  // Handle schedule settings save
-  const handleSaveScheduleSettings = async () => {
-    setIsSavingScheduleSettings(true)
-    setScheduleSettingsMessage(null)
-    
-    try {
-      await updateScheduleSettings(scheduleSettings, user.uid)
-      setScheduleSettingsMessage({ type: 'success', text: 'Schedule settings saved successfully!' })
-    } catch (error) {
-      console.error('Error saving schedule settings:', error)
-      setScheduleSettingsMessage({ type: 'error', text: 'Failed to save settings. Please try again.' })
-    } finally {
-      setIsSavingScheduleSettings(false)
-      setTimeout(() => setScheduleSettingsMessage(null), 3000)
     }
   }
   
@@ -373,136 +332,35 @@ export default function SystemSettings() {
         )}
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Schedule Validation Settings */}
-        <div className="bg-white rounded-xl border border-gray-200 p-6">
-          <div className="flex items-center gap-3 mb-4">
-            <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
-              <svg className="w-5 h-5 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
-            </div>
-            <div>
-              <h2 className="text-lg font-semibold text-gray-900">Schedule Validation</h2>
-              <p className="text-sm text-gray-500">Configure faculty schedule visibility</p>
-            </div>
+      {/* General Settings */}
+      <div className="bg-white rounded-xl border border-gray-200 p-6">
+        <h2 className="text-lg font-semibold text-gray-900 mb-4">General Settings</h2>
+        <div className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">System Name</label>
+            <input
+              type="text"
+              defaultValue="UNISYNC"
+              className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/20"
+            />
           </div>
-          
-          {isLoadingScheduleSettings ? (
-            <div className="animate-pulse space-y-4">
-              <div className="h-10 bg-gray-200 rounded-lg"></div>
-              <div className="h-4 bg-gray-200 rounded w-3/4"></div>
-            </div>
-          ) : (
-            <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Minimum Students for Validation
-                </label>
-                <input
-                  type="number"
-                  min="1"
-                  max="100"
-                  value={scheduleSettings.minimumStudentsForValidation}
-                  onChange={(e) => setScheduleSettings({
-                    ...scheduleSettings,
-                    minimumStudentsForValidation: parseInt(e.target.value) || 1
-                  })}
-                  className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
-                />
-                <p className="text-xs text-gray-500 mt-1">
-                  Faculty will only see classes with at least this many students enrolled.
-                </p>
-              </div>
-              
-              <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
-                <div className="flex items-start gap-2">
-                  <svg className="w-4 h-4 text-blue-600 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                  </svg>
-                  <p className="text-xs text-blue-800">
-                    When a class reaches this threshold, the faculty member will be notified.
-                  </p>
-                </div>
-              </div>
-              
-              {scheduleSettingsMessage && (
-                <div className={`rounded-lg p-3 ${
-                  scheduleSettingsMessage.type === 'success' 
-                    ? 'bg-green-50 border border-green-200 text-green-800' 
-                    : 'bg-red-50 border border-red-200 text-red-800'
-                }`}>
-                  <div className="flex items-center gap-2">
-                    {scheduleSettingsMessage.type === 'success' ? (
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                      </svg>
-                    ) : (
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                      </svg>
-                    )}
-                    <span className="text-sm">{scheduleSettingsMessage.text}</span>
-                  </div>
-                </div>
-              )}
-              
-              <button
-                onClick={handleSaveScheduleSettings}
-                disabled={isSavingScheduleSettings}
-                className="w-full px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-              >
-                {isSavingScheduleSettings ? (
-                  <>
-                    <svg className="w-4 h-4 animate-spin" viewBox="0 0 24 24">
-                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none"></circle>
-                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                    </svg>
-                    Saving...
-                  </>
-                ) : (
-                  <>
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                    </svg>
-                    Save Validation Settings
-                  </>
-                )}
-              </button>
-            </div>
-          )}
-        </div>
-        
-        {/* General Settings */}
-        <div className="bg-white rounded-xl border border-gray-200 p-6">
-          <h2 className="text-lg font-semibold text-gray-900 mb-4">General Settings</h2>
-          <div className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">System Name</label>
-              <input
-                type="text"
-                defaultValue="UNISYNC"
-                className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/20"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Campus</label>
-              <input
-                type="text"
-                defaultValue="CvSU Imus Campus"
-                className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/20"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Allowed Email Domain</label>
-              <input
-                type="text"
-                defaultValue="cvsu.edu.ph"
-                className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/20"
-                disabled
-              />
-              <p className="text-xs text-gray-500 mt-1">This cannot be changed for security reasons.</p>
-            </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Campus</label>
+            <input
+              type="text"
+              defaultValue="CvSU Imus Campus"
+              className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/20"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Allowed Email Domain</label>
+            <input
+              type="text"
+              defaultValue="cvsu.edu.ph"
+              className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/20"
+              disabled
+            />
+            <p className="text-xs text-gray-500 mt-1">This cannot be changed for security reasons.</p>
           </div>
         </div>
       </div>

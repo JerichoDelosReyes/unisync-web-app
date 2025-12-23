@@ -635,7 +635,8 @@ export default function UserManagement() {
                             value={user.role}
                             onChange={(e) => handleRoleChange(user.id, e.target.value)}
                             disabled={updatingUserId === user.id}
-                            className={`text-xs font-medium rounded-full px-2 py-1 border-0 cursor-pointer focus:outline-none focus:ring-2 focus:ring-primary/20 ${getRoleBadgeColor(user.role)} ${updatingUserId === user.id ? 'opacity-50' : ''}`}
+                            className={`text-xs font-medium rounded-lg px-3 py-1.5 border border-gray-300 bg-white text-gray-700 cursor-pointer focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary appearance-none pr-8 ${updatingUserId === user.id ? 'opacity-50' : ''}`}
+                            style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%236b7280'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'/%3E%3C/svg%3E")`, backgroundRepeat: 'no-repeat', backgroundPosition: 'right 0.5rem center', backgroundSize: '1rem' }}
                           >
                             <option value={user.role}>{ROLE_DISPLAY_NAMES[user.role]}</option>
                             {assignableRoles
