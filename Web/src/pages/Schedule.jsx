@@ -8,6 +8,7 @@ import {
 } from '../services/scheduleService'
 import {
   updateClassSectionFromStudent,
+  removeStudentFromClassSection,
   subscribeToScheduleCodes
 } from '../services/classSectionService'
 import { getSemesterSettings } from '../services/systemSettingsService'
@@ -734,11 +735,47 @@ const UploadModal = ({ isOpen, onClose, onUpload, isProcessing }) => {
 }
 
 // Schedule Detail Modal Component
-const ScheduleDetailModal = ({ schedule, isOpen, onClose, classSectionProfessors = {} }) => {
+const ScheduleDetailModal = ({ 
+  schedule, 
+  isOpen, 
+  onClose, 
+  classSectionProfessors = {},
+  isIrregular = false,
+  onUpdateClassSection = null
+}) => {
+  const [editingSection, setEditingSection] = useState(false)
+  const [classSection, setClassSection] = useState('')
+  const [isSaving, setIsSaving] = useState(false)
+
+  // Initialize classSection when schedule changes
+  useEffect(() => {
+    if (schedule) {
+      setClassSection(schedule.classSection || '')
+      setEditingSection(false)
+    }
+  }, [schedule])
+
   // Use professor name from Schedule Code Matchmaking if available
   const displayProfessor = schedule?.scheduleCode && classSectionProfessors[schedule.scheduleCode]
     ? classSectionProfessors[schedule.scheduleCode]
     : schedule?.professor || 'TBA'
+
+  // Display section: use classSection if set (for irregulars), otherwise use schedule.section
+  const displaySection = schedule?.classSection || schedule?.section
+
+  const handleSaveSection = async () => {
+    if (!onUpdateClassSection || !classSection.trim()) return
+    
+    setIsSaving(true)
+    try {
+      await onUpdateClassSection(schedule.id, classSection.trim().toUpperCase())
+      setEditingSection(false)
+    } catch (error) {
+      console.error('Error updating class section:', error)
+    } finally {
+      setIsSaving(false)
+    }
+  }
 
   if (!isOpen || !schedule) return null
 
@@ -754,8 +791,13 @@ const ScheduleDetailModal = ({ schedule, isOpen, onClose, classSectionProfessors
             <h2 className="text-xl font-bold text-gray-900">{schedule.subject}</h2>
             <div className="flex items-center gap-2 mt-2 flex-wrap">
               <span className="inline-block px-3 py-1 bg-primary/10 text-primary rounded-full text-sm font-medium">
-                {schedule.section}
+                {displaySection}
               </span>
+              {isIrregular && schedule.classSection && schedule.classSection !== schedule.section && (
+                <span className="inline-block px-2 py-0.5 bg-purple-100 text-purple-700 rounded-full text-xs">
+                  Class Section
+                </span>
+              )}
               {schedule.scheduleCode && (
                 <span className="inline-flex items-center gap-1 px-3 py-1 bg-yellow-100 text-yellow-800 rounded-full text-sm font-mono">
                   <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -775,6 +817,64 @@ const ScheduleDetailModal = ({ schedule, isOpen, onClose, classSectionProfessors
             </svg>
           </button>
         </div>
+
+        {/* Irregular Student Section Assignment */}
+        {isIrregular && onUpdateClassSection && (
+          <div className="mb-4 p-4 bg-purple-50 border border-purple-200 rounded-lg">
+            <div className="flex items-start gap-3">
+              <svg className="w-5 h-5 text-purple-600 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />
+              </svg>
+              <div className="flex-1">
+                <p className="text-sm font-medium text-purple-800 mb-2">Class Section Assignment</p>
+                {editingSection ? (
+                  <div className="space-y-2">
+                    <input
+                      type="text"
+                      value={classSection}
+                      onChange={(e) => setClassSection(e.target.value.toUpperCase())}
+                      placeholder="e.g., BSIT-3A"
+                      className="w-full px-3 py-2 border border-purple-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
+                    />
+                    <div className="flex gap-2">
+                      <button
+                        onClick={handleSaveSection}
+                        disabled={isSaving || !classSection.trim()}
+                        className="flex-1 px-3 py-1.5 bg-purple-600 text-white text-sm rounded-lg hover:bg-purple-700 disabled:opacity-50"
+                      >
+                        {isSaving ? 'Saving...' : 'Save'}
+                      </button>
+                      <button
+                        onClick={() => {
+                          setClassSection(schedule.classSection || '')
+                          setEditingSection(false)
+                        }}
+                        className="px-3 py-1.5 bg-gray-200 text-gray-700 text-sm rounded-lg hover:bg-gray-300"
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm text-purple-700">
+                      {schedule.classSection ? schedule.classSection : 'Not set'}
+                    </span>
+                    <button
+                      onClick={() => setEditingSection(true)}
+                      className="text-xs px-2 py-1 bg-purple-200 text-purple-700 rounded hover:bg-purple-300"
+                    >
+                      {schedule.classSection ? 'Change' : 'Set Section'}
+                    </button>
+                  </div>
+                )}
+                <p className="text-xs text-purple-600 mt-2">
+                  As an irregular student, you can specify which section you're joining for this class.
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Details */}
         <div className="space-y-4">
@@ -871,6 +971,9 @@ const ScheduleCard = ({ schedule, style, onClick, classSectionProfessors = {} })
     ? classSectionProfessors[schedule.scheduleCode]
     : schedule.professor || 'TBA'
   
+  // Display classSection if set (for irregulars), otherwise use schedule.section
+  const displaySection = schedule.classSection || schedule.section
+  
   return (
     <div
       className="absolute left-1 right-1 bg-primary rounded-lg p-2 overflow-hidden cursor-pointer hover:bg-primary/90 hover:scale-[1.02] transition-all shadow-sm hover:shadow-md"
@@ -893,8 +996,13 @@ const ScheduleCard = ({ schedule, style, onClick, classSectionProfessors = {} })
       </div>
       <div className="mt-2 flex items-center gap-1.5 flex-wrap">
         <span className="inline-block px-2 py-0.5 bg-white/20 rounded text-white text-xs font-medium">
-          {schedule.section}
+          {displaySection}
         </span>
+        {schedule.classSection && schedule.classSection !== schedule.section && (
+          <span className="inline-block px-1.5 py-0.5 bg-purple-400/40 rounded text-white text-[10px]">
+            Class
+          </span>
+        )}
         {schedule.scheduleCode && (
           <span className="inline-block px-2 py-0.5 bg-yellow-400/30 rounded text-white text-xs font-mono">
             {schedule.scheduleCode}
@@ -1170,6 +1278,7 @@ function StudentScheduleView() {
         
         // Register each schedule entry with class_sections for Schedule Code Matchmaking
         // This allows professors to see which classes have students enrolled
+        // Pass user.uid to track unique students and prevent duplicate counting
         const updatePromises = extractedSchedule
           .filter(entry => entry.scheduleCode)
           .map(entry => 
@@ -1180,7 +1289,7 @@ function StudentScheduleView() {
               startTime: entry.startTime,
               endTime: entry.endTime,
               section: extractedStudentInfo.section || entry.section
-            }).catch(err => {
+            }, user.uid).catch(err => {
               console.error(`Error registering schedule code ${entry.scheduleCode}:`, err)
               // Don't fail the entire upload if one code fails
             })
@@ -1213,6 +1322,16 @@ function StudentScheduleView() {
     if (confirm('Are you sure you want to clear your schedule?')) {
       setIsSaving(true)
       try {
+        // First, remove student from all class sections they were enrolled in
+        const removePromises = scheduleData
+          .filter(entry => entry.scheduleCode)
+          .map(entry => 
+            removeStudentFromClassSection(entry.scheduleCode, user.uid).catch(err => {
+              console.error(`Error removing from schedule code ${entry.scheduleCode}:`, err)
+            })
+          )
+        await Promise.all(removePromises)
+        
         await deleteStudentSchedule(user.uid)
         setScheduleData([])
         setStudentInfo({
@@ -1232,6 +1351,51 @@ function StudentScheduleView() {
       }
     }
   }
+
+  // Update class section for irregular students
+  const handleUpdateClassSection = async (scheduleId, newClassSection) => {
+    if (!user) return
+    
+    try {
+      // Update local state
+      const updatedSchedule = scheduleData.map(item => 
+        item.id === scheduleId 
+          ? { ...item, classSection: newClassSection }
+          : item
+      )
+      setScheduleData(updatedSchedule)
+      
+      // Update selected schedule if it's the one being edited
+      if (selectedSchedule && selectedSchedule.id === scheduleId) {
+        setSelectedSchedule({ ...selectedSchedule, classSection: newClassSection })
+      }
+      
+      // Save to Firebase
+      await saveStudentSchedule(user.uid, updatedSchedule, studentInfo)
+      
+      // Update class_sections with the new section for this schedule code
+      const scheduleItem = scheduleData.find(item => item.id === scheduleId)
+      if (scheduleItem?.scheduleCode) {
+        await updateClassSectionFromStudent(scheduleItem.scheduleCode, {
+          subject: scheduleItem.subject,
+          room: scheduleItem.room,
+          day: scheduleItem.day,
+          startTime: scheduleItem.startTime,
+          endTime: scheduleItem.endTime,
+          section: newClassSection // Use the irregular's chosen class section
+        }, user.uid)
+      }
+      
+      // Update localStorage
+      localStorage.setItem('studentSchedule', JSON.stringify(updatedSchedule))
+    } catch (error) {
+      console.error('Error updating class section:', error)
+      throw error
+    }
+  }
+
+  // Check if student is irregular
+  const isIrregular = studentInfo.section?.toUpperCase() === 'IRREGULAR'
 
   // Get schedules for a specific day
   const getSchedulesForDay = (day) => {
@@ -1463,6 +1627,8 @@ function StudentScheduleView() {
         isOpen={!!selectedSchedule}
         onClose={() => setSelectedSchedule(null)}
         classSectionProfessors={classSectionProfessors}
+        isIrregular={isIrregular}
+        onUpdateClassSection={isIrregular ? handleUpdateClassSection : null}
       />
 
       {/* Error Modal */}

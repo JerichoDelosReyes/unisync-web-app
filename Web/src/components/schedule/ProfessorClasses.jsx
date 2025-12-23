@@ -27,6 +27,7 @@ const ProfessorClasses = () => {
   const [scheduleCode, setScheduleCode] = useState('')
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
+  const [sectionFilter, setSectionFilter] = useState('all') // New: section filter state
 
   // Subscribe to professor's classes in real-time
   useEffect(() => {
@@ -39,6 +40,14 @@ const ProfessorClasses = () => {
 
     return () => unsubscribe()
   }, [user?.uid])
+
+  // Get unique sections from classes for filter dropdown
+  const uniqueSections = [...new Set(classes.filter(c => c.section).map(c => c.section))].sort()
+
+  // Filter classes based on selected section
+  const filteredClasses = sectionFilter === 'all' 
+    ? classes 
+    : classes.filter(c => c.section === sectionFilter)
 
   const handleAddClass = async (e) => {
     e.preventDefault()
@@ -99,22 +108,39 @@ const ProfessorClasses = () => {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h2 className="text-xl font-semibold text-gray-900">My Classes</h2>
           <p className="text-sm text-gray-500 mt-1">
             Claim schedule codes to link your classes with students
           </p>
         </div>
-        <button
-          onClick={() => setShowAddModal(true)}
-          className="px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors flex items-center gap-2"
-        >
-          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-          </svg>
-          Add Class
-        </button>
+        <div className="flex items-center gap-3">
+          {/* Section Filter */}
+          {uniqueSections.length > 0 && (
+            <select
+              value={sectionFilter}
+              onChange={(e) => setSectionFilter(e.target.value)}
+              className="px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
+            >
+              <option value="all">All Sections ({classes.length})</option>
+              {uniqueSections.map(section => (
+                <option key={section} value={section}>
+                  {section} ({classes.filter(c => c.section === section).length})
+                </option>
+              ))}
+            </select>
+          )}
+          <button
+            onClick={() => setShowAddModal(true)}
+            className="px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors flex items-center gap-2"
+          >
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+            </svg>
+            Add Class
+          </button>
+        </div>
       </div>
 
       {/* Messages */}
@@ -146,9 +172,25 @@ const ProfessorClasses = () => {
             Add Your First Class
           </button>
         </div>
+      ) : filteredClasses.length === 0 ? (
+        <div className="text-center py-12 bg-gray-50 rounded-xl">
+          <svg className="w-16 h-16 mx-auto text-gray-300 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+          </svg>
+          <h3 className="text-lg font-medium text-gray-900 mb-2">No Classes for "{sectionFilter}"</h3>
+          <p className="text-gray-500 mb-4">
+            No classes match the selected section filter.
+          </p>
+          <button
+            onClick={() => setSectionFilter('all')}
+            className="px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors"
+          >
+            Show All Classes
+          </button>
+        </div>
       ) : (
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-          {classes.map((classItem) => (
+          {filteredClasses.map((classItem) => (
             <div
               key={classItem.id}
               className="bg-white border border-gray-200 rounded-xl p-5 hover:shadow-md transition-shadow"

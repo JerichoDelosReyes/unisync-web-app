@@ -25,7 +25,9 @@ import {
   getDocs,
   onSnapshot,
   serverTimestamp,
-  writeBatch
+  writeBatch,
+  arrayUnion,
+  arrayRemove
 } from 'firebase/firestore';
 
 const CLASS_SECTIONS_COLLECTION = 'class_sections';
@@ -221,12 +223,14 @@ export const subscribeToProfessorClasses = (professorUid, callback) => {
 /**
  * Update class section with schedule details (from student upload)
  * This is called when a student uploads their registration form
+ * Tracks unique students to prevent duplicate counting
  * 
  * @param {string} scheduleCode - The schedule code
  * @param {Object} scheduleDetails - Details from parsed registration form
+ * @param {string} studentUid - The student's user ID (for unique tracking)
  * @returns {Promise<Object>} - The updated class section
  */
-export const updateClassSectionFromStudent = async (scheduleCode, scheduleDetails) => {
+export const updateClassSectionFromStudent = async (scheduleCode, scheduleDetails, studentUid) => {
   try {
     const cleanCode = scheduleCode.toString().trim();
     const sectionRef = doc(db, CLASS_SECTIONS_COLLECTION, cleanCode);
@@ -243,12 +247,20 @@ export const updateClassSectionFromStudent = async (scheduleCode, scheduleDetail
     };
 
     if (existingDoc.exists()) {
-      // Update existing - increment student count
-      const currentCount = existingDoc.data().studentCount || 0;
-      await updateDoc(sectionRef, {
-        ...updateData,
-        studentCount: currentCount + 1
-      });
+      const existingData = existingDoc.data();
+      const enrolledStudents = existingData.enrolledStudents || [];
+      
+      // Only add if student not already enrolled
+      if (studentUid && !enrolledStudents.includes(studentUid)) {
+        await updateDoc(sectionRef, {
+          ...updateData,
+          enrolledStudents: arrayUnion(studentUid),
+          studentCount: enrolledStudents.length + 1
+        });
+      } else {
+        // Student already enrolled, just update details without incrementing count
+        await updateDoc(sectionRef, updateData);
+      }
     } else {
       // Create new document (no professor yet - TBA scenario)
       await setDoc(sectionRef, {
@@ -258,7 +270,8 @@ export const updateClassSectionFromStudent = async (scheduleCode, scheduleDetail
         professorName: null,
         professorEmail: null,
         department: null,
-        studentCount: 1,
+        enrolledStudents: studentUid ? [studentUid] : [],
+        studentCount: studentUid ? 1 : 0,
         claimedAt: null,
         createdAt: serverTimestamp()
       });
@@ -271,6 +284,38 @@ export const updateClassSectionFromStudent = async (scheduleCode, scheduleDetail
     };
   } catch (error) {
     console.error('Error updating class section from student:', error);
+    throw error;
+  }
+};
+
+/**
+ * Remove a student from a class section (when they clear/delete their schedule)
+ * 
+ * @param {string} scheduleCode - The schedule code
+ * @param {string} studentUid - The student's user ID
+ * @returns {Promise<void>}
+ */
+export const removeStudentFromClassSection = async (scheduleCode, studentUid) => {
+  try {
+    const cleanCode = scheduleCode.toString().trim();
+    const sectionRef = doc(db, CLASS_SECTIONS_COLLECTION, cleanCode);
+    const existingDoc = await getDoc(sectionRef);
+
+    if (existingDoc.exists() && studentUid) {
+      const existingData = existingDoc.data();
+      const enrolledStudents = existingData.enrolledStudents || [];
+      
+      if (enrolledStudents.includes(studentUid)) {
+        const newCount = Math.max(0, enrolledStudents.length - 1);
+        await updateDoc(sectionRef, {
+          enrolledStudents: arrayRemove(studentUid),
+          studentCount: newCount,
+          updatedAt: serverTimestamp()
+        });
+      }
+    }
+  } catch (error) {
+    console.error('Error removing student from class section:', error);
     throw error;
   }
 };
@@ -447,6 +492,7 @@ export default {
   getProfessorClasses,
   subscribeToProfessorClasses,
   updateClassSectionFromStudent,
+  removeStudentFromClassSection,
   getProfessorForScheduleCode,
   getProfessorsForScheduleCodes,
   subscribeToScheduleCodes,
