@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { Outlet } from 'react-router-dom'
 import Sidebar from '../components/navigation/Sidebar'
 import Header from '../components/navigation/Header'
+import AIChat from '../components/ui/AIChat'
 
 /**
  * DashboardLayout Component
@@ -32,6 +33,9 @@ export default function DashboardLayout() {
           </main>
         </div>
       </div>
+
+      {/* AI Chatbot */}
+      <AIChat />
     </div>
   )
 }

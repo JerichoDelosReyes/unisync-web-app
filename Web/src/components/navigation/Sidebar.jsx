@@ -32,14 +32,26 @@ const navigationItems = [
     minRole: null // Everyone can see
   },
   {
-    name: 'Schedule & Rooms',
+    name: 'Schedule',
     path: '/schedule',
     icon: (
       <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
       </svg>
     ),
-    minRole: null // Everyone can see
+    minRole: null, // Everyone can see
+    excludeRoles: [ROLES.ADMIN, ROLES.SUPER_ADMIN] // But not admins
+  },
+  {
+    name: 'Rooms',
+    path: '/rooms',
+    icon: (
+      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+      </svg>
+    ),
+    minRole: null, // Everyone can see
+    excludeRoles: [ROLES.ADMIN, ROLES.SUPER_ADMIN] // But not admins
   },
   {
     name: 'User Management',
@@ -62,12 +74,42 @@ const navigationItems = [
     minRole: ROLES.ADMIN // Admin and above only
   },
   {
+    name: 'Faculty Requests',
+    path: '/faculty-requests',
+    icon: (
+      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
+      </svg>
+    ),
+    minRole: ROLES.ADMIN // Admin and above only
+  },
+  {
+    name: 'Logs',
+    path: '/logs',
+    icon: (
+      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 17v-2a2 2 0 012-2h2a2 2 0 012 2v2m-6 4h6a2 2 0 002-2V7a2 2 0 00-2-2H7a2 2 0 00-2 2v12a2 2 0 002 2z" />
+      </svg>
+    ),
+    minRole: ROLES.SUPER_ADMIN // Super Admin only
+  },
+  {
     name: 'System Settings',
     path: '/settings',
     icon: (
       <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+      </svg>
+    ),
+    minRole: ROLES.SUPER_ADMIN // Super Admin only
+  },
+  {
+    name: 'Schedule Archives',
+    path: '/archives',
+    icon: (
+      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4" />
       </svg>
     ),
     minRole: ROLES.SUPER_ADMIN // Super Admin only
@@ -80,6 +122,10 @@ export default function Sidebar({ isOpen, onClose }) {
 
   // Filter navigation items based on user role
   const visibleNavItems = navigationItems.filter(item => {
+    // Check if user's role is excluded
+    if (item.excludeRoles && item.excludeRoles.includes(userProfile?.role)) {
+      return false
+    }
     if (!item.minRole) return true
     return hasMinRole(item.minRole)
   })

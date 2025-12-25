@@ -2,6 +2,11 @@ import { useNavigate } from 'react-router-dom'
 import { useAuth, ROLE_DISPLAY_NAMES } from '../../contexts/AuthContext'
 import { logoutUser } from '../../services/authService'
 import { useState, useRef, useEffect } from 'react'
+import { 
+  subscribeToNotifications, 
+  markNotificationAsRead, 
+  markAllNotificationsAsRead 
+} from '../../services/notificationService'
 
 /**
  * Header Component
@@ -12,13 +17,81 @@ export default function Header({ onMenuClick }) {
   const { userProfile, user } = useAuth()
   const navigate = useNavigate()
   const [showUserMenu, setShowUserMenu] = useState(false)
+  const [showNotifications, setShowNotifications] = useState(false)
+  const [notifications, setNotifications] = useState([])
+  const [loading, setLoading] = useState(true)
   const userMenuRef = useRef(null)
+  const notificationRef = useRef(null)
 
-  // Close menu when clicking outside
+  const unreadCount = notifications.filter(n => !n.read).length
+
+  // Subscribe to real-time notifications
+  useEffect(() => {
+    if (!user?.uid) {
+      setNotifications([])
+      setLoading(false)
+      return
+    }
+
+    setLoading(true)
+    const unsubscribe = subscribeToNotifications(
+      user.uid,
+      (newNotifications) => {
+        setNotifications(newNotifications)
+        setLoading(false)
+      },
+      { limit: 20 }
+    )
+
+    // Cleanup subscription on unmount
+    return () => unsubscribe()
+  }, [user?.uid])
+
+  const markAsRead = async (id) => {
+    try {
+      await markNotificationAsRead(id)
+      setNotifications(notifications.map(n => 
+        n.id === id ? { ...n, read: true } : n
+      ))
+    } catch (error) {
+      console.error('Error marking notification as read:', error)
+    }
+  }
+
+  const markAllAsRead = async () => {
+    if (!user?.uid) return
+    
+    try {
+      await markAllNotificationsAsRead(user.uid)
+      setNotifications(notifications.map(n => ({ ...n, read: true })))
+    } catch (error) {
+      console.error('Error marking all notifications as read:', error)
+    }
+  }
+
+  // Format time ago
+  const formatTimeAgo = (date) => {
+    if (!date) return ''
+    
+    const now = new Date()
+    const notificationDate = date instanceof Date ? date : new Date(date)
+    const diffInSeconds = Math.floor((now - notificationDate) / 1000)
+    
+    if (diffInSeconds < 60) return 'Just now'
+    if (diffInSeconds < 3600) return `${Math.floor(diffInSeconds / 60)} min ago`
+    if (diffInSeconds < 86400) return `${Math.floor(diffInSeconds / 3600)} hour${Math.floor(diffInSeconds / 3600) > 1 ? 's' : ''} ago`
+    if (diffInSeconds < 604800) return `${Math.floor(diffInSeconds / 86400)} day${Math.floor(diffInSeconds / 86400) > 1 ? 's' : ''} ago`
+    return notificationDate.toLocaleDateString()
+  }
+
+  // Close menus when clicking outside
   useEffect(() => {
     function handleClickOutside(event) {
       if (userMenuRef.current && !userMenuRef.current.contains(event.target)) {
         setShowUserMenu(false)
+      }
+      if (notificationRef.current && !notificationRef.current.contains(event.target)) {
+        setShowNotifications(false)
       }
     }
     document.addEventListener('mousedown', handleClickOutside)
@@ -70,13 +143,96 @@ export default function Header({ onMenuClick }) {
           </div>
 
           {/* Notifications */}
-          <button className="relative p-2 rounded-lg text-gray-600 hover:bg-gray-100">
-            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
-            </svg>
-            {/* Notification badge */}
-            <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full"></span>
-          </button>
+          <div className="relative" ref={notificationRef}>
+            <button 
+              onClick={() => setShowNotifications(!showNotifications)}
+              className="relative p-2 rounded-lg text-gray-600 hover:bg-gray-100"
+            >
+              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+              </svg>
+              {/* Notification badge */}
+              {unreadCount > 0 && (
+                <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full"></span>
+              )}
+            </button>
+
+            {/* Notifications Dropdown */}
+            {showNotifications && (
+              <div className="absolute right-0 mt-2 w-80 bg-white rounded-lg shadow-lg border border-gray-200 z-50">
+                {/* Header */}
+                <div className="px-4 py-3 border-b border-gray-100 flex items-center justify-between">
+                  <h3 className="text-sm font-semibold text-gray-900">Notifications</h3>
+                  {unreadCount > 0 && (
+                    <button 
+                      onClick={markAllAsRead}
+                      className="text-xs text-primary hover:text-primary/80"
+                    >
+                      Mark all as read
+                    </button>
+                  )}
+                </div>
+
+                {/* Notification List */}
+                <div className="max-h-80 overflow-y-auto">
+                  {loading ? (
+                    <div className="px-4 py-8 text-center text-gray-500">
+                      <svg className="w-6 h-6 mx-auto mb-2 animate-spin text-primary" fill="none" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                      </svg>
+                      <p className="text-sm">Loading notifications...</p>
+                    </div>
+                  ) : notifications.length === 0 ? (
+                    <div className="px-4 py-8 text-center text-gray-500">
+                      <svg className="w-12 h-12 mx-auto mb-2 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+                      </svg>
+                      <p className="text-sm">No notifications yet</p>
+                    </div>
+                  ) : (
+                    notifications.map((notification) => (
+                      <div
+                        key={notification.id}
+                        onClick={() => {
+                          markAsRead(notification.id)
+                          setShowNotifications(false)
+                          // Navigate based on notification type
+                          const type = notification.type
+                          if (type === 'urgent_announcement' || type === 'new_announcement' || 
+                              type === 'announcement_approved' || type === 'announcement_rejected' ||
+                              type === 'announcement_reaction' || type === 'announcement_comment') {
+                            navigate('/announcements')
+                          } else if (type === 'schedule_validated' || type === 'schedule_invalidated' || 
+                                     type === 'schedule_code_claimed' || type === 'new_student_enrolled') {
+                            navigate('/schedule')
+                          } else if (type === 'faculty_request_approved' || type === 'faculty_request_rejected') {
+                            navigate('/dashboard')
+                          } else {
+                            navigate('/dashboard')
+                          }
+                        }}
+                        className={`px-4 py-3 border-b border-gray-50 hover:bg-gray-50 cursor-pointer transition-colors ${
+                          !notification.read ? 'bg-primary/5' : ''
+                        }`}
+                      >
+                        <div className="flex items-start gap-3">
+                          <div className={`w-2 h-2 mt-2 rounded-full flex-shrink-0 ${
+                            !notification.read ? 'bg-primary' : 'bg-transparent'
+                          }`}></div>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-medium text-gray-900">{notification.title}</p>
+                            <p className="text-xs text-gray-500 mt-0.5 line-clamp-2">{notification.message}</p>
+                            <p className="text-xs text-gray-400 mt-1">{formatTimeAgo(notification.createdAt)}</p>
+                          </div>
+                        </div>
+                      </div>
+                    ))
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
 
           {/* User Menu */}
           <div className="relative" ref={userMenuRef}>
@@ -84,11 +240,19 @@ export default function Header({ onMenuClick }) {
               onClick={() => setShowUserMenu(!showUserMenu)}
               className="flex items-center gap-2 p-1.5 rounded-lg hover:bg-gray-100"
             >
-              <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
-                <span className="text-primary font-semibold text-xs">
-                  {userProfile?.givenName?.[0]}{userProfile?.lastName?.[0]}
-                </span>
-              </div>
+              {userProfile?.photoURL ? (
+                <img 
+                  src={userProfile.photoURL} 
+                  alt="Profile" 
+                  className="w-8 h-8 rounded-full object-cover"
+                />
+              ) : (
+                <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
+                  <span className="text-primary font-semibold text-xs">
+                    {userProfile?.givenName?.[0]}{userProfile?.lastName?.[0]}
+                  </span>
+                </div>
+              )}
               <svg className="w-4 h-4 text-gray-500 hidden sm:block" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
               </svg>

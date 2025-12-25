@@ -14,9 +14,13 @@ import Unauthorized from './pages/Unauthorized'
 import Dashboard from './pages/Dashboard'
 import Announcements from './pages/Announcements'
 import Schedule from './pages/Schedule'
+import Rooms from './pages/Rooms'
 import UserManagement from './pages/UserManagement'
 import Moderation from './pages/Moderation'
 import SystemSettings from './pages/SystemSettings'
+import ScheduleArchive from './pages/ScheduleArchive'
+import FacultyRequests from './pages/FacultyRequests'
+import Profile from './pages/Profile'
 
 export default function App() {
   return (
@@ -41,6 +45,8 @@ export default function App() {
           <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/announcements" element={<Announcements />} />
           <Route path="/schedule" element={<Schedule />} />
+          <Route path="/rooms" element={<Rooms />} />
+          <Route path="/profile" element={<Profile />} />
           
           {/* Faculty and above only */}
           <Route
@@ -61,6 +67,14 @@ export default function App() {
               </AdminRoute>
             }
           />
+          <Route
+            path="/faculty-requests"
+            element={
+              <AdminRoute>
+                <FacultyRequests />
+              </AdminRoute>
+            }
+          />
           
           {/* Super Admin only */}
           <Route
@@ -68,6 +82,14 @@ export default function App() {
             element={
               <SuperAdminRoute>
                 <SystemSettings />
+              </SuperAdminRoute>
+            }
+          />
+          <Route
+            path="/archives"
+            element={
+              <SuperAdminRoute>
+                <ScheduleArchive />
               </SuperAdminRoute>
             }
           />

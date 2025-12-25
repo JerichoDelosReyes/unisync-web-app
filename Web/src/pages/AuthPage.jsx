@@ -25,7 +25,6 @@ export default function AuthPage() {
   const [signInEmail, setSignInEmail] = useState('')
   const [signInPassword, setSignInPassword] = useState('')
   const [signInLoading, setSignInLoading] = useState(false)
-  const [rememberMe, setRememberMe] = useState(false)
   
   // Sign Up State
   const [givenName, setGivenName] = useState('')
@@ -81,7 +80,7 @@ export default function AuthPage() {
     }
     
     // Login with Firebase
-    const result = await loginUser(signInEmail, signInPassword, rememberMe)
+    const result = await loginUser(signInEmail, signInPassword)
     setSignInLoading(false)
     
     // Check if email needs verification
@@ -237,7 +236,7 @@ export default function AuthPage() {
   return (
     <div className="h-screen flex flex-col lg:grid lg:grid-cols-2 overflow-hidden">
       {/* Left Panel - Brand & Features (hidden on mobile, visible on lg+) */}
-      <div className="hidden lg:flex bg-gradient-to-br from-[#166534] via-[#15803d] to-[#14532d] text-white p-6 xl:p-10 flex-col justify-between relative overflow-hidden">
+      <div className="hidden lg:flex bg-gradient-to-br from-[#166534] via-[#15803d] to-[#14532d] text-white p-6 xl:p-10 flex-col justify-center relative overflow-hidden">
         {/* Background Pattern */}
         <div className="absolute inset-0 opacity-10">
           <div className="absolute top-0 right-0 w-96 h-96 bg-white/20 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2"></div>
@@ -395,16 +394,7 @@ export default function AuthPage() {
                   value={signInPassword}
                   onChange={(e) => setSignInPassword(e.target.value)}
                 />
-                <div className="flex items-center justify-between">
-                  <label className="inline-flex items-center gap-2 text-sm text-gray-700 cursor-pointer">
-                    <input 
-                      type="checkbox" 
-                      checked={rememberMe}
-                      onChange={(e) => setRememberMe(e.target.checked)}
-                      className="rounded border-gray-300 text-primary focus:ring-primary" 
-                    />
-                    Remember me
-                  </label>
+                <div className="flex items-center justify-end">
                   <button 
                     type="button"
                     onClick={() => setShowForgotPassword(true)}

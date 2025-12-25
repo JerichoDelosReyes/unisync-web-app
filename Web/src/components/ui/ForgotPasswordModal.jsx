@@ -69,12 +69,12 @@ export default function ForgotPasswordModal({ isOpen, onClose }) {
     <>
       {/* Backdrop */}
       <div 
-        className="fixed inset-0 z-40 backdrop-blur-sm bg-black/30"
+        className="fixed inset-0 z-[99] backdrop-blur-sm bg-black/30"
         onClick={handleClose}
       />
       
       {/* Modal */}
-      <div className="fixed inset-0 z-50 flex items-center justify-center pointer-events-none p-4">
+      <div className="fixed inset-0 z-[100] flex items-center justify-center pointer-events-none p-4">
         <div className="relative bg-white rounded-2xl shadow-2xl p-8 w-full max-w-md pointer-events-auto">
           {/* Close button */}
           <button

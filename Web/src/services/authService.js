@@ -18,6 +18,7 @@ import {
   updateDoc,
   serverTimestamp
 } from 'firebase/firestore';
+import { notifyWelcome } from './notificationService';
 
 // ============================================
 // CONSTANTS
@@ -31,8 +32,6 @@ export const USER_ROLES = {
   SUPER_ADMIN: 'super_admin',
   ADMIN: 'admin',
   FACULTY: 'faculty',
-  YEAR_REP: 'year_rep',
-  CLASS_REP: 'class_rep',
   STUDENT: 'student'
 };
 
@@ -202,6 +201,18 @@ export const completeRegistration = async (userData) => {
       return { success: false, error: 'Email not verified yet.' };
     }
 
+    // Force refresh the ID token to get updated email_verified claim
+    // This is required for Firestore security rules to see the verified status
+    console.log('Refreshing ID token...');
+    await user.getIdToken(true);
+    
+    // Small delay to ensure token propagation to Firestore
+    await new Promise(resolve => setTimeout(resolve, 1000));
+    
+    // Refresh token again to ensure it's fully propagated
+    await user.getIdToken(true);
+    console.log('ID token refreshed successfully');
+
     const { givenName, lastName, email } = userData;
 
     // Check if user document already exists
@@ -213,8 +224,10 @@ export const completeRegistration = async (userData) => {
     }
 
     // Store user data in Firestore with default Student role
+    // Retry mechanism for token propagation issues
     console.log('Creating user document in Firestore...');
-    await setDoc(doc(db, 'users', user.uid), {
+    
+    const userDocData = {
       uid: user.uid,
       email: email.toLowerCase(),
       givenName,
@@ -226,14 +239,43 @@ export const completeRegistration = async (userData) => {
       emailVerified: true,
       createdAt: serverTimestamp(),
       updatedAt: serverTimestamp()
-    });
-
-    console.log('✅ User document created in Firestore');
-
-    return {
-      success: true,
-      message: 'Account created successfully!'
     };
+    
+    // Retry up to 3 times with increasing delays
+    let lastError = null;
+    for (let attempt = 1; attempt <= 3; attempt++) {
+      try {
+        await setDoc(doc(db, 'users', user.uid), userDocData);
+        console.log('✅ User document created in Firestore');
+        
+        // Send welcome notification
+        try {
+          await notifyWelcome(user.uid, givenName);
+        } catch (notifyError) {
+          console.error('Error sending welcome notification:', notifyError);
+          // Don't fail registration if notification fails
+        }
+        
+        return {
+          success: true,
+          message: 'Account created successfully!'
+        };
+      } catch (writeError) {
+        lastError = writeError;
+        console.warn(`Attempt ${attempt} failed:`, writeError.message);
+        
+        if (attempt < 3 && writeError.code === 'permission-denied') {
+          // Wait and refresh token before retry
+          console.log(`Waiting and refreshing token before retry ${attempt + 1}...`);
+          await new Promise(resolve => setTimeout(resolve, 2000 * attempt));
+          await user.getIdToken(true);
+        } else {
+          throw writeError;
+        }
+      }
+    }
+    
+    throw lastError;
   } catch (error) {
     console.error('Complete registration error:', error);
     console.error('Error code:', error.code);
@@ -243,7 +285,7 @@ export const completeRegistration = async (userData) => {
     if (error.code === 'permission-denied') {
       return { 
         success: false, 
-        error: 'Database permission denied. Please contact support.' 
+        error: 'Database setup in progress. Please try signing in - your account will be created automatically.' 
       };
     }
     
@@ -286,20 +328,63 @@ export const loginUser = async (email, password, rememberMe = false) => {
     }
 
     // Get user data from Firestore to check role
-    const userDoc = await getDoc(doc(db, 'users', user.uid));
+    let userDoc = await getDoc(doc(db, 'users', user.uid));
 
+    // If user profile doesn't exist but email is verified, create it automatically
+    // This handles cases where user verified email but didn't complete registration flow
     if (!userDoc.exists()) {
-      await signOut(auth);
-      return { success: false, error: 'User profile not found. Please contact support.' };
+      console.log('📝 User profile not found, creating automatically...');
+      
+      // Force refresh token to ensure Firestore sees verified status
+      await user.getIdToken(true);
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      await user.getIdToken(true);
+      
+      // Extract name from displayName (set during registration)
+      const displayName = user.displayName || '';
+      const nameParts = displayName.trim().split(' ');
+      const givenName = nameParts[0] || 'User';
+      const lastName = nameParts.slice(1).join(' ') || '';
+      
+      // Retry mechanism for token propagation
+      let profileCreated = false;
+      for (let attempt = 1; attempt <= 3 && !profileCreated; attempt++) {
+        try {
+          await setDoc(doc(db, 'users', user.uid), {
+            uid: user.uid,
+            email: user.email.toLowerCase(),
+            givenName,
+            lastName,
+            displayName: displayName || givenName,
+            role: DEFAULT_ROLE,
+            tags: [],
+            isVerified: true,
+            emailVerified: true,
+            createdAt: serverTimestamp(),
+            updatedAt: serverTimestamp()
+          });
+          
+          console.log('✅ User profile created automatically');
+          profileCreated = true;
+          
+          // Re-fetch the user document
+          userDoc = await getDoc(doc(db, 'users', user.uid));
+        } catch (createError) {
+          console.warn(`Attempt ${attempt} to create profile failed:`, createError.message);
+          
+          if (attempt < 3 && createError.code === 'permission-denied') {
+            await new Promise(resolve => setTimeout(resolve, 2000 * attempt));
+            await user.getIdToken(true);
+          } else {
+            console.error('❌ Failed to create user profile:', createError);
+            await signOut(auth);
+            return { success: false, error: 'Failed to create user profile. Please try again in a moment.' };
+          }
+        }
+      }
     }
 
     const userData = userDoc.data();
-
-    // Check if user has Student role
-    if (userData.role !== USER_ROLES.STUDENT) {
-      await signOut(auth);
-      return { success: false, error: 'Access denied. Student accounts only.' };
-    }
 
     // Update Firestore to mark email as verified
     await updateDoc(doc(db, 'users', user.uid), {

@@ -27,3 +27,14 @@ body { @apply bg-bg text-text antialiased; }
 .focus-ring {
   @apply outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2;
 }
+
+/* Modal overlay - extends beyond viewport to cover safe areas */
+.modal-overlay {
+  position: fixed;
+  top: -100px;
+  left: -100px;
+  right: -100px;
+  bottom: -100px;
+  padding: 100px;
+  box-sizing: border-box;
+}
