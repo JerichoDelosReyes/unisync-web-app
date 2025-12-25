@@ -31,13 +31,16 @@ const BAD_WORD_ROOTS = {
     "hindot", "kantot", "tite", "titi", "pepek", "puki", "kiki",
     "kepyas", "jakol", "jabol", "bayag", "suso", "bilat", "burat", "kupal",
     "kainin mo to", "haup ka", "hayp", "anak mo", "nanay mo", "tatay mo",
-    "impi", "sulot", "bugbugan", "tawag", "samantalahin", "sira"
+    "impi", "sulot", "bugbugan", "tawag", "samantalahin", "sira",
+    "bakla", "bading", "tomboy", "inamo", "namo", "namu", "bobomo",
+    "pukinangina", "pukinginamo", "argh"
   ],
   english: [
     "fuck", "fck", "shit", "shet", "bitch", "btch", "asshole",
     "bastard", "bullshit", "crap", "damn", "dick", "pussy",
     "cock", "cunt", "whore", "slut", "motherfucker",
-    "nigga", "nigger", "faggot", "retard", "idiot", "stupid"
+    "nigga", "nigger", "faggot", "retard", "idiot", "stupid",
+    "gay", "gayass", "gaynigger", "fuckingbitch", "bitchass", "fuckingbitchass"
   ]
 }
 

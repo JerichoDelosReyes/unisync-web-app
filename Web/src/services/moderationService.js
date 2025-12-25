@@ -166,6 +166,10 @@ const PROFANITY_PATTERNS = [
   /a+t+a+y+/gi, // Bisaya
   /p+i+s+t+i+/gi, // Bisaya
   /b+i+l+a+t+/gi, // Bisaya
+  /i+n+a+\s*m+o+/gi, // "ina mo" variations
+  /n+a+m+[ou]+/gi, // "namo", "namu" slang
+  /b+o+b+o+\s*m+o+/gi, // "bobo mo"
+  /b+a+d+i+n+g+/gi, // Filipino slang for gay
   
   // Homophobic slurs
   /f+a+g+g*o*t*/gi,
@@ -176,6 +180,8 @@ const PROFANITY_PATTERNS = [
   /q+u+e+e+r+/gi,
   /b+a+k+l+a+\b/gi, // Filipino
   /t+o+m+b+o+y+\b/gi, // When used as slur
+  /g+a+y+a+s+s+/gi, // "gayass"
+  /g+a+y+\s*n+i+g+g+[ae]+r*/gi, // "gay nigger"
   
   // Ableist slurs
   /r+e+t+a+r+d+/gi,

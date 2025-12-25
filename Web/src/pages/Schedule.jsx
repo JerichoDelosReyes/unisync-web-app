@@ -1383,6 +1383,25 @@ function StudentScheduleView() {
       // Parse the schedule from extracted text using the new parser
       const { schedules: extractedSchedule, studentInfo: extractedStudentInfo } = parseRegistrationForm(fullText)
       
+      // Validate that the registration form belongs to this user
+      // Compare last name from reg form with user's profile last name
+      if (extractedStudentInfo.lastName && userProfile?.lastName) {
+        const formLastName = extractedStudentInfo.lastName.trim().toLowerCase()
+        const profileLastName = userProfile.lastName.trim().toLowerCase()
+        
+        if (formLastName !== profileLastName) {
+          setErrorModal({
+            isOpen: true,
+            title: 'Name Mismatch',
+            message: `This registration form belongs to "${extractedStudentInfo.lastName}".`,
+            details: `Your account name is "${userProfile.lastName}". You can only upload your own registration form. If your name has changed, please contact an administrator to update your account.`
+          })
+          setIsModalOpen(false)
+          setIsProcessing(false)
+          return
+        }
+      }
+      
       // Validate school year - must be current year (2025-2026) or later
       const currentYear = new Date().getFullYear()
       const minAllowedYear = currentYear // 2025
