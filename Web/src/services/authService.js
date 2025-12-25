@@ -386,7 +386,7 @@ export const loginUser = async (email, password, rememberMe = false) => {
 
     const userData = userDoc.data();
 
-    // Update Firestore to mark email as verified
+    // Update Firestore to mark email as verified and record login
     await updateDoc(doc(db, 'users', user.uid), {
       emailVerified: true,
       lastLoginAt: serverTimestamp(),
