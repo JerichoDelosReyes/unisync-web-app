@@ -21,6 +21,7 @@ import SystemSettings from './pages/SystemSettings'
 import ScheduleArchive from './pages/ScheduleArchive'
 import FacultyRequests from './pages/FacultyRequests'
 import Profile from './pages/Profile'
+import OrganizationsPage from './pages/OrganizationsPage'
 
 export default function App() {
   return (
@@ -47,6 +48,7 @@ export default function App() {
           <Route path="/schedule" element={<Schedule />} />
           <Route path="/rooms" element={<Rooms />} />
           <Route path="/profile" element={<Profile />} />
+          <Route path="/organizations" element={<OrganizationsPage />} />
           
           {/* Faculty and above only */}
           <Route

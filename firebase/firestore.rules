@@ -410,6 +410,51 @@ service cloud.firestore {
     }
     
     // ==========================================
+    // ORGANIZATIONS COLLECTION (Student Orgs)
+    // ==========================================
+    match /organizations/{orgCode} {
+      // Helper: Check if user is adviser of this organization
+      function isAdviserOfOrg() {
+        return resource.data.advisers != null 
+          && resource.data.advisers.size() > 0
+          && request.auth.uid in resource.data.advisers[*].userId;
+      }
+      
+      // Helper: Check if user is president or has tagging rights in this org
+      function canTagInOrg() {
+        let officers = resource.data.officers;
+        return officers != null 
+          && officers.size() > 0
+          && request.auth.uid in officers[*].userId
+          && true in officers[*].canTagOfficers;
+      }
+      
+      // Read: All authenticated users can view organizations
+      allow read: if isAuthenticated();
+      
+      // Create: Only Admin+ can create organization records
+      allow create: if isAuthenticated() 
+        && isAdminOrAbove()
+        && isReasonableSize();
+      
+      // Update advisers: Only Admin+ can add/remove advisers
+      // Update officers: Advisers or President can add/remove officers
+      allow update: if isAuthenticated()
+        && isReasonableSize()
+        && (
+          // Admin can update anything
+          isAdminOrAbove()
+          // Adviser can update officers array
+          || (isAdviserOfOrg() && onlyAllowedFields(['officers', 'updatedAt']))
+          // President can update officers array (but not advisers)
+          || (canTagInOrg() && onlyAllowedFields(['officers', 'updatedAt']))
+        );
+      
+      // Delete: Only Super Admin
+      allow delete: if isAuthenticated() && isSuperAdmin();
+    }
+    
+    // ==========================================
     // CATCH-ALL: Deny everything else
     // ==========================================
     match /{document=**} {

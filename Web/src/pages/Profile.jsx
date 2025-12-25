@@ -701,6 +701,54 @@ export default function Profile() {
               </div>
             </div>
           </div>
+
+          {/* Organization Positions */}
+          {(userProfile?.adviserOf || userProfile?.officerOf) && (
+            <div className="mt-8 pt-6 border-t border-gray-200">
+              <h3 className="text-lg font-semibold text-gray-900 mb-4">Organization Positions</h3>
+              <div className="space-y-3">
+                {/* Adviser Positions */}
+                {userProfile?.adviserOf && Object.keys(userProfile.adviserOf).length > 0 && (
+                  <div>
+                    <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Adviser</p>
+                    <div className="flex flex-wrap gap-2">
+                      {Object.entries(userProfile.adviserOf).map(([orgCode, info]) => (
+                        <span 
+                          key={orgCode}
+                          className="inline-flex items-center px-3 py-1.5 rounded-full text-sm font-medium bg-purple-100 text-purple-800"
+                        >
+                          <span className="mr-1">👨‍🏫</span>
+                          {info.orgName} Adviser
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
+                
+                {/* Officer Positions */}
+                {userProfile?.officerOf && Object.keys(userProfile.officerOf).length > 0 && (
+                  <div>
+                    <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Officer</p>
+                    <div className="flex flex-wrap gap-2">
+                      {Object.entries(userProfile.officerOf).map(([orgCode, info]) => (
+                        <span 
+                          key={orgCode}
+                          className={`inline-flex items-center px-3 py-1.5 rounded-full text-sm font-medium ${
+                            info.canTagOfficers 
+                              ? 'bg-green-100 text-green-800' 
+                              : 'bg-blue-100 text-blue-800'
+                          }`}
+                        >
+                          <span className="mr-1">{info.canTagOfficers ? '👑' : '🏅'}</span>
+                          {info.positionTitle} - {info.orgName}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
         </form>
       </div>
     </div>
