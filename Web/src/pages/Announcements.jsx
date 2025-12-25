@@ -127,20 +127,58 @@ export default function Announcements() {
     { name: 'Honor Society', code: 'HS', logo: HonorSocLogo }
   ]
   
-  const canCreate = hasMinRole(ROLES.CLASS_REP)
+  // Check if user is an organization officer who can announce
+  const isOrgOfficer = userProfile?.officerOf && Object.keys(userProfile.officerOf).length > 0
+  const userOrgPositions = userProfile?.officerOf || {}
+  
+  // Get list of organizations user can announce for
+  const getUserAnnouncementOrgs = () => {
+    if (!userOrgPositions) return []
+    return Object.entries(userOrgPositions).map(([orgCode, pos]) => ({
+      code: orgCode,
+      name: pos.orgName,
+      position: pos.positionTitle,
+      canTagOfficers: pos.canTagOfficers
+    }))
+  }
+  const userAnnouncementOrgs = getUserAnnouncementOrgs()
+  
+  // User can create if they are Class Rep OR Org Officer OR higher role
+  const canCreate = hasMinRole(ROLES.CLASS_REP) || isOrgOfficer
   const canModerate = hasMinRole(ROLES.ADMIN)
   // Admin+ skips review queue but profanity is ALWAYS checked
   const skipReviewQueue = hasMinRole(ROLES.ADMIN)
   
-  // Check if Class Rep has a section set (required to create announcements)
+  // Check if Class Rep has a section set (required to create announcements as class rep)
   const isClassRepWithoutSection = userProfile?.role === ROLES.CLASS_REP && !userProfile?.section
+  
+  // Announcement mode state for users with multiple roles
+  const [announcementMode, setAnnouncementMode] = useState('classrep') // 'classrep' or 'org'
+  const [selectedAnnouncementOrg, setSelectedAnnouncementOrg] = useState(null)
+  
+  // Can user announce as class rep?
+  const canAnnounceAsClassRep = userProfile?.role === ROLES.CLASS_REP && userProfile?.section
   
   // Handle Class Rep trying to create without section
   const handleCreateClick = () => {
-    if (isClassRepWithoutSection) {
+    // If user is ONLY a class rep without section, block
+    if (userProfile?.role === ROLES.CLASS_REP && !userProfile?.section && !isOrgOfficer) {
       showToast('Please upload your registration form in the Schedule page first to set your section.', 'error')
       return
     }
+    
+    // If user has multiple announcement capabilities, set default mode
+    if (canAnnounceAsClassRep && isOrgOfficer) {
+      setAnnouncementMode('classrep') // Default to class rep mode
+    } else if (isOrgOfficer) {
+      setAnnouncementMode('org')
+      if (userAnnouncementOrgs.length === 1) {
+        setSelectedAnnouncementOrg(userAnnouncementOrgs[0])
+      }
+    } else {
+      setAnnouncementMode('classrep')
+    }
+    
     setShowCreateModal(true)
   }
 
@@ -399,6 +437,12 @@ export default function Announcements() {
       return
     }
     
+    // For org mode, require an org to be selected
+    if (announcementMode === 'org' && !selectedAnnouncementOrg && userAnnouncementOrgs.length > 1) {
+      showToast('Please select an organization to announce for', 'error')
+      return
+    }
+    
     // Validate content quality
     const qualityCheck = validateAnnouncementQuality(formData.title, formData.content)
     if (!qualityCheck.valid) {
@@ -409,11 +453,29 @@ export default function Announcements() {
     try {
       setSubmitting(true)
       
+      // Build author object with org context if applicable
       const author = {
         uid: user.uid,
         name: `${userProfile.givenName} ${userProfile.lastName}`,
         role: userProfile.role,
         photoURL: userProfile.photoURL || null
+      }
+      
+      // Add organization context if announcing as org officer
+      if (announcementMode === 'org') {
+        const orgInfo = selectedAnnouncementOrg || userAnnouncementOrgs[0]
+        author.organizationContext = {
+          orgCode: orgInfo.code,
+          orgName: orgInfo.name,
+          position: orgInfo.position
+        }
+      }
+      
+      // Add class rep context if announcing as class rep
+      if (announcementMode === 'classrep' && userProfile?.section) {
+        author.sectionContext = {
+          section: userProfile.section.toUpperCase()
+        }
       }
       
       const result = await createAnnouncement(
@@ -443,6 +505,8 @@ export default function Announcements() {
       setMediaPreview([])
       setModerationPreview(null)
       setShowCreateModal(false)
+      setAnnouncementMode('classrep')
+      setSelectedAnnouncementOrg(null)
       setActiveTab('all')
       
     } catch (err) {
@@ -734,6 +798,17 @@ export default function Announcements() {
     }
   }
 
+  // Get display text for author role - show org position if available
+  const getAuthorRoleDisplay = (announcement) => {
+    // If announcement has organization context (posted as org officer), show position
+    if (announcement.author?.organizationContext) {
+      const { position, orgCode } = announcement.author.organizationContext
+      return `${position} - ${orgCode}`
+    }
+    // Fallback to standard role display
+    return ROLE_DISPLAY_NAMES[announcement.authorRole] || 'Member'
+  }
+
   // Generate display text for target tags - strips prefixes for cleaner display
   const getTagDisplayText = (tag) => {
     if (!tag) return ''
@@ -969,7 +1044,7 @@ export default function Announcements() {
                           )}
                           <div className="flex-1 min-w-0">
                             <p className="text-sm font-bold text-gray-900">{announcement.authorName}</p>
-                            <p className="text-xs text-gray-500">{ROLE_DISPLAY_NAMES[announcement.authorRole]} • {formatDate(announcement.createdAt)}</p>
+                            <p className="text-xs text-gray-500">{getAuthorRoleDisplay(announcement)} • {formatDate(announcement.createdAt)}</p>
                           </div>
                         </div>
                         <div className="relative group flex-shrink-0">
@@ -1267,7 +1342,7 @@ export default function Announcements() {
                           )}
                           <div className="flex-1 min-w-0">
                             <p className="text-sm font-bold text-gray-900">{announcement.authorName}</p>
-                            <p className="text-xs text-gray-500">{ROLE_DISPLAY_NAMES[announcement.authorRole]} • {formatDate(announcement.createdAt)}</p>
+                            <p className="text-xs text-gray-500">{getAuthorRoleDisplay(announcement)} • {formatDate(announcement.createdAt)}</p>
                           </div>
                         </div>
                       </div>
@@ -1327,7 +1402,7 @@ export default function Announcements() {
                         )}
                         <div className="flex-1 min-w-0">
                           <p className="text-sm font-bold text-gray-900">{announcement.authorName}</p>
-                          <p className="text-xs text-gray-500">{ROLE_DISPLAY_NAMES[announcement.authorRole]} • {formatDate(announcement.createdAt)}</p>
+                          <p className="text-xs text-gray-500">{getAuthorRoleDisplay(announcement)} • {formatDate(announcement.createdAt)}</p>
                         </div>
                       </div>
                       <span className="px-3 py-1 text-xs font-bold bg-amber-100 text-amber-800 rounded-full flex-shrink-0">
@@ -1417,6 +1492,8 @@ export default function Announcements() {
           setFormData({ title: '', content: '', priority: PRIORITY_LEVELS.NORMAL, targetTags: [] })
           setMediaFiles([])
           setMediaPreview([])
+          setAnnouncementMode('classrep')
+          setSelectedAnnouncementOrg(null)
         }}>
           <div className="bg-white rounded-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto shadow-2xl mx-4">
             {/* Modal Header */}
@@ -1428,6 +1505,8 @@ export default function Announcements() {
                   setFormData({ title: '', content: '', priority: PRIORITY_LEVELS.NORMAL, targetTags: [] })
                   setMediaFiles([])
                   setMediaPreview([])
+                  setAnnouncementMode('classrep')
+                  setSelectedAnnouncementOrg(null)
                 }}
                 className="text-gray-500 hover:text-gray-700 text-2xl"
               >
@@ -1437,6 +1516,96 @@ export default function Announcements() {
             
             {/* Modal Content */}
             <div className="p-6">
+              {/* Announcement Mode Selector - Show if user has multiple roles */}
+              {(canAnnounceAsClassRep && isOrgOfficer) && (
+                <div className="mb-6 p-4 bg-gray-50 rounded-xl border border-gray-200">
+                  <p className="text-sm font-semibold text-gray-700 mb-3">Announce as:</p>
+                  <div className="flex gap-3">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setAnnouncementMode('classrep')
+                        setSelectedAnnouncementOrg(null)
+                      }}
+                      className={`flex-1 p-3 rounded-lg border-2 transition-all ${
+                        announcementMode === 'classrep'
+                          ? 'border-green-500 bg-green-50'
+                          : 'border-gray-200 hover:border-gray-300'
+                      }`}
+                    >
+                      <div className="flex items-center gap-2 justify-center">
+                        <span className="text-lg">🎓</span>
+                        <div className="text-left">
+                          <p className="font-semibold text-sm text-gray-900">Class Representative</p>
+                          <p className="text-xs text-gray-500">Section {userProfile?.section}</p>
+                        </div>
+                      </div>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setAnnouncementMode('org')
+                        if (userAnnouncementOrgs.length === 1) {
+                          setSelectedAnnouncementOrg(userAnnouncementOrgs[0])
+                        }
+                      }}
+                      className={`flex-1 p-3 rounded-lg border-2 transition-all ${
+                        announcementMode === 'org'
+                          ? 'border-blue-500 bg-blue-50'
+                          : 'border-gray-200 hover:border-gray-300'
+                      }`}
+                    >
+                      <div className="flex items-center gap-2 justify-center">
+                        <span className="text-lg">🏛️</span>
+                        <div className="text-left">
+                          <p className="font-semibold text-sm text-gray-900">Organization Officer</p>
+                          <p className="text-xs text-gray-500">
+                            {userAnnouncementOrgs.map(o => o.code).join(', ')}
+                          </p>
+                        </div>
+                      </div>
+                    </button>
+                  </div>
+                </div>
+              )}
+              
+              {/* Organization Selector - Show if org mode and multiple orgs */}
+              {announcementMode === 'org' && userAnnouncementOrgs.length > 1 && (
+                <div className="mb-6 p-4 bg-blue-50 rounded-xl border border-blue-200">
+                  <p className="text-sm font-semibold text-blue-800 mb-3">Select Organization:</p>
+                  <div className="grid grid-cols-2 gap-2">
+                    {userAnnouncementOrgs.map(org => (
+                      <button
+                        key={org.code}
+                        type="button"
+                        onClick={() => setSelectedAnnouncementOrg(org)}
+                        className={`p-3 rounded-lg border-2 transition-all text-left ${
+                          selectedAnnouncementOrg?.code === org.code
+                            ? 'border-blue-500 bg-white'
+                            : 'border-blue-100 bg-white/50 hover:border-blue-300'
+                        }`}
+                      >
+                        <p className="font-semibold text-sm text-gray-900">{org.code}</p>
+                        <p className="text-xs text-gray-500">{org.position}</p>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+              
+              {/* Single Organization Notice */}
+              {announcementMode === 'org' && userAnnouncementOrgs.length === 1 && (
+                <div className="mb-6 p-4 bg-blue-50 rounded-xl border border-blue-200">
+                  <div className="flex items-center gap-3">
+                    <span className="text-2xl">🏛️</span>
+                    <div>
+                      <p className="font-semibold text-blue-900">Announcing as {selectedAnnouncementOrg?.position || userAnnouncementOrgs[0].position}</p>
+                      <p className="text-sm text-blue-700">{selectedAnnouncementOrg?.name || userAnnouncementOrgs[0].name}</p>
+                    </div>
+                  </div>
+                </div>
+              )}
+              
               <form onSubmit={handleSubmit} className="space-y-4">
                 {/* Post Creator Card */}
                 <div className="bg-white rounded-2xl border border-gray-200 p-6 shadow-sm">
@@ -1543,6 +1712,8 @@ export default function Announcements() {
                       value={formData.targetTags}
                       onChange={(tags) => setFormData(prev => ({ ...prev, targetTags: tags }))}
                       userProfile={userProfile}
+                      announcementMode={announcementMode}
+                      selectedOrg={selectedAnnouncementOrg}
                     />
                   </div>
                   
@@ -1562,6 +1733,8 @@ export default function Announcements() {
                         setFormData({ title: '', content: '', priority: PRIORITY_LEVELS.NORMAL, targetTags: [] })
                         setMediaFiles([])
                         setMediaPreview([])
+                        setAnnouncementMode('classrep')
+                        setSelectedAnnouncementOrg(null)
                       }}
                       className="flex-1 px-4 py-2.5 text-sm font-bold text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-all"
                     >
@@ -1802,7 +1975,7 @@ export default function Announcements() {
                     )}
                     <div className="flex-1 min-w-0">
                       <p className="font-bold text-gray-900 text-sm">{selectedAnnouncement.authorName}</p>
-                      <p className="text-xs text-gray-500">{ROLE_DISPLAY_NAMES[selectedAnnouncement.authorRole]}</p>
+                      <p className="text-xs text-gray-500">{getAuthorRoleDisplay(selectedAnnouncement)}</p>
                     </div>
                   </div>
                 </div>

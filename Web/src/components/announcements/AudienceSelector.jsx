@@ -19,17 +19,32 @@ import {
  * 
  * Sophisticated audience targeting for announcements based on user roles.
  * - Faculty: Can select Orgs, Year Levels, and specific Sections
- * - Org Officers: Automatically targets their organization
+ * - Org Officers: Target based on their organization's audience type
+ * - Class Reps: Locked to their section only
  * - Admins: Full access to all targeting options
+ * 
+ * @param {object} props
+ * @param {array} props.value - Current target tags
+ * @param {function} props.onChange - Callback when tags change
+ * @param {object} props.userProfile - User's profile data
+ * @param {string} props.announcementMode - 'classrep' or 'org' (for users with multiple roles)
+ * @param {object} props.selectedOrg - Selected organization { code, name, position }
  */
-export default function AudienceSelector({ value = [], onChange, userProfile }) {
+export default function AudienceSelector({ value = [], onChange, userProfile, announcementMode = 'classrep', selectedOrg = null }) {
   const { hasMinRole } = useAuth()
   
   // Determine user's role and restrictions
   const isFaculty = userProfile?.role === 'faculty' || userProfile?.role === 'instructor'
-  const isOrgOfficer = userProfile?.role === 'org_officer' || userProfile?.role === 'organization_officer'
+  const isOrgOfficerRole = userProfile?.role === 'org_officer' || userProfile?.role === 'organization_officer'
   const isClassRep = userProfile?.role === 'class_rep'
   const isAdmin = hasMinRole(ROLES.ADMIN)
+  
+  // Check if user has organization positions from officerOf
+  const hasOrgPositions = userProfile?.officerOf && Object.keys(userProfile.officerOf).length > 0
+  
+  // Determine effective mode based on props
+  const isOrgOfficerMode = announcementMode === 'org' && (hasOrgPositions || isOrgOfficerRole)
+  const isClassRepMode = announcementMode === 'classrep' && isClassRep && userProfile?.section
   
   // Get faculty's department from their profile/tags
   const getFacultyDepartment = () => {
@@ -121,29 +136,34 @@ export default function AudienceSelector({ value = [], onChange, userProfile }) 
     }
   }, [])
   
-  // Lock org officers to their org
+  // Lock org officers to their org based on announcement mode
   useEffect(() => {
-    if (isOrgOfficer && defaultTargeting.locked) {
+    if (isOrgOfficerMode && selectedOrg) {
+      // Get organization config to determine audience type
+      const orgCode = selectedOrg.code
+      
+      // Set organization-based targeting
       setSelections(prev => ({
         ...prev,
-        orgs: defaultTargeting.orgs || [],
+        orgs: [orgCode],
         targetType: 'custom'
       }))
       setIsExpanded(true)
     }
-  }, [isOrgOfficer, defaultTargeting])
+  }, [isOrgOfficerMode, selectedOrg])
 
-  // Lock Class Reps to their section only
+  // Lock Class Reps to their section only when in class rep mode
   useEffect(() => {
-    if (isClassRep && userProfile?.section) {
+    if (isClassRepMode) {
       setSelections(prev => ({
         ...prev,
         section: userProfile.section.toUpperCase(),
+        orgs: [], // Clear org selections
         targetType: 'custom'
       }))
       setIsExpanded(true)
     }
-  }, [isClassRep, userProfile?.section])
+  }, [isClassRepMode, userProfile?.section])
   
   // Update parent when selections change
   useEffect(() => {
@@ -210,9 +230,7 @@ export default function AudienceSelector({ value = [], onChange, userProfile }) 
   
   // Handle target type change
   const handleTargetTypeChange = (type) => {
-    if (isOrgOfficer && defaultTargeting.locked) return
-    // Class Reps cannot change to 'all' - must target their section
-    if (isClassRep) return
+    if (isOrgOfficerMode || isClassRepMode) return // Locked modes
     
     setSelections(prev => ({
       ...prev,
@@ -224,12 +242,35 @@ export default function AudienceSelector({ value = [], onChange, userProfile }) 
   
   // Get summary text
   const getSummaryText = () => {
-    // Class Reps always target their section only
-    if (isClassRep && userProfile?.section) {
+    // Class Rep mode - section only
+    if (isClassRepMode) {
       return `🎓 Section ${userProfile.section.toUpperCase()} Only`
     }
     
-    if (selections.targetType === 'all' && !defaultTargeting.locked) {
+    // Org Officer mode - based on selected org
+    if (isOrgOfficerMode && selectedOrg) {
+      // Get org audience info from officerOf
+      const orgInfo = userProfile?.officerOf?.[selectedOrg.code]
+      const orgConfig = STUDENT_ORGS.find(o => o.code === selectedOrg.code)
+      
+      // Determine audience description
+      let audienceDesc = ''
+      if (selectedOrg.code === 'CSG') {
+        audienceDesc = 'All Students'
+      } else if (orgConfig?.category === 'program') {
+        audienceDesc = `${selectedOrg.code} Members (Course-wide)`
+      } else {
+        audienceDesc = `${selectedOrg.code} Members`
+      }
+      
+      const yearLevelText = selections.yearLevels.length > 0 
+        ? ` • ${selections.yearLevels.map(y => `Year ${y}`).join(', ')}`
+        : ''
+      
+      return `🏛️ ${audienceDesc}${yearLevelText}`
+    }
+    
+    if (selections.targetType === 'all' && !isOrgOfficerMode && !isClassRepMode) {
       return '📢 Campus-Wide (All Students & Faculty)'
     }
     
@@ -257,16 +298,21 @@ export default function AudienceSelector({ value = [], onChange, userProfile }) 
     return parts.length > 0 ? `🎯 ${parts.join(' • ')}` : '📢 Campus-Wide'
   }
   
+  // Determine if selection should be locked
+  const isLocked = isOrgOfficerMode || isClassRepMode
+  
   return (
     <div className="bg-gray-50 rounded-xl border border-gray-200 overflow-hidden">
       {/* Header */}
       <div 
         className="px-4 py-3 flex items-center justify-between cursor-pointer hover:bg-gray-100 transition-colors"
-        onClick={() => !defaultTargeting.locked && setIsExpanded(!isExpanded)}
+        onClick={() => !isLocked && setIsExpanded(!isExpanded)}
       >
         <div className="flex items-center gap-3">
-          <div className="w-8 h-8 rounded-lg bg-green-100 flex items-center justify-center">
-            <svg className="w-4 h-4 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${
+            isOrgOfficerMode ? 'bg-blue-100' : 'bg-green-100'
+          }`}>
+            <svg className={`w-4 h-4 ${isOrgOfficerMode ? 'text-blue-600' : 'text-green-600'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
             </svg>
           </div>
@@ -275,7 +321,7 @@ export default function AudienceSelector({ value = [], onChange, userProfile }) 
             <p className="text-xs text-gray-500">{getSummaryText()}</p>
           </div>
         </div>
-        {!defaultTargeting.locked && (
+        {!isLocked && (
           <svg 
             className={`w-5 h-5 text-gray-400 transition-transform ${isExpanded ? 'rotate-180' : ''}`} 
             fill="none" 
@@ -290,17 +336,60 @@ export default function AudienceSelector({ value = [], onChange, userProfile }) 
       {/* Expanded Content */}
       {isExpanded && (
         <div className="px-4 py-4 border-t border-gray-200 space-y-4">
-          {/* Org Officer Notice */}
-          {isOrgOfficer && defaultTargeting.locked && (
+          {/* Organization Officer Mode Notice */}
+          {isOrgOfficerMode && selectedOrg && (
             <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg">
-              <p className="text-xs text-blue-800">
-                <span className="font-semibold">🔒 Organization Officer Mode:</span> {defaultTargeting.message}
+              <div className="flex items-center gap-2 mb-2">
+                <span className="text-lg">🏛️</span>
+                <span className="text-sm font-semibold text-blue-900">Announcing as {selectedOrg.position}</span>
+              </div>
+              <p className="text-xs text-blue-700 mb-3">
+                {selectedOrg.code === 'CSG' 
+                  ? 'As a CSG officer, your announcements can reach ALL students campus-wide.'
+                  : `Your announcements will be visible to ${selectedOrg.code} organization members and related course students.`
+                }
               </p>
+              
+              {/* Year Level Filter for Org Officers */}
+              <div className="mt-3 pt-3 border-t border-blue-200">
+                <p className="text-xs font-semibold text-blue-800 mb-2">Filter by Year Level (optional):</p>
+                <div className="flex flex-wrap gap-2">
+                  {YEAR_LEVELS.map(year => (
+                    <button
+                      key={year.value}
+                      type="button"
+                      onClick={() => toggleYearLevel(year.value)}
+                      className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-all ${
+                        selections.yearLevels.includes(year.value)
+                          ? 'bg-blue-600 text-white'
+                          : 'bg-white border border-blue-200 text-blue-700 hover:bg-blue-50'
+                      }`}
+                    >
+                      {year.label}
+                    </button>
+                  ))}
+                  {selections.yearLevels.length > 0 && (
+                    <button
+                      type="button"
+                      onClick={() => setSelections(prev => ({ ...prev, yearLevels: [] }))}
+                      className="px-3 py-1.5 text-xs font-semibold text-red-600 hover:bg-red-50 rounded-lg transition-all"
+                    >
+                      Clear
+                    </button>
+                  )}
+                </div>
+                <p className="text-xs text-blue-600 mt-2">
+                  {selections.yearLevels.length === 0 
+                    ? '📢 Announcing to all year levels'
+                    : `📢 Announcing to ${selections.yearLevels.map(y => `Year ${y}`).join(', ')} only`
+                  }
+                </p>
+              </div>
             </div>
           )}
           
           {/* Class Representative Notice - Only show section */}
-          {isClassRep && userProfile?.section && (
+          {isClassRepMode && (
             <div className="p-3 bg-green-50 border border-green-200 rounded-lg">
               <div className="flex items-center gap-2 mb-1">
                 <span className="text-xs font-semibold text-green-800">🔒 Class Representative Mode</span>
@@ -316,8 +405,8 @@ export default function AudienceSelector({ value = [], onChange, userProfile }) 
             </div>
           )}
           
-          {/* Target Type Selector - Hidden for Class Reps */}
-          {!defaultTargeting.locked && !isClassRep && (
+          {/* Target Type Selector - Hidden for locked modes */}
+          {!isLocked && (
             <div className="flex gap-2">
               <button
                 type="button"
@@ -344,8 +433,8 @@ export default function AudienceSelector({ value = [], onChange, userProfile }) 
             </div>
           )}
           
-          {/* Custom Targeting Options - Hidden for Class Reps who only target their section */}
-          {(selections.targetType === 'custom' || defaultTargeting.locked) && !isClassRep && (
+          {/* Custom Targeting Options - Hidden for locked modes */}
+          {(selections.targetType === 'custom' || isLocked) && !isClassRepMode && !isOrgOfficerMode && (
             <div className="space-y-4">
               {/* Faculty Department Notice (Locked) */}
               {isFaculty && facultyDepartment && (

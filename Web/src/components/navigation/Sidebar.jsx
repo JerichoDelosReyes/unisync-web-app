@@ -131,7 +131,7 @@ export default function Sidebar({ isOpen, onClose }) {
   const { userProfile, hasMinRole } = useAuth()
   const location = useLocation()
 
-  // Check if user can manage organizations (is adviser or officer with tagging rights)
+  // Check if user can manage organizations (is adviser or any officer)
   const canManageOrgs = () => {
     // Admin always has access
     if (hasMinRole(ROLES.ADMIN)) return true
@@ -141,9 +141,9 @@ export default function Sidebar({ isOpen, onClose }) {
       return true
     }
     
-    // Check if user is an officer with tagging rights (President)
-    if (userProfile?.officerOf) {
-      return Object.values(userProfile.officerOf).some(pos => pos.canTagOfficers)
+    // Check if user is ANY officer (not just president)
+    if (userProfile?.officerOf && Object.keys(userProfile.officerOf).length > 0) {
+      return true
     }
     
     return false

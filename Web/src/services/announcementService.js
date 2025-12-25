@@ -196,6 +196,15 @@ export const createAnnouncement = async (data, files = [], author, skipReviewQue
       authorName: author.name,
       authorRole: author.role,
       authorPhotoURL: author.photoURL || null,
+      // Store the full author object with organization/section context
+      author: {
+        uid: author.uid,
+        name: author.name,
+        role: author.role,
+        photoURL: author.photoURL || null,
+        ...(author.organizationContext && { organizationContext: author.organizationContext }),
+        ...(author.sectionContext && { sectionContext: author.sectionContext })
+      },
       status,
       moderationResult: {
         confidence: moderationResult.confidence ?? 1.0,

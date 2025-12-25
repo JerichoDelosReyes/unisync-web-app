@@ -26,6 +26,7 @@ import {
   getUserOrgBadges
 } from '../services/organizationService'
 import { getDocuments } from '../services/dbService'
+import { DEPT_ORG_MAPPING } from '../constants/targeting'
 
 // Import organization logos
 import CSGLogo from '../assets/img/CSG-removebg-preview.png'
@@ -81,7 +82,40 @@ export default function OrganizationsPage() {
   
   // Permission checks
   const isAdmin = hasMinRole(ROLES.ADMIN)
+  const isFaculty = userProfile?.role === ROLES.FACULTY
   const [canTagForSelectedOrg, setCanTagForSelectedOrg] = useState(false)
+  
+  // Check if user is an adviser (faculty with adviserOf)
+  const isAdviser = isFaculty && userProfile?.adviserOf && Object.keys(userProfile.adviserOf).length > 0
+  const adviserOrgCodes = isAdviser ? Object.keys(userProfile.adviserOf) : []
+  
+  // Check if user is a president with tagging rights
+  const isPresidentWithTagging = userProfile?.officerOf && 
+    Object.values(userProfile.officerOf).some(pos => pos.canTagOfficers)
+  const presidentOrgCodes = isPresidentWithTagging 
+    ? Object.entries(userProfile.officerOf)
+        .filter(([_, pos]) => pos.canTagOfficers)
+        .map(([code, _]) => code)
+    : []
+  
+  // Check if user is just an officer (not admin, not adviser, not president with tagging rights)
+  const isOnlyOfficer = !isAdmin && !isAdviser && !isPresidentWithTagging && 
+    userProfile?.officerOf && Object.keys(userProfile.officerOf).length > 0
+  
+  // Get user's allowed organization codes based on role
+  // Admins see all orgs, others see only their assigned orgs
+  const getUserAllowedOrgCodes = () => {
+    if (isAdmin) return null // null means all orgs
+    const codes = new Set()
+    adviserOrgCodes.forEach(code => codes.add(code))
+    presidentOrgCodes.forEach(code => codes.add(code))
+    if (userProfile?.officerOf) {
+      Object.keys(userProfile.officerOf).forEach(code => codes.add(code))
+    }
+    return Array.from(codes)
+  }
+  
+  const allowedOrgCodes = getUserAllowedOrgCodes()
   
   const showToast = (message, kind = 'info') => {
     setToast({ show: true, message, kind })
@@ -96,6 +130,15 @@ export default function OrganizationsPage() {
         const orgsData = await getAllOrganizationsData()
         console.log('Fetched organizations:', orgsData)
         setOrganizations(orgsData)
+        
+        // Auto-select the user's org if they only have access to one organization
+        if (allowedOrgCodes && allowedOrgCodes.length === 1 && orgsData.length > 0) {
+          const userOrg = orgsData.find(o => o.id === allowedOrgCodes[0])
+          if (userOrg) {
+            const orgConfig = ORGANIZATIONS[userOrg.id]
+            setSelectedOrg({ ...orgConfig, ...userOrg })
+          }
+        }
       } catch (error) {
         console.error('Error fetching organizations:', error)
         // Fallback to static data if Firestore fails
@@ -113,7 +156,7 @@ export default function OrganizationsPage() {
     }
     
     fetchOrganizations()
-  }, [])
+  }, [allowedOrgCodes?.join(',')])
 
   // Fetch officers when org is selected
   useEffect(() => {
@@ -131,10 +174,10 @@ export default function OrganizationsPage() {
         const positions = await getAvailablePositions(selectedOrg.code)
         setAvailablePositions(positions)
         
-        // Check if user can tag officers
+        // Check if user can tag officers (Adviser or President only, NOT Admin)
         if (user) {
           const canTag = await canTagOfficers(user.uid, selectedOrg.code)
-          setCanTagForSelectedOrg(canTag || isAdmin)
+          setCanTagForSelectedOrg(canTag) // Admin can only tag advisers, not officers
         }
       } catch (error) {
         console.error('Error fetching org details:', error)
@@ -144,14 +187,32 @@ export default function OrganizationsPage() {
     fetchOrgDetails()
   }, [selectedOrg, user, isAdmin])
 
-  // Fetch faculty list for adviser modal
+  // Fetch faculty list for adviser modal - filtered by org's department
   useEffect(() => {
     const fetchFaculty = async () => {
-      if (!showAdviserModal) return
+      if (!showAdviserModal || !selectedOrg) return
       
       try {
         const users = await getDocuments('users')
-        const faculty = users.filter(u => u.role === ROLES.FACULTY)
+        let faculty = users.filter(u => u.role === ROLES.FACULTY)
+        
+        // Filter faculty by department based on selected org
+        // Find which department this org belongs to
+        const orgDepartment = Object.entries(DEPT_ORG_MAPPING).find(
+          ([dept, orgs]) => orgs.includes(selectedOrg.code)
+        )?.[0]
+        
+        // CSG, ST, TF, HS are campus-wide - show all faculty
+        const campusWideOrgs = ['CSG', 'ST', 'TF', 'HS']
+        
+        if (orgDepartment && !campusWideOrgs.includes(selectedOrg.code)) {
+          // Filter faculty by department
+          faculty = faculty.filter(f => 
+            f.department === orgDepartment ||
+            f.tags?.some(tag => tag.includes(orgDepartment))
+          )
+        }
+        
         setFacultyList(faculty)
       } catch (error) {
         console.error('Error fetching faculty:', error)
@@ -159,16 +220,40 @@ export default function OrganizationsPage() {
     }
     
     fetchFaculty()
-  }, [showAdviserModal])
+  }, [showAdviserModal, selectedOrg])
 
-  // Fetch student list for officer modal
+  // Fetch student list for officer modal - filtered by org's course
   useEffect(() => {
     const fetchStudents = async () => {
-      if (!showOfficerModal) return
+      if (!showOfficerModal || !selectedOrg) return
       
       try {
         const users = await getDocuments('users')
-        const students = users.filter(u => u.role === ROLES.STUDENT)
+        let students = users.filter(u => u.role === ROLES.STUDENT)
+        
+        // Filter students by course based on selected org
+        const orgConfig = ORGANIZATIONS[selectedOrg.code]
+        
+        // CSG, ST, TF, HS are campus-wide - show all students
+        const campusWideOrgs = ['CSG', 'ST', 'TF', 'HS']
+        
+        if (!campusWideOrgs.includes(selectedOrg.code)) {
+          if (orgConfig?.audienceType === 'course' && orgConfig?.audienceCourse) {
+            // Filter by course (e.g., 'BS Computer Science')
+            students = students.filter(s => 
+              s.course === orgConfig.audienceCourse ||
+              s.course?.toLowerCase().includes(orgConfig.audienceCourse.toLowerCase()) ||
+              orgConfig.audienceCourse.toLowerCase().includes(s.course?.toLowerCase() || '')
+            )
+          } else if (orgConfig?.audienceType === 'department' && orgConfig?.audienceDepartment) {
+            // Filter by department (e.g., 'Teacher Education Department')
+            students = students.filter(s => 
+              s.department === orgConfig.audienceDepartment ||
+              s.tags?.some(tag => tag.includes(orgConfig.audienceDepartment))
+            )
+          }
+        }
+        
         setStudentList(students)
       } catch (error) {
         console.error('Error fetching students:', error)
@@ -176,7 +261,7 @@ export default function OrganizationsPage() {
     }
     
     fetchStudents()
-  }, [showOfficerModal])
+  }, [showOfficerModal, selectedOrg])
 
   // Handle adding adviser
   const handleAddAdviser = async () => {
@@ -307,10 +392,15 @@ export default function OrganizationsPage() {
   )
 
   // Group organizations by category
+  // Non-admin users only see organizations they're assigned to (adviser, president, officer)
+  const filteredOrganizations = allowedOrgCodes 
+    ? organizations.filter(org => allowedOrgCodes.includes(org.id))
+    : organizations // Admin sees all
+    
   const orgsByCategory = Object.entries(ORG_CATEGORIES).map(([key, category]) => ({
     key,
     ...category,
-    orgs: organizations.filter(org => {
+    orgs: filteredOrganizations.filter(org => {
       const orgCategory = org.category || ORGANIZATIONS[org.id]?.category
       return orgCategory === key
     })
@@ -340,8 +430,10 @@ export default function OrganizationsPage() {
         <h1 className="text-2xl font-bold text-gray-900">Student Organizations</h1>
         <p className="text-gray-600 mt-1">
           {isAdmin 
-            ? 'Manage organization advisers and officers' 
-            : 'View organization officers and make announcements'}
+            ? 'Manage organization advisers' 
+            : isAdviser || isPresidentWithTagging
+              ? 'Manage your organization officers'
+              : 'View your organization details'}
         </p>
       </div>
 
@@ -513,7 +605,8 @@ export default function OrganizationsPage() {
                                 <p className="text-gray-400 italic text-sm">Vacant</p>
                               )}
                             </div>
-                            {officer && canTagForSelectedOrg && (
+                            {/* Only show remove button if user can tag AND is not removing themselves */}
+                            {officer && canTagForSelectedOrg && officer.userId !== user?.uid && (
                               <button
                                 onClick={() => handleRemoveOfficer(officer.userId)}
                                 className="text-red-500 hover:text-red-600 ml-2"
@@ -522,6 +615,10 @@ export default function OrganizationsPage() {
                                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                                 </svg>
                               </button>
+                            )}
+                            {/* Show indicator if this is the current user */}
+                            {officer && officer.userId === user?.uid && (
+                              <span className="text-xs text-blue-600 font-medium ml-2">You</span>
                             )}
                           </div>
                           {position.canTagOfficers && officer && (
@@ -561,7 +658,8 @@ export default function OrganizationsPage() {
                                   <p className="text-gray-400 italic text-sm">Vacant</p>
                                 )}
                               </div>
-                              {officer && canTagForSelectedOrg && (
+                              {/* Only show remove button if user can tag AND is not removing themselves */}
+                              {officer && canTagForSelectedOrg && officer.userId !== user?.uid && (
                                 <button
                                   onClick={() => handleRemoveOfficer(officer.userId)}
                                   className="text-red-500 hover:text-red-600 ml-2"
@@ -570,6 +668,10 @@ export default function OrganizationsPage() {
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                                   </svg>
                                 </button>
+                              )}
+                              {/* Show indicator if this is the current user */}
+                              {officer && officer.userId === user?.uid && (
+                                <span className="text-xs text-blue-600 font-medium ml-2">You</span>
                               )}
                             </div>
                           </div>
@@ -602,6 +704,16 @@ export default function OrganizationsPage() {
             </div>
             
             <div className="p-6">
+              {/* Course/Department Filter Notice */}
+              {selectedOrg && !['CSG', 'ST', 'TF', 'HS'].includes(selectedOrg.code) && (
+                <div className="mb-4 p-3 bg-purple-50 border border-purple-200 rounded-lg">
+                  <p className="text-xs text-purple-800">
+                    <span className="font-semibold">🔒 Filtered by: </span>
+                    {Object.entries(DEPT_ORG_MAPPING).find(([, orgs]) => orgs.includes(selectedOrg.code))?.[0] || 'Related Department'}
+                  </p>
+                </div>
+              )}
+              
               <input
                 type="text"
                 placeholder="Search faculty by name or email..."
@@ -631,7 +743,7 @@ export default function OrganizationsPage() {
                   ))
                 ) : (
                   <p className="text-center text-gray-500 py-4">
-                    {searchTerm ? 'No faculty found' : 'Loading faculty...'}
+                    {searchTerm ? 'No faculty found matching your search' : facultyList.length === 0 ? 'No faculty available for this organization' : 'Loading faculty...'}
                   </p>
                 )}
               </div>
@@ -670,6 +782,16 @@ export default function OrganizationsPage() {
             </div>
             
             <div className="p-6 space-y-4">
+              {/* Course Filter Notice */}
+              {selectedOrg && !['CSG', 'ST', 'TF', 'HS'].includes(selectedOrg.code) && (
+                <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                  <p className="text-xs text-blue-800">
+                    <span className="font-semibold">🔒 Filtered by: </span>
+                    {ORGANIZATIONS[selectedOrg.code]?.audienceCourse || ORGANIZATIONS[selectedOrg.code]?.audienceDepartment || 'Related Course'}
+                  </p>
+                </div>
+              )}
+              
               {/* Position Selection */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">Position</label>
@@ -723,8 +845,10 @@ export default function OrganizationsPage() {
                     Showing 20 of {filteredStudents.length} results. Refine your search.
                   </p>
                 )}
-                {searchTerm && filteredStudents.length === 0 && (
-                  <p className="text-center text-gray-500 py-4">No students found</p>
+                {filteredStudents.length === 0 && (
+                  <p className="text-center text-gray-500 py-4">
+                    {searchTerm ? 'No students found matching your search' : studentList.length === 0 ? 'No students available for this organization' : 'Search for a student...'}
+                  </p>
                 )}
               </div>
             </div>

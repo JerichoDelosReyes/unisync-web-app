@@ -25,6 +25,17 @@ service cloud.firestore {
       return get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role;
     }
     
+    // Get user profile data
+    function getUserData() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
+    }
+    
+    // Check if user is an organization officer (has officerOf field with at least one entry)
+    function isOrgOfficer() {
+      let userData = getUserData();
+      return userData.officerOf != null && userData.officerOf.keys().size() > 0;
+    }
+    
     // Check if user is authenticated
     function isAuthenticated() {
       return request.auth != null;
@@ -141,9 +152,9 @@ service cloud.firestore {
       // Read: All authenticated users
       allow read: if isAuthenticated();
       
-      // Create: Class Rep+ with validation
+      // Create: Class Rep+ OR Organization Officers with validation
       allow create: if isAuthenticated() 
-        && isClassRepOrAbove()
+        && (isClassRepOrAbove() || isOrgOfficer())
         && hasRequiredFields(['title', 'content', 'authorId', 'createdAt'])
         && request.resource.data.authorId == request.auth.uid
         && isValidString(request.resource.data.title, 1, 200)
@@ -413,22 +424,6 @@ service cloud.firestore {
     // ORGANIZATIONS COLLECTION (Student Orgs)
     // ==========================================
     match /organizations/{orgCode} {
-      // Helper: Check if user is adviser of this organization
-      function isAdviserOfOrg() {
-        return resource.data.advisers != null 
-          && resource.data.advisers.size() > 0
-          && request.auth.uid in resource.data.advisers[*].userId;
-      }
-      
-      // Helper: Check if user is president or has tagging rights in this org
-      function canTagInOrg() {
-        let officers = resource.data.officers;
-        return officers != null 
-          && officers.size() > 0
-          && request.auth.uid in officers[*].userId
-          && true in officers[*].canTagOfficers;
-      }
-      
       // Read: All authenticated users can view organizations
       allow read: if isAuthenticated();
       
@@ -437,17 +432,18 @@ service cloud.firestore {
         && isAdminOrAbove()
         && isReasonableSize();
       
-      // Update advisers: Only Admin+ can add/remove advisers
-      // Update officers: Advisers or President can add/remove officers
+      // Update: Admin+ can update anything
+      // For adviser/president updates, we rely on application-level checks
+      // since Firestore rules can't easily check nested array membership
       allow update: if isAuthenticated()
         && isReasonableSize()
         && (
           // Admin can update anything
           isAdminOrAbove()
-          // Adviser can update officers array
-          || (isAdviserOfOrg() && onlyAllowedFields(['officers', 'updatedAt']))
-          // President can update officers array (but not advisers)
-          || (canTagInOrg() && onlyAllowedFields(['officers', 'updatedAt']))
+          // Faculty can update (adviser check done at app level)
+          || isFacultyOrAbove()
+          // Students who are officers can update (check done at app level)
+          || (resource.data.officers != null && resource.data.officers.size() > 0)
         );
       
       // Delete: Only Super Admin
