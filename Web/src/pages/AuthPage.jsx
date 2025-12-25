@@ -236,7 +236,7 @@ export default function AuthPage() {
   return (
     <div className="h-screen flex flex-col lg:grid lg:grid-cols-2 overflow-hidden">
       {/* Left Panel - Brand & Features (hidden on mobile, visible on lg+) */}
-      <div className="hidden lg:flex bg-gradient-to-br from-[#166534] via-[#15803d] to-[#14532d] text-white p-6 xl:p-10 flex-col justify-center relative overflow-hidden">
+      <div className="hidden lg:flex bg-[#166534] text-white p-6 xl:p-10 flex-col justify-center relative overflow-hidden">
         {/* Background Pattern */}
         <div className="absolute inset-0 opacity-10">
           <div className="absolute top-0 right-0 w-96 h-96 bg-white/20 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2"></div>
@@ -247,7 +247,7 @@ export default function AuthPage() {
           <BrandLogo size="massive" />
           
           <div className="space-y-2">
-            <h1 className="text-5xl xl:text-6xl font-extrabold tracking-tight bg-gradient-to-r from-white to-green-200 bg-clip-text text-transparent drop-shadow-sm">UNISYNC</h1>
+            <h1 className="text-5xl xl:text-6xl font-extrabold tracking-tight text-white drop-shadow-sm">UNISYNC</h1>
             <p className="text-green-100 text-xs xl:text-sm font-semibold tracking-[0.2em] uppercase">Your Gateway to Campus Excellence</p>
           </div>
 
@@ -258,7 +258,7 @@ export default function AuthPage() {
               {/* Feature Cards */}
               <div className="group bg-white/10 hover:bg-white/20 backdrop-blur-sm rounded-xl p-3 xl:p-4 space-y-1 transition-all duration-300 hover:scale-[1.02] hover:shadow-lg cursor-default border border-white/10">
                 <div className="flex items-center gap-2">
-                  <div className="bg-gradient-to-br from-green-300 to-green-500 rounded-lg p-2 shadow-md">
+                  <div className="bg-green-400 rounded-lg p-2 shadow-md">
                     <svg className="w-4 h-4 text-green-900" fill="currentColor" viewBox="0 0 20 20">
                       <path d="M10 2a6 6 0 00-6 6v3.586l-.707.707A1 1 0 004 14h12a1 1 0 00.707-1.707L16 11.586V8a6 6 0 00-6-6zM10 18a3 3 0 01-3-3h6a3 3 0 01-3 3z" />
                     </svg>
@@ -270,7 +270,7 @@ export default function AuthPage() {
 
               <div className="group bg-white/10 hover:bg-white/20 backdrop-blur-sm rounded-xl p-3 xl:p-4 space-y-1 transition-all duration-300 hover:scale-[1.02] hover:shadow-lg cursor-default border border-white/10">
                 <div className="flex items-center gap-2">
-                  <div className="bg-gradient-to-br from-green-300 to-green-500 rounded-lg p-2 shadow-md">
+                  <div className="bg-green-400 rounded-lg p-2 shadow-md">
                     <svg className="w-4 h-4 text-green-900" fill="currentColor" viewBox="0 0 20 20">
                       <path fillRule="evenodd" d="M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1zm0 5a1 1 0 000 2h8a1 1 0 100-2H6z" clipRule="evenodd" />
                     </svg>
@@ -282,7 +282,7 @@ export default function AuthPage() {
 
               <div className="group bg-white/10 hover:bg-white/20 backdrop-blur-sm rounded-xl p-3 xl:p-4 space-y-1 transition-all duration-300 hover:scale-[1.02] hover:shadow-lg cursor-default border border-white/10">
                 <div className="flex items-center gap-2">
-                  <div className="bg-gradient-to-br from-green-300 to-green-500 rounded-lg p-2 shadow-md">
+                  <div className="bg-green-400 rounded-lg p-2 shadow-md">
                     <svg className="w-4 h-4 text-green-900" fill="currentColor" viewBox="0 0 20 20">
                       <path fillRule="evenodd" d="M4 4a2 2 0 012-2h8a2 2 0 012 2v12a1 1 0 110 2h-3a1 1 0 01-1-1v-2a1 1 0 00-1-1H9a1 1 0 00-1 1v2a1 1 0 01-1 1H4a1 1 0 110-2V4zm3 1h2v2H7V5zm2 4H7v2h2V9zm2-4h2v2h-2V5zm2 4h-2v2h2V9z" clipRule="evenodd" />
                     </svg>
@@ -294,7 +294,7 @@ export default function AuthPage() {
 
               <div className="group bg-white/10 hover:bg-white/20 backdrop-blur-sm rounded-xl p-3 xl:p-4 space-y-1 transition-all duration-300 hover:scale-[1.02] hover:shadow-lg cursor-default border border-white/10">
                 <div className="flex items-center gap-2">
-                  <div className="bg-gradient-to-br from-green-300 to-green-500 rounded-lg p-2 shadow-md">
+                  <div className="bg-green-400 rounded-lg p-2 shadow-md">
                     <svg className="w-4 h-4 text-green-900" fill="currentColor" viewBox="0 0 20 20">
                       <path d="M13 6a3 3 0 11-6 0 3 3 0 016 0zM18 8a2 2 0 11-4 0 2 2 0 014 0zM14 15a4 4 0 00-8 0v3h8v-3zM6 8a2 2 0 11-4 0 2 2 0 014 0zM16 18v-3a5.972 5.972 0 00-.75-2.906A3.005 3.005 0 0119 15v3h-3zM4.75 12.094A5.973 5.973 0 004 15v3H1v-3a3 3 0 013.75-2.906z" />
                     </svg>

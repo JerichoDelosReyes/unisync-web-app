@@ -1268,6 +1268,20 @@ function StudentScheduleView() {
 
       console.log('Extracted PDF text:', fullText) // For debugging
 
+      // Validate that this is a CvSU Imus Campus registration form
+      const isImusCampus = /imus|cvsu[-\s]?imus|cavite\s*state\s*university[-\s]*imus/i.test(fullText)
+      if (!isImusCampus) {
+        setErrorModal({
+          isOpen: true,
+          title: 'Invalid Campus',
+          message: 'This registration form is not from CvSU Imus Campus.',
+          details: 'UNISYNC only accepts registration forms from Cavite State University - Imus Campus. Please upload a valid CvSU Imus Campus registration form.'
+        })
+        setIsModalOpen(false)
+        setIsProcessing(false)
+        return
+      }
+
       // Parse the schedule from extracted text using the new parser
       const { schedules: extractedSchedule, studentInfo: extractedStudentInfo } = parseRegistrationForm(fullText)
       

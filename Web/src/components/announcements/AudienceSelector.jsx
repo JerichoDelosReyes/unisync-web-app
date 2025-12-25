@@ -28,6 +28,7 @@ export default function AudienceSelector({ value = [], onChange, userProfile }) 
   // Determine user's role and restrictions
   const isFaculty = userProfile?.role === 'faculty' || userProfile?.role === 'instructor'
   const isOrgOfficer = userProfile?.role === 'org_officer' || userProfile?.role === 'organization_officer'
+  const isClassRep = userProfile?.role === 'class_rep'
   const isAdmin = hasMinRole(ROLES.ADMIN)
   
   // Get faculty's department from their profile/tags
@@ -131,6 +132,18 @@ export default function AudienceSelector({ value = [], onChange, userProfile }) 
       setIsExpanded(true)
     }
   }, [isOrgOfficer, defaultTargeting])
+
+  // Lock Class Reps to their section only
+  useEffect(() => {
+    if (isClassRep && userProfile?.section) {
+      setSelections(prev => ({
+        ...prev,
+        section: userProfile.section.toUpperCase(),
+        targetType: 'custom'
+      }))
+      setIsExpanded(true)
+    }
+  }, [isClassRep, userProfile?.section])
   
   // Update parent when selections change
   useEffect(() => {
@@ -186,6 +199,9 @@ export default function AudienceSelector({ value = [], onChange, userProfile }) 
   
   // Handle section input
   const handleSectionChange = (e) => {
+    // Class Reps cannot change their section
+    if (isClassRep) return
+    
     setSelections(prev => ({
       ...prev,
       section: e.target.value.toUpperCase()
@@ -195,6 +211,8 @@ export default function AudienceSelector({ value = [], onChange, userProfile }) 
   // Handle target type change
   const handleTargetTypeChange = (type) => {
     if (isOrgOfficer && defaultTargeting.locked) return
+    // Class Reps cannot change to 'all' - must target their section
+    if (isClassRep) return
     
     setSelections(prev => ({
       ...prev,
@@ -206,6 +224,11 @@ export default function AudienceSelector({ value = [], onChange, userProfile }) 
   
   // Get summary text
   const getSummaryText = () => {
+    // Class Reps always target their section only
+    if (isClassRep && userProfile?.section) {
+      return `🎓 Section ${userProfile.section.toUpperCase()} Only`
+    }
+    
     if (selections.targetType === 'all' && !defaultTargeting.locked) {
       return '📢 Campus-Wide (All Students & Faculty)'
     }
@@ -276,8 +299,25 @@ export default function AudienceSelector({ value = [], onChange, userProfile }) 
             </div>
           )}
           
-          {/* Target Type Selector */}
-          {!defaultTargeting.locked && (
+          {/* Class Representative Notice - Only show section */}
+          {isClassRep && userProfile?.section && (
+            <div className="p-3 bg-green-50 border border-green-200 rounded-lg">
+              <div className="flex items-center gap-2 mb-1">
+                <span className="text-xs font-semibold text-green-800">🔒 Class Representative Mode</span>
+              </div>
+              <p className="text-xs text-green-700 mb-2">
+                Your announcements will only be visible to students in your section.
+              </p>
+              <div className="flex items-center gap-2">
+                <span className="px-3 py-1.5 text-sm font-bold bg-green-600 text-white rounded-lg">
+                  📍 Section: {userProfile.section.toUpperCase()}
+                </span>
+              </div>
+            </div>
+          )}
+          
+          {/* Target Type Selector - Hidden for Class Reps */}
+          {!defaultTargeting.locked && !isClassRep && (
             <div className="flex gap-2">
               <button
                 type="button"
@@ -304,8 +344,8 @@ export default function AudienceSelector({ value = [], onChange, userProfile }) 
             </div>
           )}
           
-          {/* Custom Targeting Options */}
-          {(selections.targetType === 'custom' || defaultTargeting.locked) && (
+          {/* Custom Targeting Options - Hidden for Class Reps who only target their section */}
+          {(selections.targetType === 'custom' || defaultTargeting.locked) && !isClassRep && (
             <div className="space-y-4">
               {/* Faculty Department Notice (Locked) */}
               {isFaculty && facultyDepartment && (
@@ -377,18 +417,23 @@ export default function AudienceSelector({ value = [], onChange, userProfile }) 
               {/* Specific Section Input */}
               <div>
                 <label className="block text-xs font-semibold text-gray-700 mb-2">
-                  Specific Section (Optional)
+                  {isClassRep ? 'Your Section (Locked)' : 'Specific Section (Optional)'}
                 </label>
                 <input
                   type="text"
                   value={selections.section}
                   onChange={handleSectionChange}
                   placeholder="e.g., 3-E, 3-1, 4-A"
-                  className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                  className={`w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent ${isClassRep ? 'bg-gray-100 cursor-not-allowed' : ''}`}
                   maxLength={10}
+                  disabled={isClassRep}
+                  readOnly={isClassRep}
                 />
                 <p className="text-xs text-gray-500 mt-1">
-                  Leave empty to target all sections in selected year levels
+                  {isClassRep 
+                    ? 'As a Class Representative, your announcements are automatically targeted to your section.'
+                    : 'Leave empty to target all sections in selected year levels'
+                  }
                 </p>
               </div>
               

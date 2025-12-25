@@ -109,7 +109,7 @@ export default function FacultyOnboardingModal({ isOpen, userProfile, onComplete
     <ModalOverlay closeOnBackdropClick={false}>
       <div className="bg-white rounded-2xl shadow-2xl max-w-lg w-full overflow-hidden animate-fade-in" onClick={(e) => e.stopPropagation()}>
         {/* Header */}
-        <div className="bg-gradient-to-r from-green-600 to-green-700 px-6 py-5 text-white">
+        <div className="bg-green-600 px-6 py-5 text-white">
           <div className="flex items-center gap-3">
             <div className="w-12 h-12 rounded-full bg-white/20 flex items-center justify-center">
               <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">

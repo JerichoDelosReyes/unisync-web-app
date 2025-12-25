@@ -131,6 +131,18 @@ export default function Announcements() {
   const canModerate = hasMinRole(ROLES.ADMIN)
   // Admin+ skips review queue but profanity is ALWAYS checked
   const skipReviewQueue = hasMinRole(ROLES.ADMIN)
+  
+  // Check if Class Rep has a section set (required to create announcements)
+  const isClassRepWithoutSection = userProfile?.role === ROLES.CLASS_REP && !userProfile?.section
+  
+  // Handle Class Rep trying to create without section
+  const handleCreateClick = () => {
+    if (isClassRepWithoutSection) {
+      showToast('Please upload your registration form in the Schedule page first to set your section.', 'error')
+      return
+    }
+    setShowCreateModal(true)
+  }
 
   // Show toast notification
   const showToast = (message, kind = 'info') => {
@@ -816,7 +828,7 @@ export default function Announcements() {
     <div className="min-h-screen bg-white">
       {/* Toast */}
       {toast.show && (
-        <div className={`fixed top-4 right-4 z-50 px-4 py-3 rounded-xl shadow-2xl transition-all duration-300 ${
+        <div className={`fixed top-4 right-4 z-[10000] px-4 py-3 rounded-xl shadow-2xl transition-all duration-300 ${
           toast.kind === 'success' ? 'bg-emerald-500 text-white' :
           toast.kind === 'error' ? 'bg-red-500 text-white' :
           'bg-blue-500 text-white'
@@ -842,7 +854,7 @@ export default function Announcements() {
             
             {canCreate && (
               <button
-                onClick={() => setShowCreateModal(true)}
+                onClick={handleCreateClick}
                 className="group inline-flex items-center gap-3 px-6 py-3 bg-green-600 text-white rounded-xl hover:bg-green-700 transition-all duration-300 text-base font-semibold shadow-lg transform hover:-translate-y-1"
               >
                 <svg className="w-5 h-5 group-hover:rotate-90 transition-transform duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -991,10 +1003,10 @@ export default function Announcements() {
                               </button>
                               <button
                                 onClick={() => setReportModal({ open: true, announcement })}
-                                className="w-full flex items-center gap-2 px-4 py-2 text-sm text-orange-600 hover:bg-orange-50 transition-colors border-t border-gray-100"
+                                className="w-full flex items-center gap-2 px-4 py-2 text-sm text-red-600 hover:bg-red-50 transition-colors border-t border-gray-100"
                               >
-                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4v2m0 0a9 9 0 1 1 0-18 9 9 0 0 1 0 18z" />
+                                <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+                                  <path d="M4 4a1 1 0 011-1h2.586a1 1 0 01.707.293l.707.707H15l.707-.707A1 1 0 0116.414 3H19a1 1 0 011 1v2a1 1 0 01-1 1h-.172l-.293.707A1 1 0 0117.828 8H16v12a1 1 0 01-1 1H9a1 1 0 01-1-1V8H6.172a1 1 0 01-.707-.293L5.172 7H5a1 1 0 01-1-1V4z" />
                                 </svg>
                                 Report
                               </button>
@@ -1005,10 +1017,10 @@ export default function Announcements() {
                             <div className="absolute right-0 mt-1 w-40 bg-white rounded-lg shadow-lg border border-gray-200 py-1 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-20">
                               <button
                                 onClick={() => setReportModal({ open: true, announcement })}
-                                className="w-full flex items-center gap-2 px-4 py-2 text-sm text-orange-600 hover:bg-orange-50 transition-colors"
+                                className="w-full flex items-center gap-2 px-4 py-2 text-sm text-red-600 hover:bg-red-50 transition-colors"
                               >
-                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4v2m0 0a9 9 0 1 1 0-18 9 9 0 0 1 0 18z" />
+                                <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+                                  <path d="M4 4a1 1 0 011-1h2.586a1 1 0 01.707.293l.707.707H15l.707-.707A1 1 0 0116.414 3H19a1 1 0 011 1v2a1 1 0 01-1 1h-.172l-.293.707A1 1 0 0117.828 8H16v12a1 1 0 01-1 1H9a1 1 0 01-1-1V8H6.172a1 1 0 01-.707-.293L5.172 7H5a1 1 0 01-1-1V4z" />
                                 </svg>
                                 Report
                               </button>
@@ -1519,9 +1531,9 @@ export default function Announcements() {
                       onChange={(e) => setFormData(prev => ({ ...prev, priority: e.target.value }))}
                       className="flex-1 flex items-center justify-center gap-2 px-3 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-100 rounded-lg transition-all bg-transparent border-0 cursor-pointer text-center"
                     >
-                      <option value={PRIORITY_LEVELS.LOW}>● Low</option>
-                      <option value={PRIORITY_LEVELS.NORMAL}>● Normal</option>
-                      <option value={PRIORITY_LEVELS.URGENT}>● Urgent</option>
+                      <option value={PRIORITY_LEVELS.LOW}>🟢 Low</option>
+                      <option value={PRIORITY_LEVELS.NORMAL}>🟡 Normal</option>
+                      <option value={PRIORITY_LEVELS.URGENT}>🔴 Urgent</option>
                     </select>
                   </div>
                   
@@ -1616,10 +1628,10 @@ export default function Announcements() {
                 onChange={(e) => setFormData(prev => ({ ...prev, priority: e.target.value }))}
                 className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all text-base"
               >
-                <option value={PRIORITY_LEVELS.LOW}>● Low Priority</option>
-                <option value={PRIORITY_LEVELS.NORMAL}>● Normal Priority</option>
-                <option value={PRIORITY_LEVELS.HIGH}>● High Priority</option>
-                <option value={PRIORITY_LEVELS.URGENT}>● Urgent Priority</option>
+                <option value={PRIORITY_LEVELS.LOW}>🟢 Low Priority</option>
+                <option value={PRIORITY_LEVELS.NORMAL}>🟡 Normal Priority</option>
+                <option value={PRIORITY_LEVELS.HIGH}>🟠 High Priority</option>
+                <option value={PRIORITY_LEVELS.URGENT}>🔴 Urgent Priority</option>
               </select>
             </div>
             

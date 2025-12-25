@@ -142,7 +142,7 @@ export default function VerificationWaitingModal({
             /* Main Content - Horizontal Layout */
             <div className="flex flex-col md:flex-row">
               {/* Left Side - Icon & Email */}
-              <div className="bg-gradient-to-br from-[#1a5f3a] to-[#0d4028] p-8 md:w-2/5 flex flex-col items-center justify-center text-center">
+              <div className="bg-[#166534] p-8 md:w-2/5 flex flex-col items-center justify-center text-center">
                 <div className="relative mb-4">
                   <div className="absolute inset-0 w-16 h-16 bg-white/20 rounded-2xl animate-ping opacity-75" />
                   <div className="relative bg-white/20 rounded-2xl p-4">

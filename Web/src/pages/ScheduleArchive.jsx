@@ -221,7 +221,7 @@ export default function ScheduleArchive() {
       {selectedArchive ? (
         <div className="space-y-6">
           {/* Archive Info Header */}
-          <div className="bg-gradient-to-r from-indigo-600 to-purple-600 rounded-2xl p-6 text-white">
+          <div className="bg-indigo-600 rounded-2xl p-6 text-white">
             <div className="flex items-start justify-between">
               <div>
                 <h2 className="text-2xl font-bold">{selectedArchive.semester}</h2>

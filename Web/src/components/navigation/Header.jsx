@@ -1,5 +1,5 @@
 import { useNavigate } from 'react-router-dom'
-import { useAuth, ROLE_DISPLAY_NAMES } from '../../contexts/AuthContext'
+import { useAuth, ROLE_DISPLAY_NAMES, ROLES } from '../../contexts/AuthContext'
 import { logoutUser } from '../../services/authService'
 import { useState, useRef, useEffect } from 'react'
 import { 
@@ -14,7 +14,7 @@ import {
  * Top navigation bar with user menu, notifications, and mobile menu toggle.
  */
 export default function Header({ onMenuClick }) {
-  const { userProfile, user } = useAuth()
+  const { userProfile, user, hasMinRole } = useAuth()
   const navigate = useNavigate()
   const [showUserMenu, setShowUserMenu] = useState(false)
   const [showNotifications, setShowNotifications] = useState(false)
@@ -288,6 +288,7 @@ export default function Header({ onMenuClick }) {
                     </svg>
                     My Profile
                   </button>
+                  {hasMinRole(ROLES.SUPER_ADMIN) && (
                   <button
                     onClick={() => {
                       setShowUserMenu(false)
@@ -301,6 +302,7 @@ export default function Header({ onMenuClick }) {
                     </svg>
                     Settings
                   </button>
+                  )}
                 </div>
 
                 {/* Logout */}

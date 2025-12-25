@@ -431,7 +431,7 @@ export default function FacultyRequests() {
 
       {/* Toast Notification */}
       {toast.show && (
-        <div className={`fixed bottom-4 right-4 px-4 py-3 rounded-lg shadow-lg flex items-center gap-2 z-50 animate-in slide-in-from-bottom-4 ${
+        <div className={`fixed bottom-4 right-4 px-4 py-3 rounded-lg shadow-lg flex items-center gap-2 z-[10000] animate-in slide-in-from-bottom-4 ${
           toast.type === 'success' ? 'bg-green-600 text-white' : 'bg-red-600 text-white'
         }`}>
           {toast.type === 'success' ? (

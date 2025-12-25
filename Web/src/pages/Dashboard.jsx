@@ -282,7 +282,7 @@ export default function Dashboard() {
 
       {/* Faculty Role Request Card - Only for students/class reps, hidden if dismissed */}
       {(userProfile?.role === ROLES.STUDENT || userProfile?.role === ROLES.CLASS_REP) && !facultyCardDismissed && (
-        <div className="bg-gradient-to-r from-indigo-50 to-purple-50 rounded-xl border border-indigo-100 p-6 relative">
+        <div className="bg-indigo-50 rounded-xl border border-indigo-100 p-6 relative">
           {/* Dismiss/Close Button */}
           <button
             onClick={dismissFacultyCard}

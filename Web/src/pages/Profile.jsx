@@ -242,7 +242,7 @@ export default function Profile() {
 
       <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
         {/* Profile Header */}
-        <div className="bg-gradient-to-r from-primary to-primary/80 px-6 py-8">
+        <div className="bg-primary px-6 py-8">
           <div className="flex items-center gap-4">
             <div className="relative group">
               {userProfile?.photoURL ? (

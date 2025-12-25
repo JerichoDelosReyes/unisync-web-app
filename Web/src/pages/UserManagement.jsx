@@ -495,7 +495,7 @@ export default function UserManagement() {
     <div className="space-y-6">
       {/* Toast Notification */}
       {toast.show && (
-        <div className={`fixed top-4 right-4 z-50 px-4 py-3 rounded-lg shadow-lg transition-all ${
+        <div className={`fixed top-4 right-4 z-[10000] px-4 py-3 rounded-lg shadow-lg transition-all ${
           toast.kind === 'success' ? 'bg-green-500 text-white' :
           toast.kind === 'error' ? 'bg-red-500 text-white' :
           'bg-blue-500 text-white'
