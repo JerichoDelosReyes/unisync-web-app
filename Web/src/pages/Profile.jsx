@@ -177,10 +177,8 @@ export default function Profile() {
         updateData.specialization = formData.specialization
       } else {
         updateData.studentId = formData.studentId
-        updateData.course = formData.course
-        updateData.yearLevel = formData.yearLevel
-        // Section is read-only for students - only updated from reg form
-        // Do NOT update section from profile edit to prevent manual override
+        // Course, Year Level, and Section are read-only for students - only updated from reg form
+        // Do NOT update these from profile edit to prevent manual override
       }
       
       await updateDoc(doc(db, 'users', user.uid), updateData)
@@ -614,49 +612,42 @@ export default function Profile() {
                   )}
                 </div>
 
-                {/* Course */}
+                {/* Course - Read-only, populated from registration form */}
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
                     Course/Program
+                    <span className="text-gray-400 font-normal ml-1">(From Reg Form)</span>
                   </label>
-                  {isEditing ? (
-                    <input
-                      type="text"
-                      name="course"
-                      value={formData.course}
-                      onChange={handleChange}
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-primary transition-colors"
-                      placeholder="e.g., BSCS, BSIT"
-                    />
-                  ) : (
-                    <p className="px-4 py-2 bg-gray-50 rounded-lg text-gray-900">
-                      {userProfile?.course || '-'}
+                  <p className="px-4 py-2 bg-gray-50 rounded-lg text-gray-900">
+                    {userProfile?.course || (
+                      <span className="text-gray-400 italic">
+                        Upload registration form in Schedule page
+                      </span>
+                    )}
+                  </p>
+                  {!userProfile?.course && (
+                    <p className="text-xs text-amber-600 mt-1">
+                      ⚠️ Go to Schedule page and upload your registration form to set your course.
                     </p>
                   )}
                 </div>
 
-                {/* Year Level */}
+                {/* Year Level - Read-only, populated from registration form */}
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
                     Year Level
+                    <span className="text-gray-400 font-normal ml-1">(From Reg Form)</span>
                   </label>
-                  {isEditing ? (
-                    <select
-                      name="yearLevel"
-                      value={formData.yearLevel}
-                      onChange={handleChange}
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-primary transition-colors"
-                    >
-                      <option value="">Select year level</option>
-                      <option value="1st Year">1st Year</option>
-                      <option value="2nd Year">2nd Year</option>
-                      <option value="3rd Year">3rd Year</option>
-                      <option value="4th Year">4th Year</option>
-                      <option value="5th Year">5th Year</option>
-                    </select>
-                  ) : (
-                    <p className="px-4 py-2 bg-gray-50 rounded-lg text-gray-900">
-                      {userProfile?.yearLevel || '-'}
+                  <p className="px-4 py-2 bg-gray-50 rounded-lg text-gray-900">
+                    {userProfile?.yearLevel || (
+                      <span className="text-gray-400 italic">
+                        Upload registration form in Schedule page
+                      </span>
+                    )}
+                  </p>
+                  {!userProfile?.yearLevel && (
+                    <p className="text-xs text-amber-600 mt-1">
+                      ⚠️ Go to Schedule page and upload your registration form to set your year level.
                     </p>
                   )}
                 </div>
