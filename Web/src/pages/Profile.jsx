@@ -26,7 +26,9 @@ export default function Profile() {
   
   const [formData, setFormData] = useState({
     givenName: '',
+    middleName: '',
     lastName: '',
+    suffix: '',
     // Student fields
     studentId: '',
     course: '',
@@ -44,7 +46,9 @@ export default function Profile() {
     if (userProfile) {
       setFormData({
         givenName: userProfile.givenName || '',
+        middleName: userProfile.middleName || '',
         lastName: userProfile.lastName || '',
+        suffix: userProfile.suffix || '',
         // Student fields
         studentId: userProfile.studentId || '',
         course: userProfile.course || '',
@@ -134,7 +138,20 @@ export default function Profile() {
     setMessage({ type: '', text: '' })
 
     try {
-      const displayName = `${formData.givenName} ${formData.lastName}`.trim()
+      // Normalize suffix (n/a, N/A, none, NONE = empty)
+      const normalizedSuffix = formData.suffix?.trim().toLowerCase()
+      const suffix = (normalizedSuffix === 'n/a' || normalizedSuffix === 'none') 
+        ? '' 
+        : formData.suffix?.trim() || ''
+      
+      // Get middle initial (e.g., "Gabales" -> "G.")
+      const middleInitial = formData.middleName ? `${formData.middleName.charAt(0).toUpperCase()}.` : ''
+      
+      // Build display name: "Juan G. Dela Cruz, Jr." format
+      let displayName = formData.givenName
+      if (middleInitial) displayName += ` ${middleInitial}`
+      displayName += ` ${formData.lastName}`
+      if (suffix) displayName += `, ${suffix}`
       
       // Update Firebase Auth profile
       await updateProfile(auth.currentUser, {
@@ -144,7 +161,9 @@ export default function Profile() {
       // Update Firestore user document
       const updateData = {
         givenName: formData.givenName,
+        middleName: formData.middleName || '',
         lastName: formData.lastName,
+        suffix: suffix,
         displayName: displayName,
         updatedAt: serverTimestamp()
       }
@@ -160,7 +179,8 @@ export default function Profile() {
         updateData.studentId = formData.studentId
         updateData.course = formData.course
         updateData.yearLevel = formData.yearLevel
-        updateData.section = formData.section
+        // Section is read-only for students - only updated from reg form
+        // Do NOT update section from profile edit to prevent manual override
       }
       
       await updateDoc(doc(db, 'users', user.uid), updateData)
@@ -186,7 +206,9 @@ export default function Profile() {
     if (userProfile) {
       setFormData({
         givenName: userProfile.givenName || '',
+        middleName: userProfile.middleName || '',
         lastName: userProfile.lastName || '',
+        suffix: userProfile.suffix || '',
         // Student fields
         studentId: userProfile.studentId || '',
         course: userProfile.course || '',
@@ -353,6 +375,33 @@ export default function Profile() {
               )}
             </div>
 
+            {/* Middle Name */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Middle Name
+              </label>
+              {isEditing ? (
+                <input
+                  type="text"
+                  name="middleName"
+                  value={formData.middleName}
+                  onChange={handleChange}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-primary transition-colors"
+                  placeholder="Enter middle name"
+                  required
+                />
+              ) : (
+                <p className="px-4 py-2 bg-gray-50 rounded-lg text-gray-900">
+                  {userProfile?.middleName || '-'}
+                  {userProfile?.middleName && (
+                    <span className="ml-2 text-gray-500 text-sm">
+                      ({userProfile.middleName.charAt(0).toUpperCase()}.)
+                    </span>
+                  )}
+                </p>
+              )}
+            </div>
+
             {/* Last Name */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -370,6 +419,28 @@ export default function Profile() {
               ) : (
                 <p className="px-4 py-2 bg-gray-50 rounded-lg text-gray-900">
                   {userProfile?.lastName || '-'}
+                </p>
+              )}
+            </div>
+
+            {/* Suffix (Optional) */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Suffix
+                <span className="text-gray-400 font-normal ml-1">(Optional)</span>
+              </label>
+              {isEditing ? (
+                <input
+                  type="text"
+                  name="suffix"
+                  value={formData.suffix}
+                  onChange={handleChange}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-primary transition-colors"
+                  placeholder="Jr., Sr., III, etc. (Leave blank if none)"
+                />
+              ) : (
+                <p className="px-4 py-2 bg-gray-50 rounded-lg text-gray-900">
+                  {userProfile?.suffix || '-'}
                 </p>
               )}
             </div>
@@ -590,23 +661,22 @@ export default function Profile() {
                   )}
                 </div>
 
-                {/* Section */}
+                {/* Section - Read-only, populated from registration form */}
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
                     Section
+                    <span className="text-gray-400 font-normal ml-1">(From Reg Form)</span>
                   </label>
-                  {isEditing ? (
-                    <input
-                      type="text"
-                      name="section"
-                      value={formData.section}
-                      onChange={handleChange}
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-primary transition-colors"
-                      placeholder="e.g., BSCS 3-1"
-                    />
-                  ) : (
-                    <p className="px-4 py-2 bg-gray-50 rounded-lg text-gray-900">
-                      {userProfile?.section || '-'}
+                  <p className="px-4 py-2 bg-gray-50 rounded-lg text-gray-900">
+                    {userProfile?.section || (
+                      <span className="text-gray-400 italic">
+                        Upload registration form in Schedule page
+                      </span>
+                    )}
+                  </p>
+                  {!userProfile?.section && (
+                    <p className="text-xs text-amber-600 mt-1">
+                      ⚠️ Go to Schedule page and upload your registration form to set your section.
                     </p>
                   )}
                 </div>

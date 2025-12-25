@@ -28,7 +28,9 @@ export default function AuthPage() {
   
   // Sign Up State
   const [givenName, setGivenName] = useState('')
+  const [middleName, setMiddleName] = useState('')
   const [lastName, setLastName] = useState('')
+  const [suffix, setSuffix] = useState('')
   const [signUpEmail, setSignUpEmail] = useState('')
   const [signUpPassword, setSignUpPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
@@ -43,6 +45,14 @@ export default function AuthPage() {
   const [showVerificationModal, setShowVerificationModal] = useState(false)
   const [pendingVerificationEmail, setPendingVerificationEmail] = useState('')
   const [pendingUserData, setPendingUserData] = useState(null)
+  
+  // Helper function to normalize suffix (blank, n/a, N/A, none, NONE = empty)
+  const normalizeSuffix = (value) => {
+    if (!value) return ''
+    const trimmed = value.trim().toLowerCase()
+    if (trimmed === '' || trimmed === 'n/a' || trimmed === 'none') return ''
+    return value.trim()
+  }
   
   // Helper function to show toast
   const showToast = (message, kind = 'info') => {
@@ -108,7 +118,7 @@ export default function AuthPage() {
     setSignUpLoading(true)
     
     // Validation
-    if (!givenName || !lastName || !signUpEmail || !signUpPassword || !confirmPassword) {
+    if (!givenName || !middleName || !lastName || !signUpEmail || !signUpPassword || !confirmPassword) {
       showToast('Please fill in all fields', 'warning')
       setSignUpLoading(false)
       return
@@ -141,7 +151,9 @@ export default function AuthPage() {
       email: signUpEmail,
       password: signUpPassword,
       givenName,
-      lastName
+      middleName,
+      lastName,
+      suffix: normalizeSuffix(suffix)
     })
     
     setSignUpLoading(false)
@@ -155,7 +167,9 @@ export default function AuthPage() {
     // Store user data to create Firestore document after verification
     setPendingUserData({
       givenName,
+      middleName,
       lastName,
+      suffix: normalizeSuffix(suffix),
       email: signUpEmail
     })
     setPendingVerificationEmail(signUpEmail)
@@ -198,7 +212,9 @@ export default function AuthPage() {
     
     // Reset form and switch to sign in
     setGivenName('')
+    setMiddleName('')
     setLastName('')
+    setSuffix('')
     setSignUpEmail('')
     setSignUpPassword('')
     setConfirmPassword('')
@@ -217,7 +233,9 @@ export default function AuthPage() {
     
     // Reset form
     setGivenName('')
+    setMiddleName('')
     setLastName('')
+    setSuffix('')
     setSignUpEmail('')
     setSignUpPassword('')
     setConfirmPassword('')
@@ -425,7 +443,7 @@ export default function AuthPage() {
               </div>
 
               <div className="space-y-4">
-                {/* Two-column name fields */}
+                {/* Name fields */}
                 <div className="grid grid-cols-2 gap-4">
                   <TextInput 
                     id="given-name" 
@@ -435,11 +453,29 @@ export default function AuthPage() {
                     onChange={(e) => setGivenName(e.target.value)}
                   />
                   <TextInput 
+                    id="middle-name" 
+                    label="Middle Name" 
+                    placeholder="Gabales"
+                    value={middleName}
+                    onChange={(e) => setMiddleName(e.target.value)}
+                  />
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <TextInput 
                     id="last-name" 
                     label="Last Name" 
                     placeholder="Dela Cruz"
                     value={lastName}
                     onChange={(e) => setLastName(e.target.value)}
+                  />
+                  {/* Suffix field - optional */}
+                  <TextInput 
+                    id="suffix" 
+                    label="Suffix (Optional)" 
+                    placeholder="Jr., Sr., III, etc."
+                    value={suffix}
+                    onChange={(e) => setSuffix(e.target.value)}
                   />
                 </div>
 

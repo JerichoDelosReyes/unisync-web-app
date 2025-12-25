@@ -213,7 +213,7 @@ export const completeRegistration = async (userData) => {
     await user.getIdToken(true);
     console.log('ID token refreshed successfully');
 
-    const { givenName, lastName, email } = userData;
+    const { givenName, middleName, lastName, suffix, email } = userData;
 
     // Check if user document already exists
     console.log('Checking if user document exists...');
@@ -227,12 +227,23 @@ export const completeRegistration = async (userData) => {
     // Retry mechanism for token propagation issues
     console.log('Creating user document in Firestore...');
     
+    // Get middle initial (e.g., "Gabales" -> "G.")
+    const middleInitial = middleName ? `${middleName.charAt(0).toUpperCase()}.` : '';
+    
+    // Build display name: "Juan G. Dela Cruz, Jr." format
+    let displayName = givenName;
+    if (middleInitial) displayName += ` ${middleInitial}`;
+    displayName += ` ${lastName}`;
+    if (suffix) displayName += `, ${suffix}`;
+    
     const userDocData = {
       uid: user.uid,
       email: email.toLowerCase(),
       givenName,
+      middleName: middleName || '', // Store full middle name
       lastName,
-      displayName: `${givenName} ${lastName}`,
+      suffix: suffix || '', // Store suffix (empty string if none)
+      displayName,
       role: DEFAULT_ROLE, // Default: student (per ruleset)
       tags: [], // Empty tags array (tags are labels, not permissions)
       isVerified: true,

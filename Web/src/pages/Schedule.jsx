@@ -246,6 +246,91 @@ const parseCvSURegistrationForm = (text) => {
   return schedules
 }
 
+// Helper function to parse student name from registration form format
+// Format: "DELA CRUZ, JUAN MIGUEL B." -> { lastName: "Dela Cruz", givenName: "Juan Miguel", middleName: "B", suffix: "" }
+// Or: "DELA CRUZ, JUAN MIGUEL JR." -> { lastName: "Dela Cruz", givenName: "Juan Miguel", middleName: "", suffix: "Jr." }
+const parseStudentName = (fullName) => {
+  if (!fullName) return { lastName: '', givenName: '', middleName: '', suffix: '' }
+  
+  // Common suffixes to detect (at end of name)
+  const suffixPatterns = /\b(JR\.?|SR\.?|III|IV|II|V)$/i
+  // Middle initial pattern (single letter followed by optional period)
+  const middleInitialPattern = /\b([A-Z])\.?$/i
+  
+  // Convert to title case helper
+  const toTitleCase = (str) => str.split(' ')
+    .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+    .join(' ')
+  
+  // Check if name is in "LAST, FIRST MIDDLE" format
+  if (fullName.includes(',')) {
+    const [lastName, rest] = fullName.split(',').map(s => s.trim())
+    let givenName = rest || ''
+    let middleName = ''
+    let suffix = ''
+    
+    // First check for suffix at end (JR., SR., III, etc.)
+    const suffixMatch = givenName.match(suffixPatterns)
+    if (suffixMatch) {
+      suffix = suffixMatch[1].replace('.', '')
+      suffix = suffix.charAt(0).toUpperCase() + suffix.slice(1).toLowerCase()
+      if (suffix === 'Jr' || suffix === 'Sr') suffix += '.'
+      givenName = givenName.replace(suffixPatterns, '').trim()
+    }
+    
+    // Then check for middle initial at end (B., M., etc.)
+    const middleMatch = givenName.match(middleInitialPattern)
+    if (middleMatch) {
+      middleName = middleMatch[1].toUpperCase()
+      givenName = givenName.replace(middleInitialPattern, '').trim()
+    }
+    
+    return {
+      lastName: toTitleCase(lastName),
+      givenName: toTitleCase(givenName),
+      middleName: middleName, // Just the initial letter (e.g., "G" for Gabales)
+      suffix: suffix
+    }
+  }
+  
+  // If no comma, try to parse as "FIRST MIDDLE LAST" or "FIRST LAST"
+  const parts = fullName.trim().split(' ')
+  if (parts.length >= 2) {
+    let suffix = ''
+    let middleName = ''
+    const lastPart = parts[parts.length - 1]
+    
+    // Check for suffix
+    if (suffixPatterns.test(lastPart)) {
+      suffix = lastPart.replace('.', '')
+      suffix = suffix.charAt(0).toUpperCase() + suffix.slice(1).toLowerCase()
+      if (suffix === 'Jr' || suffix === 'Sr') suffix += '.'
+      parts.pop()
+    }
+    
+    // Check for middle initial
+    if (parts.length >= 2) {
+      const potentialMiddle = parts[parts.length - 1]
+      if (middleInitialPattern.test(potentialMiddle) && potentialMiddle.length <= 2) {
+        middleName = potentialMiddle.replace('.', '').toUpperCase()
+        parts.pop()
+      }
+    }
+    
+    const lastName = parts.pop() || ''
+    const givenName = parts.join(' ')
+    
+    return {
+      lastName: toTitleCase(lastName),
+      givenName: toTitleCase(givenName),
+      middleName: middleName,
+      suffix: suffix
+    }
+  }
+  
+  return { lastName: fullName, givenName: '', middleName: '', suffix: '' }
+}
+
 // Main parser that tries multiple approaches
 const parseRegistrationForm = (text) => {
   console.log('Parsing registration form...')
@@ -264,7 +349,12 @@ const parseRegistrationForm = (text) => {
     yearLevel: '',
     section: '',
     studentId: '',
-    studentName: ''
+    studentName: '',
+    // Parsed name components
+    givenName: '',
+    middleName: '',
+    lastName: '',
+    suffix: ''
   }
   
   // Extract Student Number (e.g., "Student Number: 202221022" or "Student No.: 202221022")
@@ -294,6 +384,14 @@ const parseRegistrationForm = (text) => {
     if (nameMatch) {
       studentInfo.studentName = nameMatch[1].trim()
       console.log('Student Name found:', studentInfo.studentName)
+      
+      // Parse the name into components (givenName, middleName, lastName, suffix)
+      const parsedName = parseStudentName(studentInfo.studentName)
+      studentInfo.givenName = parsedName.givenName
+      studentInfo.middleName = parsedName.middleName
+      studentInfo.lastName = parsedName.lastName
+      studentInfo.suffix = parsedName.suffix
+      console.log('Parsed name:', parsedName)
       break
     }
   }
@@ -1387,6 +1485,34 @@ function StudentScheduleView() {
           }
           if (extractedStudentInfo.section) {
             profileUpdateData.section = extractedStudentInfo.section
+          }
+          
+          // Update name from registration form if extracted
+          if (extractedStudentInfo.givenName) {
+            profileUpdateData.givenName = extractedStudentInfo.givenName
+          }
+          if (extractedStudentInfo.middleName) {
+            profileUpdateData.middleName = extractedStudentInfo.middleName
+          }
+          if (extractedStudentInfo.lastName) {
+            profileUpdateData.lastName = extractedStudentInfo.lastName
+          }
+          // Always update suffix (empty string if none)
+          if (extractedStudentInfo.studentName) {
+            profileUpdateData.suffix = extractedStudentInfo.suffix || ''
+            
+            // Update displayName with parsed name: "Juan G. Dela Cruz, Jr." format
+            const middleInitial = extractedStudentInfo.middleName 
+              ? `${extractedStudentInfo.middleName.charAt(0).toUpperCase()}.` 
+              : ''
+            const suffix = extractedStudentInfo.suffix || ''
+            
+            let displayName = extractedStudentInfo.givenName
+            if (middleInitial) displayName += ` ${middleInitial}`
+            displayName += ` ${extractedStudentInfo.lastName}`
+            if (suffix) displayName += `, ${suffix}`
+            
+            profileUpdateData.displayName = displayName
           }
           
           // Update user profile in Firestore
