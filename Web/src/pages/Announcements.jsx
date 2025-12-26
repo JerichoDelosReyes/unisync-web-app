@@ -15,6 +15,9 @@ import {
   getReactionCounts,
   addComment,
   getComments,
+  subscribeToAnnouncements,
+  subscribeToPendingAnnouncements,
+  subscribeToComments,
   ANNOUNCEMENT_STATUS,
   PRIORITY_LEVELS
 } from '../services/announcementService'
@@ -188,32 +191,47 @@ export default function Announcements() {
     setTimeout(() => setToast({ show: false, message: '', kind: 'info' }), 4000)
   }
 
-  // Fetch announcements
+  // Subscribe to announcements in real-time
   useEffect(() => {
-    const fetchAnnouncements = async () => {
-      try {
-        setLoading(true)
-        setError(null)
-        
-        const userTags = userProfile?.tags || []
-        // Pass userId so authors can always see their own announcements
-        const data = await getAnnouncementsForUser(userTags, { userId: user?.uid })
+    const userTags = userProfile?.tags || []
+    
+    // Set loading true only on initial load
+    setLoading(true)
+    setError(null)
+
+    // Subscribe to user's visible announcements
+    const unsubscribeAnnouncements = subscribeToAnnouncements(
+      userTags,
+      user?.uid,
+      (data) => {
         setAnnouncements(data)
-        
-        // Fetch pending if user can moderate
-        if (canModerate) {
-          const pending = await getPendingAnnouncements()
-          setPendingAnnouncements(pending)
-        }
-      } catch (err) {
-        console.error('Error fetching announcements:', err)
+        setLoading(false)
+      },
+      (err) => {
+        console.error('Error in announcements subscription:', err)
         setError('Failed to load announcements')
-      } finally {
         setLoading(false)
       }
+    )
+
+    // Subscribe to pending announcements if user can moderate
+    let unsubscribePending = () => {}
+    if (canModerate) {
+      unsubscribePending = subscribeToPendingAnnouncements(
+        (data) => {
+          setPendingAnnouncements(data)
+        },
+        (err) => {
+          console.error('Error in pending announcements subscription:', err)
+        }
+      )
     }
 
-    fetchAnnouncements()
+    // Cleanup subscriptions on unmount or dependency change
+    return () => {
+      unsubscribeAnnouncements()
+      unsubscribePending()
+    }
   }, [userProfile, canModerate, user])
 
   // Handle navigation state to open specific announcement (only once on initial load)
@@ -230,32 +248,42 @@ export default function Announcements() {
     }
   }, [location.state?.selectedAnnouncementId, announcements, loading])
 
-  // Fetch comments when announcement is selected
+  // Subscribe to comments when announcement is selected
   useEffect(() => {
-    if (selectedAnnouncement) {
-      const fetchCommentsData = async () => {
-        try {
-          setLoadingComments(true)
-          const data = await getComments(selectedAnnouncement.id)
-          setComments(data)
-          
-          // Set initial reactions from announcement
-          if (selectedAnnouncement.reactions) {
-            const counts = getReactionCounts(selectedAnnouncement.reactions)
-            setReactions(counts)
-          } else {
-            setReactions({})
-          }
-        } catch (err) {
-          console.error('Error fetching comments:', err)
-        } finally {
-          setLoadingComments(false)
-        }
+    if (!selectedAnnouncement) {
+      setComments([])
+      return
+    }
+
+    setLoadingComments(true)
+    setCommentText('')
+    setReplyingTo(null)
+    
+    // Set initial reactions from announcement
+    if (selectedAnnouncement.reactions) {
+      const counts = getReactionCounts(selectedAnnouncement.reactions)
+      setReactions(counts)
+    } else {
+      setReactions({})
+    }
+
+    // Subscribe to comments in real-time
+    const unsubscribe = subscribeToComments(
+      selectedAnnouncement.id,
+      false, // Don't include pending/rejected for regular users
+      (data) => {
+        setComments(data)
+        setLoadingComments(false)
+      },
+      (err) => {
+        console.error('Error in comments subscription:', err)
+        setLoadingComments(false)
       }
-      
-      fetchCommentsData()
-      setCommentText('')
-      setReplyingTo(null)
+    )
+
+    // Cleanup subscription when announcement changes or modal closes
+    return () => {
+      unsubscribe()
     }
   }, [selectedAnnouncement])
 

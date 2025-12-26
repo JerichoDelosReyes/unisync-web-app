@@ -26,7 +26,8 @@ import {
   Timestamp,
   increment,
   arrayUnion,
-  arrayRemove
+  arrayRemove,
+  onSnapshot
 } from 'firebase/firestore'
 import {
   ref,
@@ -829,6 +830,148 @@ export const getComments = async (announcementId, includeAll = false) => {
     console.error('Error getting comments:', error)
     throw error
   }
+}
+
+// ==================== REAL-TIME SUBSCRIPTIONS ====================
+
+/**
+ * Subscribe to announcements visible to a user based on their tags
+ * Returns an unsubscribe function to clean up the listener
+ * @param {Array} userTags - User's tags for filtering
+ * @param {string} userId - Current user ID (to see own announcements)
+ * @param {function} callback - Called with updated announcements array
+ * @param {function} onError - Called on subscription error
+ * @returns {function} Unsubscribe function
+ */
+export const subscribeToAnnouncements = (userTags = [], userId, callback, onError = console.error) => {
+  // Query approved announcements
+  const q = query(
+    collection(db, COLLECTION_NAME),
+    where('status', '==', ANNOUNCEMENT_STATUS.APPROVED)
+  )
+
+  const unsubscribe = onSnapshot(q, 
+    (querySnapshot) => {
+      // Filter by tags on client side using sophisticated matching logic
+      let announcements = querySnapshot.docs
+        .map(doc => ({ id: doc.id, ...doc.data() }))
+        .filter(announcement => {
+          // Authors can always see their own announcements
+          if (userId && announcement.authorId === userId) {
+            return true
+          }
+          // Campus-wide announcements (no target tags) are visible to everyone
+          if (!announcement.targetTags || announcement.targetTags.length === 0) {
+            return true
+          }
+          // Use sophisticated matching logic for targeted announcements
+          return matchesTargetAudience(userTags, announcement.targetTags)
+        })
+
+      // Sort by priority then date
+      const priorityOrder = { urgent: 0, high: 1, normal: 2, low: 3 }
+      announcements.sort((a, b) => {
+        const priorityDiff = (priorityOrder[a.priority] || 2) - (priorityOrder[b.priority] || 2)
+        if (priorityDiff !== 0) return priorityDiff
+        // Same priority: sort by date
+        const dateA = a.createdAt?.toDate?.() || new Date(0)
+        const dateB = b.createdAt?.toDate?.() || new Date(0)
+        return dateB - dateA
+      })
+
+      callback(announcements)
+    },
+    (error) => {
+      console.error('Error in announcements subscription:', error)
+      onError(error)
+      callback([]) // Return empty array on error
+    }
+  )
+
+  return unsubscribe
+}
+
+/**
+ * Subscribe to pending announcements for moderation queue
+ * Returns an unsubscribe function to clean up the listener
+ * @param {function} callback - Called with updated pending announcements array
+ * @param {function} onError - Called on subscription error
+ * @returns {function} Unsubscribe function
+ */
+export const subscribeToPendingAnnouncements = (callback, onError = console.error) => {
+  const q = query(
+    collection(db, COLLECTION_NAME),
+    where('status', '==', ANNOUNCEMENT_STATUS.PENDING_REVIEW)
+  )
+
+  const unsubscribe = onSnapshot(q,
+    (querySnapshot) => {
+      const announcements = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }))
+      
+      // Sort by date (newest first)
+      announcements.sort((a, b) => {
+        const dateA = a.createdAt?.toDate?.() || new Date(0)
+        const dateB = b.createdAt?.toDate?.() || new Date(0)
+        return dateB - dateA
+      })
+
+      callback(announcements)
+    },
+    (error) => {
+      console.error('Error in pending announcements subscription:', error)
+      onError(error)
+      callback([])
+    }
+  )
+
+  return unsubscribe
+}
+
+/**
+ * Subscribe to comments for a specific announcement
+ * Returns an unsubscribe function to clean up the listener
+ * @param {string} announcementId - Announcement ID
+ * @param {boolean} includeAll - Include pending/rejected (for admins)
+ * @param {function} callback - Called with updated comments array
+ * @param {function} onError - Called on subscription error
+ * @returns {function} Unsubscribe function
+ */
+export const subscribeToComments = (announcementId, includeAll = false, callback, onError = console.error) => {
+  if (!announcementId) {
+    callback([])
+    return () => {} // Return no-op unsubscribe
+  }
+
+  const commentsRef = collection(db, COLLECTION_NAME, announcementId, 'comments')
+  
+  let q
+  if (includeAll) {
+    q = query(commentsRef)
+  } else {
+    q = query(commentsRef, where('status', '==', COMMENT_STATUS.APPROVED))
+  }
+
+  const unsubscribe = onSnapshot(q,
+    (snapshot) => {
+      const comments = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }))
+      
+      // Sort by date (oldest first for comments)
+      comments.sort((a, b) => {
+        const dateA = a.createdAt?.toDate?.() || new Date(0)
+        const dateB = b.createdAt?.toDate?.() || new Date(0)
+        return dateA - dateB
+      })
+
+      callback(comments)
+    },
+    (error) => {
+      console.error('Error in comments subscription:', error)
+      onError(error)
+      callback([])
+    }
+  )
+
+  return unsubscribe
 }
 
 /**

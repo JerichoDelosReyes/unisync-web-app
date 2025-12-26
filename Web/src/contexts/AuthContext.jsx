@@ -1,6 +1,6 @@
-import { createContext, useContext, useState, useEffect } from 'react'
+import { createContext, useContext, useState, useEffect, useCallback } from 'react'
 import { auth, db } from '../config/firebase'
-import { onAuthStateChanged } from 'firebase/auth'
+import { onAuthStateChanged, signOut } from 'firebase/auth'
 import { doc, getDoc } from 'firebase/firestore'
 
 // ============================================
@@ -42,6 +42,77 @@ export function AuthProvider({ children }) {
   const [userProfile, setUserProfile] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
+  const [isOnline, setIsOnline] = useState(navigator.onLine)
+  const [authError, setAuthError] = useState(null)
+
+  // Network status detection
+  useEffect(() => {
+    const handleOnline = () => {
+      console.log('Network: Online')
+      setIsOnline(true)
+    }
+    const handleOffline = () => {
+      console.log('Network: Offline')
+      setIsOnline(false)
+    }
+
+    window.addEventListener('online', handleOnline)
+    window.addEventListener('offline', handleOffline)
+
+    return () => {
+      window.removeEventListener('online', handleOnline)
+      window.removeEventListener('offline', handleOffline)
+    }
+  }, [])
+
+  // Handle auth errors - sign out and redirect
+  const handleAuthError = useCallback(async (error) => {
+    console.error('Auth error detected:', error.code, error.message)
+    
+    // Check if this is a token/session error vs network error
+    const sessionErrors = [
+      'auth/user-token-expired',
+      'auth/id-token-expired', 
+      'auth/invalid-user-token',
+      'auth/user-disabled',
+      'auth/requires-recent-login'
+    ]
+    
+    if (sessionErrors.includes(error.code)) {
+      setAuthError('Your session has expired. Please sign in again.')
+      try {
+        await signOut(auth)
+      } catch (e) {
+        console.error('Error signing out:', e)
+      }
+      setUser(null)
+      setUserProfile(null)
+      return
+    }
+    
+    // For network errors, check if we're actually online
+    if (error.code === 'auth/network-request-failed') {
+      if (navigator.onLine) {
+        // We're online but Firebase failed - likely a session issue
+        setAuthError('Connection error. Please try signing in again.')
+        try {
+          await signOut(auth)
+        } catch (e) {
+          console.error('Error signing out:', e)
+        }
+        setUser(null)
+        setUserProfile(null)
+      } else {
+        // Actually offline
+        setIsOnline(false)
+      }
+    }
+  }, [])
+
+  // Clear auth error
+  const clearAuthError = useCallback(() => {
+    setAuthError(null)
+  }, [])
 
   // Fetch user profile from Firestore
   const fetchUserProfile = async (uid) => {
@@ -58,34 +129,49 @@ export function AuthProvider({ children }) {
       }
     } catch (err) {
       console.error('Error fetching user profile:', err)
-      setError('Failed to load user profile')
+      // Check if this is an auth-related error
+      if (err.code && err.code.startsWith('auth/')) {
+        handleAuthError(err)
+      } else {
+        setError('Failed to load user profile')
+      }
       return null
     }
   }
 
   // Listen to auth state changes
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
-      setLoading(true)
-      setError(null)
+    const unsubscribe = onAuthStateChanged(
+      auth, 
+      async (firebaseUser) => {
+        setLoading(true)
+        setError(null)
+        setAuthError(null)
 
-      if (firebaseUser) {
-        setUser(firebaseUser)
-        
-        // Only fetch profile if email is verified
-        if (firebaseUser.emailVerified) {
-          await fetchUserProfile(firebaseUser.uid)
+        if (firebaseUser) {
+          setUser(firebaseUser)
+          
+          // Only fetch profile if email is verified
+          if (firebaseUser.emailVerified) {
+            await fetchUserProfile(firebaseUser.uid)
+          }
+        } else {
+          setUser(null)
+          setUserProfile(null)
         }
-      } else {
-        setUser(null)
-        setUserProfile(null)
-      }
 
-      setLoading(false)
-    })
+        setLoading(false)
+      },
+      (error) => {
+        // Handle auth state change errors
+        console.error('Auth state change error:', error)
+        handleAuthError(error)
+        setLoading(false)
+      }
+    )
 
     return () => unsubscribe()
-  }, [])
+  }, [handleAuthError])
 
   // Check if user has minimum required role
   const hasMinRole = (requiredRole) => {
@@ -160,6 +246,8 @@ export function AuthProvider({ children }) {
     userProfile,
     loading,
     error,
+    isOnline,
+    authError,
     
     // Computed
     isAuthenticated: !!user && !!userProfile,
@@ -172,7 +260,8 @@ export function AuthProvider({ children }) {
     getAssignableRoles,
     
     // Actions
-    refreshProfile
+    refreshProfile,
+    clearAuthError
   }
 
   return (

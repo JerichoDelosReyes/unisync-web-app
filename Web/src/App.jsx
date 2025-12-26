@@ -2,6 +2,7 @@ import { Routes, Route, Navigate } from 'react-router-dom'
 import { AuthProvider } from './contexts/AuthContext'
 import ProtectedRoute, { FacultyRoute, AdminRoute, SuperAdminRoute } from './components/auth/ProtectedRoute'
 import PWAUpdatePrompt from './components/ui/PWAUpdatePrompt'
+import OfflineIndicator from './components/ui/OfflineIndicator'
 
 // Layouts
 import DashboardLayout from './layouts/DashboardLayout'
@@ -100,6 +101,9 @@ export default function App() {
         {/* Catch-all redirect */}
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
+      
+      {/* Offline/Auth Error Indicator */}
+      <OfflineIndicator />
       
       {/* PWA Update Prompt */}
       <PWAUpdatePrompt />

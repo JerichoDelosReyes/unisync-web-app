@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { useAuth } from '../contexts/AuthContext'
 import BrandLogo from '../components/BrandLogo.jsx'
 import TextInput from '../components/forms/TextInput.jsx'
 import PasswordInput from '../components/forms/PasswordInput.jsx'
@@ -20,6 +21,7 @@ import {
 export default function AuthPage() {
   const [activeTab, setActiveTab] = useState('signin')
   const navigate = useNavigate()
+  const { refreshProfile } = useAuth()
   
   // Sign In State
   const [signInEmail, setSignInEmail] = useState('')
@@ -105,11 +107,15 @@ export default function AuthPage() {
       return
     }
     
-    // Login successful
+    // Login successful - refresh profile before navigating
     showToast('Sign in successful!', 'success')
+    
+    // Wait for profile to be refreshed before navigating
+    await refreshProfile()
+    
     setTimeout(() => {
       navigate('/dashboard')
-    }, 1000)
+    }, 500)
   }
   
   // Handle Sign Up
@@ -176,39 +182,15 @@ export default function AuthPage() {
     setShowVerificationModal(true)
   }
   
-  // Handle verification complete - create Firestore document
+  // Handle verification complete - user should sign in to create profile
   const handleVerificationComplete = async () => {
     console.log('handleVerificationComplete called')
-    console.log('pendingUserData:', pendingUserData)
     
-    let success = false
-    
-    if (pendingUserData) {
-      try {
-        // Now create the Firestore document since email is verified
-        const result = await completeRegistration(pendingUserData)
-        
-        console.log('completeRegistration result:', result)
-        
-        if (result.success) {
-          success = true
-        } else {
-          console.error('completeRegistration failed:', result.error)
-          // Still close modal but show error
-          showToast(result.error || 'Account created but profile setup failed. Try signing in.', 'warning')
-        }
-      } catch (error) {
-        console.error('Error in handleVerificationComplete:', error)
-        showToast('Error creating profile. Your account is created - try signing in.', 'warning')
-      }
-    }
-    
-    // Always close the modal
+    // Close the modal
     setShowVerificationModal(false)
     
-    if (success) {
-      showToast('Email verified & account created successfully! You can now sign in.', 'success')
-    }
+    // Show success message
+    showToast('Email verified! You can now sign in to complete your account setup.', 'success')
     
     // Reset form and switch to sign in
     setGivenName('')

@@ -131,6 +131,10 @@ export const registerUser = async (userData) => {
       };
     }
 
+    // Sign out after registration so user must login fresh after verification
+    // This ensures onAuthStateChanged fires properly when they login
+    await signOut(auth);
+
     // Return user data to be saved later after verification
     return {
       success: true,

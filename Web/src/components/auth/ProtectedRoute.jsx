@@ -1,5 +1,6 @@
 import { Navigate, useLocation } from 'react-router-dom'
 import { useAuth, ROLES } from '../../contexts/AuthContext'
+import { useEffect, useState } from 'react'
 
 /**
  * ProtectedRoute Component
@@ -17,11 +18,25 @@ export default function ProtectedRoute({
   requiredRole = null,
   allowedRoles = null 
 }) {
-  const { user, userProfile, loading, isEmailVerified, hasMinRole, hasRole } = useAuth()
+  const { user, userProfile, loading, isEmailVerified, hasMinRole, hasRole, refreshProfile } = useAuth()
   const location = useLocation()
+  const [isRefreshing, setIsRefreshing] = useState(false)
+
+  // If user exists but no profile, try to refresh it once
+  useEffect(() => {
+    const tryRefreshProfile = async () => {
+      if (user && isEmailVerified && !userProfile && !loading && !isRefreshing) {
+        setIsRefreshing(true)
+        console.log('ProtectedRoute: Attempting to refresh profile...')
+        await refreshProfile()
+        setIsRefreshing(false)
+      }
+    }
+    tryRefreshProfile()
+  }, [user, userProfile, loading, isEmailVerified, refreshProfile, isRefreshing])
 
   // Show loading state while checking auth
-  if (loading) {
+  if (loading || isRefreshing) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
         <div className="flex flex-col items-center gap-4">

@@ -42,8 +42,14 @@ export default defineConfig(({ command }) => ({
       },
       workbox: {
         globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2}'],
-        navigateFallback: 'offline.html',
-        navigateFallbackDenylist: [/^\/api/],
+        navigateFallback: '/index.html',
+        navigateFallbackDenylist: [
+          /^\/api/,
+          /firebaseapp\.com/,
+          /googleapis\.com/,
+          /identitytoolkit\.googleapis\.com/,
+          /securetoken\.googleapis\.com/
+        ],
         runtimeCaching: [
           {
             urlPattern: /^https:\/\/firebasestorage\.googleapis\.com\/.*/i,
