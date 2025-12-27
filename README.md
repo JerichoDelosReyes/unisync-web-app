@@ -81,11 +81,11 @@ unisync-web-app/
 
 ## Contributing
 
-Contributions are welcome! Please read our [Contributing Guide](CONTRIBUTING.md) and [Code of Conduct](CODE_OF_CONDUCT.md).
+Contributions are welcome! Please read our [Contributing Guide](.github/CONTRIBUTING.md) and [Code of Conduct](.github/CODE_OF_CONDUCT.md).
 
 ## Security
 
-Found a vulnerability? Please read our [Security Policy](SECURITY.md) for responsible disclosure.
+Found a vulnerability? Please read our [Security Policy](.github/SECURITY.md) for responsible disclosure.
 
 ## Authors
 
