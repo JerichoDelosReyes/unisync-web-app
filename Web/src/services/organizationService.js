@@ -27,7 +27,8 @@ import {
   arrayUnion,
   arrayRemove
 } from 'firebase/firestore'
-import { db } from '../config/firebase'
+import { ref, uploadBytes, getDownloadURL } from 'firebase/storage'
+import { db, storage } from '../config/firebase'
 import { getDocument, updateDocument } from './dbService'
 
 // ============================================
@@ -229,6 +230,119 @@ export const ORG_CATEGORIES = {
 // ============================================
 // ORGANIZATION DATA OPERATIONS
 // ============================================
+
+/**
+ * Upload organization logo to Firebase Storage
+ * @param {string} orgCode - Organization code
+ * @param {File} imageFile - Image file to upload
+ * @returns {string} - Download URL of the uploaded image
+ */
+export const uploadOrganizationLogo = async (orgCode, imageFile) => {
+  if (!imageFile) return null
+
+  // Validate file type
+  if (!imageFile.type.startsWith('image/')) {
+    throw new Error('Please select an image file')
+  }
+
+  // Validate file size (max 5MB)
+  if (imageFile.size > 5 * 1024 * 1024) {
+    throw new Error('Image size must be less than 5MB')
+  }
+
+  // Create storage reference
+  const fileExtension = imageFile.name.split('.').pop()
+  const storageRef = ref(storage, `organizations/${orgCode}/logo.${fileExtension}`)
+
+  // Upload the file
+  const snapshot = await uploadBytes(storageRef, imageFile)
+  
+  // Get and return download URL
+  const downloadURL = await getDownloadURL(snapshot.ref)
+  return downloadURL
+}
+
+/**
+ * Create a new organization (Admin/Super Admin only)
+ * @param {object} orgData - Organization data
+ * @param {File} logoFile - Optional logo image file
+ * @returns {object} - Created organization document
+ */
+export const createOrganization = async (orgData, logoFile = null) => {
+  const { code, name, fullName, category, audienceType, audienceCourse, audienceDepartment, maxAdvisers, description } = orgData
+
+  // Validate required fields
+  if (!code || !name || !fullName || !category || !audienceType) {
+    throw new Error('Missing required fields: code, name, fullName, category, and audienceType are required')
+  }
+
+  // Validate org code format (2-10 uppercase letters/numbers)
+  const codeRegex = /^[A-Z0-9]{2,10}$/
+  if (!codeRegex.test(code)) {
+    throw new Error('Organization code must be 2-10 uppercase letters or numbers')
+  }
+
+  // Check if organization code already exists in Firestore
+  const docRef = doc(db, 'organizations', code)
+  const docSnap = await getDoc(docRef)
+  
+  if (docSnap.exists()) {
+    throw new Error(`Organization with code "${code}" already exists`)
+  }
+
+  // Check if code exists in static ORGANIZATIONS
+  if (ORGANIZATIONS[code]) {
+    throw new Error(`Organization with code "${code}" already exists in system`)
+  }
+
+  // Validate category
+  if (!ORG_CATEGORIES[category]) {
+    throw new Error(`Invalid category. Must be one of: ${Object.keys(ORG_CATEGORIES).join(', ')}`)
+  }
+
+  // Validate audience type and related fields
+  if (!['all', 'course', 'department'].includes(audienceType)) {
+    throw new Error('Audience type must be "all", "course", or "department"')
+  }
+
+  if (audienceType === 'course' && !audienceCourse) {
+    throw new Error('Course name is required when audience type is "course"')
+  }
+
+  if (audienceType === 'department' && !audienceDepartment) {
+    throw new Error('Department name is required when audience type is "department"')
+  }
+
+  // Upload logo if provided
+  let logoURL = null
+  if (logoFile) {
+    logoURL = await uploadOrganizationLogo(code, logoFile)
+  }
+
+  // Create organization document
+  const newOrg = {
+    code,
+    name,
+    fullName,
+    category,
+    audienceType,
+    audienceCourse: audienceType === 'course' ? audienceCourse : null,
+    audienceDepartment: audienceType === 'department' ? audienceDepartment : null,
+    maxAdvisers: maxAdvisers || 1,
+    positions: [...EXECUTIVE_POSITIONS], // Use default executive positions
+    description: description || '',
+    logoURL: logoURL,
+    officers: [],
+    advisers: [],
+    schoolYear: getCurrentSchoolYear(),
+    createdAt: serverTimestamp(),
+    updatedAt: serverTimestamp()
+  }
+
+  await setDoc(docRef, newOrg)
+
+  return { id: code, ...newOrg }
+}
 
 /**
  * Get organization by code

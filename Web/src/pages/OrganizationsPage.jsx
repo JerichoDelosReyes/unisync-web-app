@@ -11,6 +11,7 @@ import { useState, useEffect } from 'react'
 import { useAuth, ROLES } from '../contexts/AuthContext'
 import Toast from '../components/ui/Toast'
 import ModalOverlay from '../components/ui/ModalOverlay'
+import CreateOrganizationModal from '../components/forms/CreateOrganizationModal'
 import {
   ORGANIZATIONS,
   ORG_CATEGORIES,
@@ -73,6 +74,7 @@ export default function OrganizationsPage() {
   // Modal states
   const [showAdviserModal, setShowAdviserModal] = useState(false)
   const [showOfficerModal, setShowOfficerModal] = useState(false)
+  const [showCreateOrgModal, setShowCreateOrgModal] = useState(false)
   const [facultyList, setFacultyList] = useState([])
   const [studentList, setStudentList] = useState([])
   const [searchTerm, setSearchTerm] = useState('')
@@ -120,6 +122,14 @@ export default function OrganizationsPage() {
   const showToast = (message, kind = 'info') => {
     setToast({ show: true, message, kind })
     setTimeout(() => setToast({ show: false, message: '', kind: 'info' }), 4000)
+  }
+
+  // Handle organization creation success
+  const handleCreateOrgSuccess = async (newOrg) => {
+    showToast(`Organization "${newOrg.name}" created successfully!`, 'success')
+    // Refresh organizations list
+    const orgsData = await getAllOrganizationsData()
+    setOrganizations(orgsData)
   }
 
   // Fetch organizations
@@ -426,15 +436,28 @@ export default function OrganizationsPage() {
       )}
 
       {/* Header */}
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold text-gray-900">Student Organizations</h1>
-        <p className="text-gray-600 mt-1">
-          {isAdmin 
-            ? 'Manage organization advisers' 
-            : isAdviser || isPresidentWithTagging
-              ? 'Manage your organization officers'
-              : 'View your organization details'}
-        </p>
+      <div className="mb-6 flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900">Student Organizations</h1>
+          <p className="text-gray-600 mt-1">
+            {isAdmin 
+              ? 'Manage organization advisers' 
+              : isAdviser || isPresidentWithTagging
+                ? 'Manage your organization officers'
+                : 'View your organization details'}
+          </p>
+        </div>
+        {isAdmin && (
+          <button
+            onClick={() => setShowCreateOrgModal(true)}
+            className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors flex items-center gap-2"
+          >
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+            </svg>
+            Create Organization
+          </button>
+        )}
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -459,11 +482,17 @@ export default function OrganizationsPage() {
                         selectedOrg?.code === org.id ? 'bg-primary/5 border-l-4 border-primary' : ''
                       }`}
                     >
-                      <img 
-                        src={ORG_LOGOS[org.id]} 
-                        alt={org.name}
-                        className="w-10 h-10 object-contain rounded-lg"
-                      />
+                      {ORG_LOGOS[org.id] || org.logoURL ? (
+                        <img 
+                          src={ORG_LOGOS[org.id] || org.logoURL} 
+                          alt={org.name}
+                          className="w-10 h-10 object-contain rounded-lg"
+                        />
+                      ) : (
+                        <div className="w-10 h-10 bg-gray-200 rounded-lg flex items-center justify-center">
+                          <span className="text-gray-500 font-bold text-sm">{org.id?.substring(0, 2)}</span>
+                        </div>
+                      )}
                       <div className="flex-1 min-w-0">
                         <p className="font-medium text-gray-900 truncate">{org.id}</p>
                         <p className="text-xs text-gray-500 truncate">{orgConfig?.name || org.name}</p>
@@ -486,11 +515,17 @@ export default function OrganizationsPage() {
             <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
               {/* Org Header */}
               <div className="p-6 border-b border-gray-200 flex items-center gap-4">
-                <img 
-                  src={ORG_LOGOS[selectedOrg.code]} 
-                  alt={selectedOrg.name}
-                  className="w-20 h-20 object-contain"
-                />
+                {ORG_LOGOS[selectedOrg.code] || selectedOrg.logoURL ? (
+                  <img 
+                    src={ORG_LOGOS[selectedOrg.code] || selectedOrg.logoURL} 
+                    alt={selectedOrg.name}
+                    className="w-20 h-20 object-contain"
+                  />
+                ) : (
+                  <div className="w-20 h-20 bg-gray-200 rounded-lg flex items-center justify-center">
+                    <span className="text-gray-500 font-bold text-xl">{selectedOrg.code?.substring(0, 3)}</span>
+                  </div>
+                )}
                 <div className="flex-1">
                   <h2 className="text-xl font-bold text-gray-900">{selectedOrg.name}</h2>
                   <p className="text-gray-600">{selectedOrg.fullName}</p>
@@ -876,6 +911,13 @@ export default function OrganizationsPage() {
           </div>
         </ModalOverlay>
       )}
+
+      {/* Create Organization Modal */}
+      <CreateOrganizationModal
+        isOpen={showCreateOrgModal}
+        onClose={() => setShowCreateOrgModal(false)}
+        onSuccess={handleCreateOrgSuccess}
+      />
     </div>
   )
 }
