@@ -26,7 +26,8 @@ import {
   Timestamp,
   increment,
   arrayUnion,
-  arrayRemove
+  arrayRemove,
+  onSnapshot
 } from 'firebase/firestore'
 import {
   ref,
@@ -150,7 +151,7 @@ export const deleteMedia = async (filePath) => {
  * @param {object} data - Announcement data
  * @param {Array} files - Media files to upload
  * @param {object} author - Author info { uid, name, role }
- * @param {boolean} skipReviewQueue - If true, auto-approve if profanity check passes (for Admin+)
+ * @param {boolean} skipReviewQueue - If true, force approve (for Admin+, Faculty who confirmed warning, Org Presidents)
  * @returns {Promise<object>} - Created announcement with moderation result
  */
 export const createAnnouncement = async (data, files = [], author, skipReviewQueue = false) => {
@@ -167,23 +168,30 @@ export const createAnnouncement = async (data, files = [], author, skipReviewQue
       flaggedWords: result.flaggedWords || []
     }
     
-    // Determine initial status based on moderation result and user role
+    // Determine initial status based on moderation result and skipReviewQueue flag
     let status
+    const hasProfanity = moderationResult.status === 'rejected' || moderationResult.filterType === 'profanity'
     
-    // If profanity/severe content detected, ALWAYS reject regardless of role
-    if (moderationResult.status === 'rejected' || moderationResult.filterType === 'profanity') {
-      status = ANNOUNCEMENT_STATUS.REJECTED
-    }
-    // If moderation says approved OR user is admin (skips review queue)
-    else if (moderationResult.status === 'approved' || skipReviewQueue) {
+    // NEW ROLE-BASED LOGIC:
+    // 1. skipReviewQueue = true: Force approve (Faculty/President confirmed warning, or Admin)
+    // 2. skipReviewQueue = false + profanity: Route to pending review (Class Rep/non-President officers)
+    // 3. No profanity: Approve
+    
+    if (skipReviewQueue) {
+      // Force approve - user has authority (Admin, Faculty who confirmed, Org President who confirmed)
       status = ANNOUNCEMENT_STATUS.APPROVED
-    }
-    // Otherwise needs review
-    else if (moderationResult.status === 'pending_review') {
+    } else if (hasProfanity) {
+      // User cannot bypass - route to pending review for approval
       status = ANNOUNCEMENT_STATUS.PENDING_REVIEW
-    }
-    else {
+      // Mark for president/admin approval
+      moderationResult.requiresApproval = true
+      moderationResult.approvalReason = 'Content flagged for review'
+    } else if (moderationResult.status === 'approved') {
+      status = ANNOUNCEMENT_STATUS.APPROVED
+    } else if (moderationResult.status === 'pending_review') {
       status = ANNOUNCEMENT_STATUS.PENDING_REVIEW
+    } else {
+      status = ANNOUNCEMENT_STATUS.APPROVED
     }
     
     // Create announcement document first (need ID for media upload)
@@ -210,7 +218,9 @@ export const createAnnouncement = async (data, files = [], author, skipReviewQue
         confidence: moderationResult.confidence ?? 1.0,
         category: moderationResult.category || 'safe',
         filterType: moderationResult.filterType || 'none',
-        flaggedWords: moderationResult.flaggedWords || []
+        flaggedWords: moderationResult.flaggedWords || [],
+        requiresApproval: moderationResult.requiresApproval || false,
+        approvalReason: moderationResult.approvalReason || null
       },
       media: [],
       viewCount: 0,
@@ -403,6 +413,52 @@ export const getAllAnnouncements = async (options = {}) => {
  */
 export const getPendingAnnouncements = async () => {
   return getAllAnnouncements({ status: ANNOUNCEMENT_STATUS.PENDING_REVIEW })
+}
+
+/**
+ * Subscribe to pending announcements in real-time
+ * @param {Function} callback - Called with array of pending announcements on each update
+ * @param {Function} onError - Called if an error occurs
+ * @returns {Function} Unsubscribe function
+ */
+export const subscribeToPendingAnnouncements = (callback, onError) => {
+  try {
+    // Simple query without orderBy to avoid composite index requirement
+    // We'll sort client-side instead
+    const q = query(
+      collection(db, COLLECTION_NAME),
+      where('status', '==', ANNOUNCEMENT_STATUS.PENDING_REVIEW)
+    )
+    
+    console.log('[AnnouncementService] Setting up pending announcements subscription...')
+    
+    const unsubscribe = onSnapshot(q, 
+      (snapshot) => {
+        console.log('[AnnouncementService] Received snapshot with', snapshot.docs.length, 'pending announcements')
+        const announcements = snapshot.docs.map(doc => ({
+          id: doc.id,
+          ...doc.data()
+        }))
+        // Sort client-side by createdAt descending
+        announcements.sort((a, b) => {
+          const aTime = a.createdAt?.toMillis?.() || a.createdAt?.seconds * 1000 || 0
+          const bTime = b.createdAt?.toMillis?.() || b.createdAt?.seconds * 1000 || 0
+          return bTime - aTime
+        })
+        callback(announcements)
+      },
+      (error) => {
+        console.error('[AnnouncementService] Error in pending announcements subscription:', error)
+        if (onError) onError(error)
+      }
+    )
+    
+    return unsubscribe
+  } catch (error) {
+    console.error('[AnnouncementService] Error setting up pending announcements subscription:', error)
+    if (onError) onError(error)
+    return () => {} // Return empty unsubscribe function
+  }
 }
 
 /**

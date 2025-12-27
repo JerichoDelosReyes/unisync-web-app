@@ -21,7 +21,7 @@ import {
 import { reportAnnouncement } from '../services/reportService'
 import { createLog, LOG_CATEGORIES, LOG_ACTIONS } from '../services/logService'
 import { checkGrammarAndSpelling, autoCorrect } from '../utils/grammarChecker'
-import { validateComment } from '../services/moderationService'
+import { validateComment, checkProfanity } from '../services/moderationService'
 import AudienceSelector from '../components/announcements/AudienceSelector'
 import { matchesTargetAudience, DEPARTMENT_CODES } from '../constants/targeting'
 import ModalOverlay from '../components/ui/ModalOverlay'
@@ -90,6 +90,13 @@ export default function Announcements() {
   const [reportModal, setReportModal] = useState({ open: false, announcement: null })
   const [reportReason, setReportReason] = useState('')
   const [reportSubmitting, setReportSubmitting] = useState(false)
+  
+  // Content warning modal state (for Faculty content moderation)
+  const [contentWarningModal, setContentWarningModal] = useState({
+    open: false,
+    flaggedWords: [],
+    onConfirm: null
+  })
   
   // Comments and reactions state
   const [comments, setComments] = useState([])
@@ -464,28 +471,34 @@ export default function Announcements() {
     return { valid: true, message: '' }
   }
 
-  // Handle form submission
-  const handleSubmit = async (e) => {
-    e.preventDefault()
+  /**
+   * Check if user is an Organization President (has canTagOfficers = true)
+   */
+  const isOrgPresident = () => {
+    if (!userProfile?.officerOf) return false
+    return Object.values(userProfile.officerOf).some(org => org.canTagOfficers === true)
+  }
+
+  /**
+   * Check if user is a non-President org officer or class rep (needs approval for flagged content)
+   */
+  const needsPresidentApproval = () => {
+    const isClassRep = userProfile?.role === ROLES.CLASS_REP
+    const hasOrgPositions = userProfile?.officerOf && Object.keys(userProfile.officerOf).length > 0
     
-    if (!formData.title.trim() || !formData.content.trim()) {
-      showToast('Title and content are required', 'error')
-      return
-    }
+    // Class reps always need approval for flagged content
+    if (isClassRep) return true
     
-    // For org mode, require an org to be selected
-    if (announcementMode === 'org' && !selectedAnnouncementOrg && userAnnouncementOrgs.length > 1) {
-      showToast('Please select an organization to announce for', 'error')
-      return
-    }
+    // Org officers who are NOT presidents need approval
+    if (hasOrgPositions && !isOrgPresident()) return true
     
-    // Validate content quality
-    const qualityCheck = validateAnnouncementQuality(formData.title, formData.content)
-    if (!qualityCheck.valid) {
-      showToast(qualityCheck.message, 'error')
-      return
-    }
-    
+    return false
+  }
+
+  /**
+   * Actually submit the announcement (called after confirmations)
+   */
+  const submitAnnouncement = async (forceApprove = false) => {
     try {
       setSubmitting(true)
       
@@ -514,11 +527,14 @@ export default function Announcements() {
         }
       }
       
+      // Faculty who confirmed warning can bypass review (forceApprove)
+      const shouldSkipReview = skipReviewQueue || forceApprove
+      
       const result = await createAnnouncement(
         formData,
         mediaFiles,
         author,
-        skipReviewQueue
+        shouldSkipReview
       )
       
       if (result.status === ANNOUNCEMENT_STATUS.APPROVED) {
@@ -573,6 +589,86 @@ export default function Announcements() {
     } finally {
       setSubmitting(false)
     }
+  }
+
+  // Handle form submission
+  const handleSubmit = async (e) => {
+    e.preventDefault()
+    
+    if (!formData.title.trim() || !formData.content.trim()) {
+      showToast('Title and content are required', 'error')
+      return
+    }
+    
+    // For org mode, require an org to be selected
+    if (announcementMode === 'org' && !selectedAnnouncementOrg && userAnnouncementOrgs.length > 1) {
+      showToast('Please select an organization to announce for', 'error')
+      return
+    }
+    
+    // Validate content quality
+    const qualityCheck = validateAnnouncementQuality(formData.title, formData.content)
+    if (!qualityCheck.valid) {
+      showToast(qualityCheck.message, 'error')
+      return
+    }
+    
+    // === ROLE-BASED CONTENT MODERATION ===
+    const fullText = `${formData.title} ${formData.content}`
+    const profanityResult = checkProfanity(fullText)
+    const isFaculty = userProfile?.role === ROLES.FACULTY
+    const isAdmin = hasMinRole(ROLES.ADMIN)
+    
+    // If profanity detected, apply role-based rules
+    if (profanityResult.hasProfanity) {
+      // Rule 1: ADMIN+ - Always allow (skip review queue is true)
+      if (isAdmin) {
+        // Admins can post anything
+        await submitAnnouncement(true)
+        return
+      }
+      
+      // Rule 2: FACULTY - Show warning popup, let them decide
+      if (isFaculty) {
+        setContentWarningModal({
+          open: true,
+          flaggedWords: profanityResult.matches || [],
+          onConfirm: () => {
+            setContentWarningModal({ open: false, flaggedWords: [], onConfirm: null })
+            submitAnnouncement(true) // Force approve since faculty acknowledged
+          }
+        })
+        return
+      }
+      
+      // Rule 3: CLASS REP / NON-PRESIDENT ORG OFFICERS - Route to pending approval
+      if (needsPresidentApproval()) {
+        // Submit but force it to pending review (don't skip review queue)
+        showToast('Your announcement contains flagged content and will be reviewed by your Organization President before publishing.', 'warning')
+        await submitAnnouncement(false) // Goes to pending review
+        return
+      }
+      
+      // Rule 4: ORG PRESIDENT - Same as faculty (warning popup)
+      if (isOrgPresident()) {
+        setContentWarningModal({
+          open: true,
+          flaggedWords: profanityResult.matches || [],
+          onConfirm: () => {
+            setContentWarningModal({ open: false, flaggedWords: [], onConfirm: null })
+            submitAnnouncement(true) // Presidents can approve their own
+          }
+        })
+        return
+      }
+      
+      // Default: Reject outright (shouldn't reach here normally)
+      showToast('Your announcement contains inappropriate content and cannot be posted.', 'error')
+      return
+    }
+    
+    // No profanity detected - post immediately
+    await submitAnnouncement(skipReviewQueue)
   }
 
   // Handle approval
@@ -2770,6 +2866,68 @@ export default function Announcements() {
                 ) : (
                   'Submit Report'
                 )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Content Warning Modal (Faculty/President Confirmation) */}
+      {contentWarningModal.open && (
+        <div className="fixed inset-0 z-[10000] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+          <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-lg p-8 animate-in fade-in zoom-in duration-200">
+            {/* Warning Icon */}
+            <div className="flex items-center gap-4 mb-6">
+              <div className="w-16 h-16 rounded-full bg-amber-100 flex items-center justify-center flex-shrink-0 animate-pulse">
+                <svg className="w-9 h-9 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                </svg>
+              </div>
+              <div>
+                <h3 className="text-xl font-bold text-gray-900">Content Warning Detected</h3>
+                <p className="text-sm text-gray-600 mt-1">Sensitive content has been flagged in your announcement</p>
+              </div>
+            </div>
+            
+            {/* Flagged Content Display */}
+            <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 mb-6">
+              <p className="text-sm font-semibold text-amber-800 mb-2">⚠️ Flagged words/phrases:</p>
+              <div className="flex flex-wrap gap-2">
+                {contentWarningModal.flaggedWords.length > 0 ? (
+                  contentWarningModal.flaggedWords.map((word, idx) => (
+                    <span key={idx} className="px-2 py-1 text-xs font-bold bg-amber-200 text-amber-900 rounded-lg">
+                      {word}
+                    </span>
+                  ))
+                ) : (
+                  <span className="text-xs text-amber-700">Potentially sensitive content detected</span>
+                )}
+              </div>
+            </div>
+            
+            {/* Warning Message */}
+            <div className="bg-gray-50 border-l-4 border-amber-500 p-4 rounded-r-lg mb-6">
+              <p className="text-sm text-gray-700">
+                <strong>As a Faculty member or Organization President,</strong> you have the authority to proceed with this announcement despite the flagged content. 
+              </p>
+              <p className="text-sm text-gray-600 mt-2">
+                Please confirm that this content is appropriate for your intended audience.
+              </p>
+            </div>
+            
+            {/* Action Buttons */}
+            <div className="flex gap-3">
+              <button
+                onClick={() => setContentWarningModal({ open: false, flaggedWords: [], onConfirm: null })}
+                className="flex-1 px-4 py-3 text-sm font-bold text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-all"
+              >
+                ← Go Back & Edit
+              </button>
+              <button
+                onClick={contentWarningModal.onConfirm}
+                className="flex-1 px-4 py-3 text-sm font-bold text-white bg-amber-600 rounded-lg hover:bg-amber-700 transition-all"
+              >
+                Proceed Anyway →
               </button>
             </div>
           </div>

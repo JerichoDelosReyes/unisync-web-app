@@ -136,6 +136,19 @@ export default function AudienceSelector({ value = [], onChange, userProfile, an
     }
   }, [])
   
+  // Force Faculty to custom targeting (cannot use campus-wide)
+  useEffect(() => {
+    if (isFaculty && selections.targetType === 'all') {
+      setSelections(prev => ({
+        ...prev,
+        targetType: 'custom',
+        // Auto-add their department to targeting
+        departments: facultyDepartment ? [DEPARTMENT_CODES[facultyDepartment]] : []
+      }))
+      setIsExpanded(true)
+    }
+  }, [isFaculty, facultyDepartment])
+  
   // Lock org officers to their org based on announcement mode
   useEffect(() => {
     if (isOrgOfficerMode && selectedOrg) {
@@ -167,6 +180,11 @@ export default function AudienceSelector({ value = [], onChange, userProfile, an
   
   // Update parent when selections change
   useEffect(() => {
+    // Faculty cannot have empty tags (campus-wide)
+    if (isFaculty && selections.targetType === 'all') {
+      return // Don't update parent - force stays on custom
+    }
+    
     if (selections.targetType === 'all') {
       onChange([])
     } else {
@@ -230,7 +248,7 @@ export default function AudienceSelector({ value = [], onChange, userProfile, an
   
   // Handle target type change
   const handleTargetTypeChange = (type) => {
-    if (isOrgOfficerMode || isClassRepMode) return // Locked modes
+    if (isOrgOfficerMode || isClassRepMode || isFaculty) return // Locked modes (Faculty cannot change to all)
     
     setSelections(prev => ({
       ...prev,
@@ -245,6 +263,21 @@ export default function AudienceSelector({ value = [], onChange, userProfile, an
     // Class Rep mode - section only
     if (isClassRepMode) {
       return `🎓 Section ${userProfile.section.toUpperCase()} Only`
+    }
+    
+    // Faculty mode - department-restricted
+    if (isFaculty && facultyDepartment) {
+      const parts = [DEPARTMENT_CODES[facultyDepartment]]
+      if (selections.orgs.length > 0) {
+        parts.push(selections.orgs.join(', '))
+      }
+      if (selections.yearLevels.length > 0) {
+        parts.push(selections.yearLevels.map(y => `Year ${y}`).join(', '))
+      }
+      if (selections.section) {
+        parts.push(`Section ${selections.section}`)
+      }
+      return `🎯 ${parts.join(' • ')}`
     }
     
     // Org Officer mode - based on selected org
@@ -405,8 +438,21 @@ export default function AudienceSelector({ value = [], onChange, userProfile, an
             </div>
           )}
           
-          {/* Target Type Selector - Hidden for locked modes */}
-          {!isLocked && (
+          {/* Faculty Restriction Notice */}
+          {isFaculty && (
+            <div className="p-3 bg-amber-50 border border-amber-200 rounded-lg">
+              <div className="flex items-center gap-2 mb-1">
+                <span className="text-lg">⚠️</span>
+                <span className="text-xs font-semibold text-amber-800">Faculty Targeting Restrictions</span>
+              </div>
+              <p className="text-xs text-amber-700">
+                Faculty members can only target their assigned department, department organizations, year levels, and specific sections. Campus-wide announcements are not available.
+              </p>
+            </div>
+          )}
+          
+          {/* Target Type Selector - Hidden for locked modes AND Faculty (Faculty forced to custom) */}
+          {!isLocked && !isFaculty && (
             <div className="flex gap-2">
               <button
                 type="button"
@@ -433,8 +479,8 @@ export default function AudienceSelector({ value = [], onChange, userProfile, an
             </div>
           )}
           
-          {/* Custom Targeting Options - Hidden for locked modes */}
-          {(selections.targetType === 'custom' || isLocked) && !isClassRepMode && !isOrgOfficerMode && (
+          {/* Custom Targeting Options - Show for faculty (forced), or custom selection, hidden for class rep/org officer modes */}
+          {(selections.targetType === 'custom' || isLocked || isFaculty) && !isClassRepMode && !isOrgOfficerMode && (
             <div className="space-y-4">
               {/* Faculty Department Notice (Locked) */}
               {isFaculty && facultyDepartment && (

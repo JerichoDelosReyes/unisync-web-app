@@ -23,6 +23,7 @@ import FacultyRequests from './pages/FacultyRequests'
 import Profile from './pages/Profile'
 import OrganizationsPage from './pages/OrganizationsPage'
 import Logs from './pages/Logs'
+import AnnouncementReview from './pages/AnnouncementReview'
 
 export default function App() {
   return (
@@ -50,6 +51,7 @@ export default function App() {
           <Route path="/rooms" element={<Rooms />} />
           <Route path="/profile" element={<Profile />} />
           <Route path="/organizations" element={<OrganizationsPage />} />
+          <Route path="/announcement-review" element={<AnnouncementReview />} />
           
           {/* Faculty and above only */}
           <Route

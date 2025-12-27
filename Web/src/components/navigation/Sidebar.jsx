@@ -32,6 +32,17 @@ const navigationItems = [
     minRole: null // Everyone can see
   },
   {
+    name: 'Review Announcements',
+    path: '/announcement-review',
+    icon: (
+      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
+      </svg>
+    ),
+    minRole: null, // Custom check for Admin or Org President
+    requiresReviewAccess: true // New flag for review access
+  },
+  {
     name: 'Schedule',
     path: '/schedule',
     icon: (
@@ -139,6 +150,19 @@ export default function Sidebar({ isOpen, onClose }) {
     return false
   }
 
+  // Check if user can review announcements (Admin or Org President)
+  const canReviewAnnouncements = () => {
+    // Admin always has access
+    if (hasMinRole(ROLES.ADMIN)) return true
+    
+    // Check if user is an Org President (has canTagOfficers = true)
+    if (userProfile?.officerOf) {
+      return Object.values(userProfile.officerOf).some(org => org.canTagOfficers === true)
+    }
+    
+    return false
+  }
+
   // Filter navigation items based on user role
   const visibleNavItems = navigationItems.filter(item => {
     // Check if user's role is excluded
@@ -149,6 +173,11 @@ export default function Sidebar({ isOpen, onClose }) {
     // Check for organization management access
     if (item.requiresOrgRole) {
       return canManageOrgs()
+    }
+    
+    // Check for announcement review access (Admin or Org President)
+    if (item.requiresReviewAccess) {
+      return canReviewAnnouncements()
     }
     
     if (!item.minRole) return true
