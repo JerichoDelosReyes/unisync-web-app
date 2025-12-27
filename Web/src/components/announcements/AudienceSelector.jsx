@@ -207,7 +207,7 @@ export default function AudienceSelector({ value = [], onChange, userProfile, an
   
   // Toggle org selection
   const toggleOrg = (orgCode) => {
-    if (isOrgOfficer && defaultTargeting.locked) return // Can't change if locked
+    if (isOrgOfficerMode && defaultTargeting.locked) return // Can't change if locked
     
     setSelections(prev => ({
       ...prev,
@@ -527,7 +527,7 @@ export default function AudienceSelector({ value = [], onChange, userProfile, an
               </div>
               
               {/* Student Organizations (for targeting org members) */}
-              {!isOrgOfficer && availableOrgs.length > 0 && (
+              {!isOrgOfficerMode && availableOrgs.length > 0 && (
                 <div>
                   <label className="block text-xs font-semibold text-gray-700 mb-2">
                     Student Organizations
@@ -571,7 +571,7 @@ export default function AudienceSelector({ value = [], onChange, userProfile, an
               )}
               
               {/* Locked Org Display */}
-              {isOrgOfficer && defaultTargeting.locked && selections.orgs.length > 0 && (
+              {isOrgOfficerMode && defaultTargeting.locked && selections.orgs.length > 0 && (
                 <div>
                   <label className="block text-xs font-semibold text-gray-700 mb-2">
                     Target Organization

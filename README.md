@@ -32,7 +32,7 @@ UNISYNC is a comprehensive web application that streamlines campus operations at
 
 ## Features
 
-- 🔐 **Role-Based Auth** - Students, Faculty, Guards, Admin with institutional email validation
+- 🔐 **Role-Based Auth** - Students, Faculty, Admin with institutional email validation
 - 📢 **Announcements** - Campus-wide and targeted announcements with moderation
 - 🚪 **Room Scheduling** - Real-time room status with Best-Fit booking algorithm
 - 🏢 **Building Directory** - Floor-by-floor mapping of campus facilities

@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { createPortal } from 'react-dom'
 import { useAuth, ROLES, ROLE_DISPLAY_NAMES, ROLE_HIERARCHY } from '../contexts/AuthContext'
 import { getDocuments, updateDocument, addDocument } from '../services/dbService'
 import { createUserWithEmailAndPassword, sendEmailVerification } from 'firebase/auth'
@@ -1046,13 +1047,13 @@ export default function UserManagement() {
       )}
 
       {/* Add User Modal */}
-      {showAddUserModal && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center">
+      {showAddUserModal && createPortal(
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center">
           <div 
-            className="absolute inset-0 bg-black/50" 
+            className="absolute inset-0 bg-black/50 backdrop-blur-sm" 
             onClick={resetAddUserForm}
           />
-          <div className="relative bg-white rounded-xl shadow-xl w-full max-w-md mx-4 p-6">
+          <div className="relative bg-white rounded-xl shadow-xl w-full max-w-md mx-4 p-6 max-h-[90vh] overflow-y-auto">
             {/* Header */}
             <div className="flex items-center justify-between mb-6">
               <div className="flex items-center gap-3">
@@ -1172,7 +1173,8 @@ export default function UserManagement() {
               </div>
             </form>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   )
