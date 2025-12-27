@@ -807,6 +807,94 @@ export const getCustomBannedWords = () => {
 }
 
 /**
+ * Validate comment content for quality
+ * Rejects spam-like comments: single letters, repeated characters, gibberish
+ * @param {string} comment - The comment text to validate
+ * @returns {Object} { isValid: boolean, reason: string|null }
+ */
+export const validateComment = (comment) => {
+  if (!comment || typeof comment !== 'string') {
+    return { isValid: false, reason: 'Comment cannot be empty.' }
+  }
+  
+  const trimmed = comment.trim()
+  
+  // Check minimum length
+  if (trimmed.length < 2) {
+    return { isValid: false, reason: 'Comment is too short. Please write a meaningful comment.' }
+  }
+  
+  // Reject single letter words (just "h", "n", "a", etc.)
+  if (/^[a-zA-Z]$/.test(trimmed)) {
+    return { isValid: false, reason: 'Please write a meaningful comment, not just a single letter.' }
+  }
+  
+  // Reject comments that are just single letters with spaces ("h h h", "n n n")
+  if (/^([a-zA-Z](\s+|$))+$/.test(trimmed) && trimmed.replace(/\s+/g, '').length <= 5) {
+    return { isValid: false, reason: 'Please write a meaningful comment, not just single letters.' }
+  }
+  
+  // Check if it's just a single character repeated (h, hh, hhh, hhhhhh)
+  const singleCharRepeated = /^(.)\1*$/i.test(trimmed)
+  if (singleCharRepeated) {
+    return { isValid: false, reason: 'Please write a meaningful comment, not just repeated characters.' }
+  }
+  
+  // Check if it's just repeated short patterns (haha, lol repeated, etc. is OK, but "nn nn nn" is not)
+  // This catches patterns like "nn", "nnn", "nnnn", "n n n", "h h h"
+  const withoutSpaces = trimmed.replace(/\s+/g, '')
+  if (withoutSpaces.length > 0 && /^(.)\1*$/i.test(withoutSpaces)) {
+    return { isValid: false, reason: 'Please write a meaningful comment, not just repeated characters.' }
+  }
+  
+  // Check for very short repeated patterns like "ab ab ab" or "xy xy xy"
+  const repeatedShortPattern = /^(.{1,3})\s*(\1\s*){2,}$/i.test(trimmed)
+  if (repeatedShortPattern) {
+    return { isValid: false, reason: 'Please write a meaningful comment, not just repeated patterns.' }
+  }
+  
+  // Check if comment is just whitespace or special characters
+  const hasActualContent = /[a-zA-Z0-9\u00C0-\u024F\u1E00-\u1EFF]/.test(trimmed)
+  if (!hasActualContent) {
+    return { isValid: false, reason: 'Comment must contain actual words or numbers.' }
+  }
+  
+  // Check for keyboard spam patterns (like "asdfgh", "qwerty", "zxcvbn")
+  const keyboardPatterns = [
+    /^[qwerty]{4,}$/i,
+    /^[asdfgh]{4,}$/i,
+    /^[zxcvbn]{4,}$/i,
+    /^[qwertyuiop]{6,}$/i,
+    /^[asdfghjkl]{6,}$/i,
+    /^[zxcvbnm]{5,}$/i
+  ]
+  
+  const wordsOnly = trimmed.replace(/[^a-zA-Z]/g, '')
+  for (const pattern of keyboardPatterns) {
+    if (pattern.test(wordsOnly)) {
+      return { isValid: false, reason: 'Please write a meaningful comment.' }
+    }
+  }
+  
+  // Check for just numbers repeated
+  const justNumbers = /^\d+$/.test(trimmed)
+  if (justNumbers && trimmed.length < 4) {
+    return { isValid: false, reason: 'Please write a meaningful comment, not just numbers.' }
+  }
+  
+  // Check for gibberish - random consonants without vowels (for longer text)
+  if (wordsOnly.length >= 5) {
+    const vowelCount = (wordsOnly.match(/[aeiouAEIOU]/g) || []).length
+    const vowelRatio = vowelCount / wordsOnly.length
+    if (vowelRatio < 0.1) {
+      return { isValid: false, reason: 'Please write a meaningful comment with actual words.' }
+    }
+  }
+  
+  return { isValid: true, reason: null }
+}
+
+/**
  * Check text for profanity only (without full moderation)
  * Useful for real-time input validation
  * Uses both legacy filter and new dynamic regex-based filter

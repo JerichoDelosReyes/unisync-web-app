@@ -20,6 +20,8 @@ import {
 } from '../services/announcementService'
 import { reportAnnouncement } from '../services/reportService'
 import { createLog, LOG_CATEGORIES, LOG_ACTIONS } from '../services/logService'
+import { checkGrammarAndSpelling, autoCorrect } from '../utils/grammarChecker'
+import { validateComment } from '../services/moderationService'
 import AudienceSelector from '../components/announcements/AudienceSelector'
 import { matchesTargetAudience, DEPARTMENT_CODES } from '../constants/targeting'
 import ModalOverlay from '../components/ui/ModalOverlay'
@@ -108,6 +110,8 @@ export default function Announcements() {
   const [mediaPreview, setMediaPreview] = useState([])
   const [submitting, setSubmitting] = useState(false)
   const [moderationPreview, setModerationPreview] = useState(null)
+  const [grammarCheck, setGrammarCheck] = useState(null)
+  const [showGrammarPanel, setShowGrammarPanel] = useState(false)
   const fileInputRef = useRef(null)
   const initialNavHandledRef = useRef(false) // Track if initial navigation state was handled
   
@@ -259,6 +263,37 @@ export default function Announcements() {
       setReplyingTo(null)
     }
   }, [selectedAnnouncement])
+
+  // Handle grammar check
+  const handleGrammarCheck = () => {
+    if (!formData.title && !formData.content) {
+      showToast('Please enter some text to check', 'error')
+      return
+    }
+    const result = checkGrammarAndSpelling(formData.title, formData.content)
+    setGrammarCheck(result)
+    setShowGrammarPanel(true)
+  }
+
+  // Handle auto-correct
+  const handleAutoCorrect = () => {
+    const titleResult = autoCorrect(formData.title)
+    const contentResult = autoCorrect(formData.content)
+    
+    if (titleResult.hasChanges || contentResult.hasChanges) {
+      setFormData(prev => ({
+        ...prev,
+        title: titleResult.corrected,
+        content: contentResult.corrected
+      }))
+      // Re-run grammar check after corrections
+      const result = checkGrammarAndSpelling(titleResult.corrected, contentResult.corrected)
+      setGrammarCheck(result)
+      showToast(`Applied ${titleResult.changes.length + contentResult.changes.length} correction(s)`, 'success')
+    } else {
+      showToast('No auto-corrections needed', 'info')
+    }
+  }
 
   // Handle file selection
   const handleFileSelect = (e) => {
@@ -525,6 +560,8 @@ export default function Announcements() {
       setMediaFiles([])
       setMediaPreview([])
       setModerationPreview(null)
+      setGrammarCheck(null)
+      setShowGrammarPanel(false)
       setShowCreateModal(false)
       setAnnouncementMode('classrep')
       setSelectedAnnouncementOrg(null)
@@ -774,6 +811,13 @@ export default function Announcements() {
     
     if (!commentText.trim()) {
       showToast('Comment cannot be empty', 'error')
+      return
+    }
+    
+    // Validate comment quality (reject single letters, repeated characters, spam)
+    const validation = validateComment(commentText)
+    if (!validation.isValid) {
+      showToast(validation.reason, 'error')
       return
     }
     
@@ -1813,6 +1857,119 @@ export default function Announcements() {
                     </div>
                   )}
                   
+                  {/* Grammar & Spelling Check */}
+                  <div className="mt-4 p-3 bg-gray-50 border border-gray-200 rounded-lg">
+                    <div className="flex items-center justify-between mb-2">
+                      <div className="flex items-center gap-2">
+                        <span className="text-lg">✍️</span>
+                        <span className="text-sm font-semibold text-gray-700">Writing Assistant</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <button
+                          type="button"
+                          onClick={handleGrammarCheck}
+                          className="px-3 py-1.5 text-xs font-semibold text-indigo-700 bg-indigo-100 rounded-lg hover:bg-indigo-200 transition-all"
+                        >
+                          Check Grammar
+                        </button>
+                        {grammarCheck?.hasIssues && (
+                          <button
+                            type="button"
+                            onClick={handleAutoCorrect}
+                            className="px-3 py-1.5 text-xs font-semibold text-green-700 bg-green-100 rounded-lg hover:bg-green-200 transition-all"
+                          >
+                            Auto-fix
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                    
+                    {/* Grammar Check Results */}
+                    {grammarCheck && showGrammarPanel && (
+                      <div className="mt-3 pt-3 border-t border-gray-200">
+                        {/* Summary */}
+                        <div className="flex items-center justify-between mb-3">
+                          <div className="flex items-center gap-2">
+                            <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold ${
+                              grammarCheck.qualityScore >= 90 ? 'bg-green-100 text-green-700' :
+                              grammarCheck.qualityScore >= 70 ? 'bg-yellow-100 text-yellow-700' :
+                              'bg-red-100 text-red-700'
+                            }`}>
+                              {grammarCheck.qualityScore}
+                            </div>
+                            <div>
+                              <p className="text-xs font-semibold text-gray-700">Quality Score</p>
+                              <p className={`text-xs ${
+                                grammarCheck.summary.status === 'excellent' ? 'text-green-600' :
+                                grammarCheck.summary.status === 'good' ? 'text-blue-600' :
+                                grammarCheck.summary.status === 'review' ? 'text-yellow-600' :
+                                'text-red-600'
+                              }`}>{grammarCheck.summary.message}</p>
+                            </div>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => setShowGrammarPanel(false)}
+                            className="text-gray-400 hover:text-gray-600"
+                          >
+                            <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+                              <path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z" />
+                            </svg>
+                          </button>
+                        </div>
+                        
+                        {/* Readability */}
+                        <div className="mb-3 p-2 bg-white rounded-lg border border-gray-100">
+                          <div className="flex items-center justify-between text-xs">
+                            <span className="text-gray-500">Readability: <span className="font-semibold text-gray-700">{grammarCheck.readability.level}</span></span>
+                            <span className="text-gray-500">{grammarCheck.readability.words} words • {grammarCheck.readability.sentences} sentences</span>
+                          </div>
+                        </div>
+                        
+                        {/* Issues List */}
+                        {grammarCheck.allIssues.length > 0 && (
+                          <div className="space-y-2 max-h-40 overflow-y-auto">
+                            {grammarCheck.errors.map((issue, idx) => (
+                              <div key={`error-${idx}`} className="flex items-start gap-2 p-2 bg-red-50 rounded-lg border border-red-100">
+                                <span className="text-red-500 flex-shrink-0">❌</span>
+                                <div className="flex-1 min-w-0">
+                                  <p className="text-xs text-red-800">{issue.message}</p>
+                                  {issue.suggestion && (
+                                    <p className="text-xs text-red-600 mt-0.5">Suggestion: <span className="font-semibold">{issue.suggestion}</span></p>
+                                  )}
+                                </div>
+                              </div>
+                            ))}
+                            {grammarCheck.warnings.map((issue, idx) => (
+                              <div key={`warning-${idx}`} className="flex items-start gap-2 p-2 bg-yellow-50 rounded-lg border border-yellow-100">
+                                <span className="text-yellow-500 flex-shrink-0">⚠️</span>
+                                <div className="flex-1 min-w-0">
+                                  <p className="text-xs text-yellow-800">{issue.message}</p>
+                                  {issue.word && (
+                                    <p className="text-xs text-yellow-600 mt-0.5">Found: "{issue.word}"</p>
+                                  )}
+                                </div>
+                              </div>
+                            ))}
+                            {grammarCheck.suggestions.slice(0, 3).map((issue, idx) => (
+                              <div key={`suggestion-${idx}`} className="flex items-start gap-2 p-2 bg-blue-50 rounded-lg border border-blue-100">
+                                <span className="text-blue-500 flex-shrink-0">💡</span>
+                                <p className="text-xs text-blue-800 flex-1">{issue.message}</p>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                        
+                        {grammarCheck.allIssues.length === 0 && (
+                          <div className="flex items-center gap-2 p-2 bg-green-50 rounded-lg border border-green-100">
+                            <span className="text-green-500">✅</span>
+                            <p className="text-xs text-green-800">No grammar or spelling issues found!</p>
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                  
                   {/* Submit Button */}
                   <div className="flex gap-3 mt-4 pt-3 border-t border-gray-200">
                     <button
@@ -1824,6 +1981,8 @@ export default function Announcements() {
                         setMediaPreview([])
                         setAnnouncementMode('classrep')
                         setSelectedAnnouncementOrg(null)
+                        setGrammarCheck(null)
+                        setShowGrammarPanel(false)
                       }}
                       className="flex-1 px-4 py-2.5 text-sm font-bold text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-all"
                     >
