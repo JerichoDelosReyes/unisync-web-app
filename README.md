@@ -1,188 +1,103 @@
 <div align="center">
-  <img src="public/assets/images/logo.png" alt="UNISYNC Logo" width="120" height="120">
+  <img src="Web/src/assets/cvsu-logo.png" alt="UNISYNC Logo" width="100" height="100">
   
-  # UNISYNC - CvSU Imus Campus Portal
+  # UNISYNC
   
-  [![React](https://img.shields.io/badge/React-19.0.0-61DAFB?style=for-the-badge&logo=react&logoColor=white)](https://reactjs.org/)
-  [![Status](https://img.shields.io/badge/Status-In%20Development-yellow?style=for-the-badge)]()
+  [![React](https://img.shields.io/badge/React-19.0.0-61DAFB?style=flat-square&logo=react&logoColor=white)](https://reactjs.org/)
+  [![Vite](https://img.shields.io/badge/Vite-5.4-646CFF?style=flat-square&logo=vite&logoColor=white)](https://vitejs.dev/)
+  [![Firebase](https://img.shields.io/badge/Firebase-11.1-FFCA28?style=flat-square&logo=firebase&logoColor=black)](https://firebase.google.com/)
+  [![Tailwind](https://img.shields.io/badge/Tailwind-3.4-06B6D4?style=flat-square&logo=tailwindcss&logoColor=white)](https://tailwindcss.com/)
+  [![Status](https://img.shields.io/badge/Status-In%20Development-yellow?style=flat-square)]()
   
-  **A unified campus management system for Cavite State University - Imus Campus**
+  **Unified Campus Management System for CvSU Imus Campus**
+  
+  [Live Demo](https://unisync-web-app-ac1fd.web.app) · [Report Bug](https://github.com/JerichoDelosReyes/unisync-web-app/issues) · [Request Feature](https://github.com/JerichoDelosReyes/unisync-web-app/issues)
 </div>
 
 ---
 
-## 📖 About
+## About
 
-**UNISYNC** i`s a comprehensive web application designed to streamline campus operations at CvSU Imus Campus. It provides a unified platform for students, faculty, guards, and administrators to manage announcements, room scheduling, organization activities, and campus facilities.
+UNISYNC is a comprehensive web application that streamlines campus operations at Cavite State University - Imus Campus. It provides a unified platform for announcements, room scheduling, organization management, and campus facilities.
 
-### 🎯 Problem Statement
+## Tech Stack
 
-Campus communities often struggle with:
-- Fragmented communication channels
-- Inefficient room scheduling and access management
-- Lack of real-time facility status updates
-- Disconnected organization management
+| Category | Technologies |
+|----------|-------------|
+| **Frontend** | React 19, Vite 5, Tailwind CSS 3 |
+| **Backend** | Firebase (Auth, Firestore, Storage, Hosting) |
+| **State** | React Context API |
+| **PWA** | Vite PWA Plugin, Workbox |
+| **Build** | PostCSS, ESBuild |
 
-UNISYNC addresses these challenges by providing a single, integrated platform for all campus stakeholders.
+## Features
 
----
+- 🔐 **Role-Based Auth** - Students, Faculty, Guards, Admin with institutional email validation
+- 📢 **Announcements** - Campus-wide and targeted announcements with moderation
+- 🚪 **Room Scheduling** - Real-time room status with Best-Fit booking algorithm
+- 🏢 **Building Directory** - Floor-by-floor mapping of campus facilities
+- 👥 **Organizations** - Management for all 13 campus organizations
+- 🤖 **AI Assistant** - Natural language queries for campus information
 
-## ✨ Features
-
-### 🔐 Role-Based Authentication
-Institutional email validation (`@cvsu.edu.ph`) with automatic role detection for Students, Faculty, Guards, and Admin/MIS. Features specific dashboard routing based on user role and guard-specific email authentication (`imus.guard@cvsu.edu.ph`).
-
-### 📢 Announcement System
-Campus-wide and section-specific announcements with role-based posting privileges. Includes priority levels, audience targeting, and rich text formatting support.
-
-### 🚪 Room Scheduling & Access
-Real-time room status indicators (Vacant/Occupied/Maintenance) with **Best-Fit Algorithm** for instant room booking. Includes room unlock requests for scheduled classes, Class Representative "Mark as Vacant" feature, and guard dispatch system for access requests.
-
-### 🏢 Building Directory
-Floor-by-floor mapping of all campus buildings with searchable room and facility database. Includes detailed amenity information (AC, capacity, equipment) for 7 major buildings: New Building, Old Building, Gymnasium, Canteen, HM Lab, Covered Court, and Administration.
-
-### 👥 Organization Management
-All 13 campus organizations with tiered visibility (Campus-wide vs Members-only). Features officer privileges for announcements and membership management.
-
-### 🤖 AI Assistant (Chatbot)
-Facility locator with natural language queries, schedule assistance, organization information, and campus navigation help.
-
-### 📊 Role-Specific Dashboards
-
-| Role | Features |
-|------|----------|
-| **Student** | Schedule view, announcements feed, room status, organization updates |
-| **Faculty** | Teaching load, instant booking, ad-hoc room requests, unlock interface |
-| **Guard** | Dispatch dashboard, request verification, room unlock management |
-| **Admin** | System health, moderation logs, user management, override controls |
-
-### 🔧 Additional Features
-Report Issue module for equipment, schedule errors, and offensive content. Emergency directory with campus contacts, mobile-responsive design, and real-time notifications.
-
----
-
-## 🚀 Installation
-
-### Prerequisites
-
-- Node.js (v18 or higher)
-- npm or yarn
-
-### Steps
-
-1. **Clone the repository**
-   ```bash
-   git clone https://github.com/JerichoDelosReyes/unisync-web-app.git
-   cd unisync-web-app
-   ```
-
-2. **Install dependencies**
-   ```bash
-   npm install
-   ```
-
-3. **Start the development server**
-   ```bash
-   npm start
-   ```
-
-4. **Open in browser**
-   ```
-   http://localhost:3000
-   ```
-
----
-
-## 💻 Usage
-
-### Demo Accounts
-
-For testing purposes, use these demo credentials:
-
-| Role | Email | Password |
-|------|-------|----------|
-| Student | `student@cvsu.edu.ph` | `password123` |
-| Faculty | `faculty@cvsu.edu.ph` | `password123` |
-| Guard | `imus.guard@cvsu.edu.ph` | `password123` |
-| Admin | `admin@cvsu.edu.ph` | `password123` |
-
-### Available Scripts
+## Quick Start
 
 ```bash
-# Development server
-npm start
+# Clone the repository
+git clone https://github.com/JerichoDelosReyes/unisync-web-app.git
+cd unisync-web-app
 
-# Production build
-npm run build
+# Install dependencies
+npm install
 
-# Run tests
-npm test
+# Set up environment variables
+cp .env.example .env
+# Edit .env with your Firebase config
 
-# Eject configuration (irreversible)
-npm run eject
+# Start development server
+npm run dev
 ```
 
----
+## Scripts
 
-## 📁 Project Structure
+| Command | Description |
+|---------|-------------|
+| `npm run dev` | Start development server |
+| `npm run build` | Build for production |
+| `npm run preview` | Preview production build |
+
+## Project Structure
 
 ```
 unisync-web-app/
-├── public/
-│   ├── assets/images/          # Static images and logos
-│   ├── index.html
-│   └── manifest.json
-├── src/
-│   ├── components/
-│   │   ├── common/             # Reusable UI components
-│   │   │   ├── Alert.js
-│   │   │   ├── Badge.js
-│   │   │   ├── Button.js
-│   │   │   ├── Card.js
-│   │   │   ├── FloatingChatbot.js
-│   │   │   ├── Input.js
-│   │   │   ├── Loader.js
-│   │   │   ├── Modal.js
-│   │   │   └── Select.js
-│   │   └── layout/             # Layout components
-│   │       ├── MainLayout.js
-│   │       ├── Navbar.js
-│   │       └── Sidebar.js
-│   ├── context/
-│   │   └── AuthContext.js      # Authentication state management
-│   ├── pages/
-│   │   ├── announcements/      # Announcements module
-│   │   ├── assistant/          # AI Chatbot
-│   │   ├── auth/               # Login page
-│   │   ├── dashboard/          # Role-specific dashboards
-│   │   ├── directory/          # Building & Emergency directories
-│   │   ├── facilities/         # Room scheduling
-│   │   ├── organizations/      # Org management
-│   │   ├── report/             # Issue reporting
-│   │   └── schedule/           # Schedule viewer
-│   ├── styles/
-│   │   ├── components.css      # Component styles
-│   │   ├── layouts.css         # Layout styles
-│   │   └── theme.css           # Theme variables
-│   ├── App.js                  # Main application component
-│   └── index.js                # Entry point
-├── package.json
-└── README.md
+├── Web/src/
+│   ├── components/     # Reusable UI components
+│   ├── contexts/       # React Context providers
+│   ├── pages/          # Page components
+│   ├── services/       # Firebase service functions
+│   └── styles/         # Global styles
+├── firebase/           # Firestore & Storage rules
+└── dist/               # Production build
 ```
 
----
+## Contributing
 
-## 👨‍💻 Authors
+Contributions are welcome! Please read our [Contributing Guide](CONTRIBUTING.md) and [Code of Conduct](CODE_OF_CONDUCT.md).
 
-**Jericho Delos Reyes**
-- GitHub: [@JerichoDelosReyes](https://github.com/JerichoDelosReyes)
+## Security
 
-**Lee Adrian Norona**
-- GitHub: [@leeadriannorona](https://github.com/leeadriannorona)
+Found a vulnerability? Please read our [Security Policy](SECURITY.md) for responsible disclosure.
+
+## Authors
+
+- **Jericho Delos Reyes** - [@JerichoDelosReyes](https://github.com/JerichoDelosReyes)
+- **Lee Adrian Norona** - [@leeadriannorona](https://github.com/leeadriannorona)
+
+## License
+
+This project is for educational purposes at CvSU Imus Campus.
 
 ---
 
 <div align="center">
-  <p>Made with ❤️ for CvSU Imus Campus</p>
-  <p>© 2025 UNISYNC. All rights reserved.</p>
+  Made with ❤️ for CvSU Imus Campus
 </div>
