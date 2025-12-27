@@ -16,9 +16,10 @@ import {
   getArchiveHistory,
   getAllSchedules 
 } from '../services/scheduleService'
+import { createLog, LOG_CATEGORIES, LOG_ACTIONS } from '../services/logService'
 
 export default function SystemSettings() {
-  const { user } = useAuth()
+  const { user, userProfile } = useAuth()
   
   // Semester Settings State
   const [semesterSettings, setSemesterSettings] = useState({
@@ -89,6 +90,23 @@ export default function SystemSettings() {
     
     try {
       await updateSemesterSettings(semesterSettings, user.uid)
+      
+      // Log the semester update
+      await createLog({
+        category: LOG_CATEGORIES.SYSTEM,
+        action: LOG_ACTIONS.SEMESTER_UPDATE,
+        performedBy: {
+          uid: user.uid,
+          email: user.email,
+          name: userProfile ? `${userProfile.givenName} ${userProfile.lastName}` : 'Admin'
+        },
+        details: {
+          semester: semesterSettings.currentSemester,
+          schoolYear: semesterSettings.currentSchoolYear
+        },
+        description: `Updated semester to ${semesterSettings.currentSemester} ${semesterSettings.currentSchoolYear}`
+      })
+      
       setSemesterSettingsMessage({ type: 'success', text: 'Semester settings saved successfully!' })
     } catch (error) {
       console.error('Error saving semester settings:', error)
@@ -112,6 +130,25 @@ export default function SystemSettings() {
         semesterSettings.currentSchoolYear,
         user.uid
       )
+      
+      // Log the schedule reset
+      await createLog({
+        category: LOG_CATEGORIES.SCHEDULE,
+        action: LOG_ACTIONS.SCHEDULE_RESET,
+        performedBy: {
+          uid: user.uid,
+          email: user.email,
+          name: userProfile ? `${userProfile.givenName} ${userProfile.lastName}` : 'Admin'
+        },
+        details: {
+          semester: semesterSettings.currentSemester,
+          schoolYear: semesterSettings.currentSchoolYear,
+          archivedCount: result.archivedCount,
+          deletedCount: result.deletedCount
+        },
+        description: `Archived ${result.archivedCount} and deleted ${result.deletedCount} schedules for ${semesterSettings.currentSemester} ${semesterSettings.currentSchoolYear}`
+      })
+      
       setResetResult({ type: 'success', ...result })
       setCurrentScheduleCount(0)
       loadArchiveHistory()

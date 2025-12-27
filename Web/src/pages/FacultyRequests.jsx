@@ -13,9 +13,10 @@ import {
   rejectFacultyRequest,
   REQUEST_STATUS 
 } from '../services/facultyRequestService'
+import { createLog, LOG_CATEGORIES, LOG_ACTIONS } from '../services/logService'
 
 export default function FacultyRequests() {
-  const { user } = useAuth()
+  const { user, userProfile } = useAuth()
   
   const [requests, setRequests] = useState([])
   const [isLoading, setIsLoading] = useState(true)
@@ -56,6 +57,28 @@ export default function FacultyRequests() {
     setIsProcessing(true)
     try {
       await approveFacultyRequest(selectedRequest.id, user.uid)
+      
+      // Log the approval
+      await createLog({
+        category: LOG_CATEGORIES.FACULTY_REQUESTS,
+        action: LOG_ACTIONS.FACULTY_REQUEST_APPROVE,
+        performedBy: {
+          uid: user.uid,
+          email: user.email,
+          name: userProfile ? `${userProfile.givenName} ${userProfile.lastName}` : 'Admin'
+        },
+        targetUser: {
+          uid: selectedRequest.userId,
+          email: selectedRequest.userEmail,
+          name: selectedRequest.userName
+        },
+        details: {
+          requestId: selectedRequest.id,
+          department: selectedRequest.department
+        },
+        description: `Approved faculty request for ${selectedRequest.userName}`
+      })
+      
       showToast(`Approved faculty request for ${selectedRequest.userName}`)
       setActionModal({ show: false, type: null })
       setSelectedRequest(null)
@@ -78,6 +101,29 @@ export default function FacultyRequests() {
     setIsProcessing(true)
     try {
       await rejectFacultyRequest(selectedRequest.id, user.uid, rejectionReason)
+      
+      // Log the rejection
+      await createLog({
+        category: LOG_CATEGORIES.FACULTY_REQUESTS,
+        action: LOG_ACTIONS.FACULTY_REQUEST_REJECT,
+        performedBy: {
+          uid: user.uid,
+          email: user.email,
+          name: userProfile ? `${userProfile.givenName} ${userProfile.lastName}` : 'Admin'
+        },
+        targetUser: {
+          uid: selectedRequest.userId,
+          email: selectedRequest.userEmail,
+          name: selectedRequest.userName
+        },
+        details: {
+          requestId: selectedRequest.id,
+          department: selectedRequest.department,
+          reason: rejectionReason
+        },
+        description: `Rejected faculty request for ${selectedRequest.userName}`
+      })
+      
       showToast(`Rejected faculty request for ${selectedRequest.userName}`)
       setActionModal({ show: false, type: null })
       setSelectedRequest(null)

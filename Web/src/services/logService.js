@@ -15,7 +15,8 @@ import {
   limit, 
   startAfter,
   Timestamp,
-  getCountFromServer
+  getCountFromServer,
+  onSnapshot
 } from 'firebase/firestore'
 import { db } from '../config/firebase'
 
@@ -36,8 +37,10 @@ export const LOG_ACTIONS = {
   LOGIN: 'login',
   LOGOUT: 'logout',
   LOGIN_FAILED: 'login_failed',
+  REGISTER: 'register',
   
   // User management actions
+  USER_CREATE: 'user_create',
   ROLE_CHANGE: 'role_change',
   TAG_ADD: 'tag_add',
   TAG_REMOVE: 'tag_remove',
@@ -73,6 +76,8 @@ export const ACTION_LABELS = {
   [LOG_ACTIONS.LOGIN]: 'User Login',
   [LOG_ACTIONS.LOGOUT]: 'User Logout',
   [LOG_ACTIONS.LOGIN_FAILED]: 'Login Failed',
+  [LOG_ACTIONS.REGISTER]: 'User Registered',
+  [LOG_ACTIONS.USER_CREATE]: 'User Created',
   [LOG_ACTIONS.ROLE_CHANGE]: 'Role Changed',
   [LOG_ACTIONS.TAG_ADD]: 'Tag Added',
   [LOG_ACTIONS.TAG_REMOVE]: 'Tag Removed',
@@ -315,4 +320,69 @@ export const getRecentLogs = async (count = 10) => {
     console.error('Error fetching recent logs:', error)
     return []
   }
+}
+
+/**
+ * Subscribe to real-time log updates
+ * 
+ * @param {Object} options - Query options (same as getLogs)
+ * @param {function} callback - Callback function receiving { logs, hasMore }
+ * @returns {function} - Unsubscribe function
+ */
+export const subscribeToLogs = (options = {}, callback) => {
+  const {
+    category,
+    action,
+    startDate,
+    endDate,
+    pageSize = 50
+  } = options
+
+  const constraints = []
+
+  // Add filters
+  if (category) {
+    constraints.push(where('category', '==', category))
+  }
+
+  if (action) {
+    constraints.push(where('action', '==', action))
+  }
+
+  if (startDate) {
+    constraints.push(where('timestamp', '>=', Timestamp.fromDate(startDate)))
+  }
+
+  if (endDate) {
+    constraints.push(where('timestamp', '<=', Timestamp.fromDate(endDate)))
+  }
+
+  // Always order by timestamp descending
+  constraints.push(orderBy('timestamp', 'desc'))
+  constraints.push(limit(pageSize + 1))
+
+  const q = query(collection(db, 'system_logs'), ...constraints)
+
+  // Return the unsubscribe function
+  return onSnapshot(q, (snapshot) => {
+    const logs = []
+    let hasMore = false
+
+    snapshot.docs.forEach((doc, index) => {
+      if (index < pageSize) {
+        logs.push({
+          id: doc.id,
+          ...doc.data(),
+          timestamp: doc.data().timestamp?.toDate?.() || new Date(doc.data().createdAt)
+        })
+      } else {
+        hasMore = true
+      }
+    })
+
+    callback({ logs, hasMore })
+  }, (error) => {
+    console.error('Error in logs subscription:', error)
+    callback({ logs: [], hasMore: false, error })
+  })
 }

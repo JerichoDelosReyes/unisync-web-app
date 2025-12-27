@@ -6,6 +6,7 @@ import { createUserWithEmailAndPassword, sendEmailVerification } from 'firebase/
 import { auth } from '../config/firebase'
 import { ALLOWED_DOMAIN } from '../services/authService'
 import { DEPARTMENTS, DEPARTMENT_CODES, DEPT_ORG_MAPPING, STUDENT_ORGS, YEAR_LEVELS } from '../constants/targeting'
+import { createLog, LOG_CATEGORIES, LOG_ACTIONS } from '../services/logService'
 
 /**
  * Get pastel tag color based on tag type
@@ -232,7 +233,34 @@ export default function UserManagement() {
       setUpdatingUserId(userId)
       console.log(`🔄 Updating user ${userId} role to ${newRole}`)
       
+      // Find the target user for logging
+      const targetUser = users.find(u => u.id === userId)
+      const oldRole = targetUser?.role
+      
       await updateDocument('users', userId, { role: newRole })
+      
+      // Log the role change
+      await createLog({
+        category: LOG_CATEGORIES.USER_MANAGEMENT,
+        action: LOG_ACTIONS.ROLE_CHANGE,
+        performedBy: {
+          uid: userProfile.id,
+          email: userProfile.email,
+          name: `${userProfile.givenName} ${userProfile.lastName}`
+        },
+        targetUser: targetUser ? {
+          uid: targetUser.id,
+          email: targetUser.email,
+          name: `${targetUser.givenName} ${targetUser.lastName}`
+        } : null,
+        details: {
+          oldRole,
+          newRole,
+          oldRoleLabel: ROLE_DISPLAY_NAMES[oldRole],
+          newRoleLabel: ROLE_DISPLAY_NAMES[newRole]
+        },
+        description: `Changed role from ${ROLE_DISPLAY_NAMES[oldRole]} to ${ROLE_DISPLAY_NAMES[newRole]}`
+      })
       
       setUsers(prevUsers => 
         prevUsers.map(user => 
@@ -269,6 +297,24 @@ export default function UserManagement() {
       
       await updateDocument('users', tagModalUser.id, { tags: updatedTags })
       
+      // Log the tag addition
+      await createLog({
+        category: LOG_CATEGORIES.USER_MANAGEMENT,
+        action: LOG_ACTIONS.TAG_ADD,
+        performedBy: {
+          uid: userProfile.id,
+          email: userProfile.email,
+          name: `${userProfile.givenName} ${userProfile.lastName}`
+        },
+        targetUser: {
+          uid: tagModalUser.id,
+          email: tagModalUser.email,
+          name: `${tagModalUser.givenName} ${tagModalUser.lastName}`
+        },
+        details: { tag: tagToAdd },
+        description: `Added tag "${tagToAdd}"`
+      })
+      
       setUsers(prevUsers => 
         prevUsers.map(user => 
           user.id === tagModalUser.id ? { ...user, tags: updatedTags } : user
@@ -295,6 +341,24 @@ export default function UserManagement() {
       const updatedTags = (tagModalUser.tags || []).filter(tag => tag !== tagToRemove)
       
       await updateDocument('users', tagModalUser.id, { tags: updatedTags })
+      
+      // Log the tag removal
+      await createLog({
+        category: LOG_CATEGORIES.USER_MANAGEMENT,
+        action: LOG_ACTIONS.TAG_REMOVE,
+        performedBy: {
+          uid: userProfile.id,
+          email: userProfile.email,
+          name: `${userProfile.givenName} ${userProfile.lastName}`
+        },
+        targetUser: {
+          uid: tagModalUser.id,
+          email: tagModalUser.email,
+          name: `${tagModalUser.givenName} ${tagModalUser.lastName}`
+        },
+        details: { tag: tagToRemove },
+        description: `Removed tag "${tagToRemove}"`
+      })
       
       setUsers(prevUsers => 
         prevUsers.map(user => 
@@ -451,6 +515,27 @@ export default function UserManagement() {
         ...userData
       }
       setUsers(prev => [newUserData, ...prev])
+      
+      // Log the user creation
+      await createLog({
+        category: LOG_CATEGORIES.USER_MANAGEMENT,
+        action: LOG_ACTIONS.USER_CREATE,
+        performedBy: {
+          uid: userProfile.id,
+          email: userProfile.email,
+          name: `${userProfile.givenName} ${userProfile.lastName}`
+        },
+        targetUser: {
+          uid: user.uid,
+          email: userData.email,
+          name: `${userData.givenName} ${userData.lastName}`
+        },
+        details: {
+          role: newUser.role,
+          roleLabel: ROLE_DISPLAY_NAMES[newUser.role]
+        },
+        description: `Created new user with role ${ROLE_DISPLAY_NAMES[newUser.role]}`
+      })
       
       // Reset form and close modal
       setNewUser({

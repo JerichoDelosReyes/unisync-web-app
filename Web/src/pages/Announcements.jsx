@@ -19,6 +19,7 @@ import {
   PRIORITY_LEVELS
 } from '../services/announcementService'
 import { reportAnnouncement } from '../services/reportService'
+import { createLog, LOG_CATEGORIES, LOG_ACTIONS } from '../services/logService'
 import AudienceSelector from '../components/announcements/AudienceSelector'
 import { matchesTargetAudience, DEPARTMENT_CODES } from '../constants/targeting'
 import ModalOverlay from '../components/ui/ModalOverlay'
@@ -494,6 +495,26 @@ export default function Announcements() {
         showToast(result.moderationResult.message || 'Announcement was rejected by moderation.', 'error')
       }
       
+      // Log announcement creation
+      await createLog({
+        category: LOG_CATEGORIES.ANNOUNCEMENTS,
+        action: LOG_ACTIONS.ANNOUNCEMENT_CREATE,
+        performedBy: {
+          uid: user.uid,
+          email: user.email,
+          name: `${userProfile.givenName} ${userProfile.lastName}`
+        },
+        details: {
+          announcementId: result.id,
+          title: formData.title,
+          status: result.status,
+          priority: formData.priority,
+          targetTags: formData.targetTags,
+          hasMedia: mediaFiles.length > 0
+        },
+        description: `Created announcement: "${formData.title}"`
+      })
+      
       // Reset form
       setFormData({
         title: '',
@@ -520,11 +541,32 @@ export default function Announcements() {
   // Handle approval
   const handleApprove = async (announcementId) => {
     try {
+      const approved = pendingAnnouncements.find(a => a.id === announcementId)
       await approveAnnouncement(announcementId)
       showToast('Announcement approved!', 'success')
       
+      // Log the approval
+      await createLog({
+        category: LOG_CATEGORIES.ANNOUNCEMENTS,
+        action: LOG_ACTIONS.ANNOUNCEMENT_APPROVE,
+        performedBy: {
+          uid: user.uid,
+          email: user.email,
+          name: `${userProfile.givenName} ${userProfile.lastName}`
+        },
+        targetUser: approved ? {
+          uid: approved.authorId,
+          email: null,
+          name: approved.authorName
+        } : null,
+        details: {
+          announcementId,
+          title: approved?.title
+        },
+        description: `Approved announcement: "${approved?.title || announcementId}"`
+      })
+      
       // Move from pending to approved
-      const approved = pendingAnnouncements.find(a => a.id === announcementId)
       if (approved) {
         approved.status = ANNOUNCEMENT_STATUS.APPROVED
         setAnnouncements(prev => [approved, ...prev])
@@ -538,8 +580,32 @@ export default function Announcements() {
   // Handle rejection
   const handleReject = async (announcementId, reason = '') => {
     try {
+      const rejected = pendingAnnouncements.find(a => a.id === announcementId)
       await rejectAnnouncement(announcementId, reason)
       showToast('Announcement rejected', 'info')
+      
+      // Log the rejection
+      await createLog({
+        category: LOG_CATEGORIES.ANNOUNCEMENTS,
+        action: LOG_ACTIONS.ANNOUNCEMENT_REJECT,
+        performedBy: {
+          uid: user.uid,
+          email: user.email,
+          name: `${userProfile.givenName} ${userProfile.lastName}`
+        },
+        targetUser: rejected ? {
+          uid: rejected.authorId,
+          email: null,
+          name: rejected.authorName
+        } : null,
+        details: {
+          announcementId,
+          title: rejected?.title,
+          reason
+        },
+        description: `Rejected announcement: "${rejected?.title || announcementId}"`
+      })
+      
       setPendingAnnouncements(prev => prev.filter(a => a.id !== announcementId))
     } catch (err) {
       showToast('Failed to reject announcement', 'error')
@@ -575,8 +641,31 @@ export default function Announcements() {
   const handleDelete = async (announcementId) => {
     try {
       setDeleting(true)
+      const toDelete = deleteConfirm.announcement || announcements.find(a => a.id === announcementId)
       await deleteAnnouncement(announcementId)
       showToast('Announcement deleted', 'success')
+      
+      // Log the deletion
+      await createLog({
+        category: LOG_CATEGORIES.ANNOUNCEMENTS,
+        action: LOG_ACTIONS.ANNOUNCEMENT_DELETE,
+        performedBy: {
+          uid: user.uid,
+          email: user.email,
+          name: `${userProfile.givenName} ${userProfile.lastName}`
+        },
+        targetUser: toDelete ? {
+          uid: toDelete.authorId,
+          email: null,
+          name: toDelete.authorName
+        } : null,
+        details: {
+          announcementId,
+          title: toDelete?.title
+        },
+        description: `Deleted announcement: "${toDelete?.title || announcementId}"`
+      })
+      
       setAnnouncements(prev => prev.filter(a => a.id !== announcementId))
       setPendingAnnouncements(prev => prev.filter(a => a.id !== announcementId))
       setSelectedAnnouncement(null)

@@ -9,7 +9,8 @@ import { useState, useEffect } from 'react'
 import { useAuth, ROLES } from '../contexts/AuthContext'
 import { 
   getLogs, 
-  getLogStats, 
+  getLogStats,
+  subscribeToLogs,
   LOG_CATEGORIES, 
   LOG_ACTIONS,
   ACTION_LABELS,
@@ -34,11 +35,44 @@ export default function Logs() {
   const [dateRange, setDateRange] = useState({ start: '', end: '' })
   const [searchQuery, setSearchQuery] = useState('')
   
-  // Load initial data
+  // Real-time subscription for logs
   useEffect(() => {
-    loadLogs()
-    loadStats()
+    setLoading(true)
+    
+    const options = {
+      pageSize: 50
+    }
+    
+    if (selectedCategory) options.category = selectedCategory
+    if (selectedAction) options.action = selectedAction
+    if (dateRange.start) options.startDate = new Date(dateRange.start)
+    if (dateRange.end) {
+      const endDate = new Date(dateRange.end)
+      endDate.setHours(23, 59, 59, 999)
+      options.endDate = endDate
+    }
+    
+    // Subscribe to real-time updates
+    const unsubscribe = subscribeToLogs(options, ({ logs: newLogs, hasMore: more, error }) => {
+      if (error) {
+        console.error('Error in logs subscription:', error)
+      }
+      setLogs(newLogs)
+      setHasMore(more)
+      setLoading(false)
+    })
+    
+    // Cleanup subscription on unmount or filter change
+    return () => unsubscribe()
   }, [selectedCategory, selectedAction, dateRange])
+  
+  // Load stats (not real-time, refresh periodically)
+  useEffect(() => {
+    loadStats()
+    // Refresh stats every 30 seconds
+    const interval = setInterval(loadStats, 30000)
+    return () => clearInterval(interval)
+  }, [])
   
   const loadStats = async () => {
     try {
@@ -49,18 +83,14 @@ export default function Logs() {
     }
   }
   
-  const loadLogs = async (append = false) => {
+  const loadMoreLogs = async () => {
+    if (!hasMore || loadingMore) return
+    
+    setLoadingMore(true)
     try {
-      if (!append) {
-        setLoading(true)
-        setLastDoc(null)
-      } else {
-        setLoadingMore(true)
-      }
-      
       const options = {
         pageSize: 50,
-        lastDoc: append ? lastDoc : null
+        lastDoc
       }
       
       if (selectedCategory) options.category = selectedCategory
@@ -73,25 +103,18 @@ export default function Logs() {
       }
       
       const result = await getLogs(options)
-      
-      if (append) {
-        setLogs(prev => [...prev, ...result.logs])
-      } else {
-        setLogs(result.logs)
-      }
-      
+      setLogs(prev => [...prev, ...result.logs])
       setLastDoc(result.lastDoc)
       setHasMore(result.hasMore)
     } catch (error) {
-      console.error('Error loading logs:', error)
+      console.error('Error loading more logs:', error)
     } finally {
-      setLoading(false)
       setLoadingMore(false)
     }
   }
   
   const handleLoadMore = () => {
-    loadLogs(true)
+    loadMoreLogs()
   }
   
   const clearFilters = () => {

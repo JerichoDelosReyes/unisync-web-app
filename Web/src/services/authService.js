@@ -19,6 +19,7 @@ import {
   serverTimestamp
 } from 'firebase/firestore';
 import { notifyWelcome } from './notificationService';
+import { createLog, LOG_CATEGORIES, LOG_ACTIONS } from './logService';
 
 // ============================================
 // CONSTANTS
@@ -404,6 +405,22 @@ export const loginUser = async (email, password, rememberMe = false) => {
       updatedAt: serverTimestamp()
     });
 
+    // Log successful login
+    await createLog({
+      category: LOG_CATEGORIES.AUTH,
+      action: LOG_ACTIONS.LOGIN,
+      performedBy: {
+        uid: user.uid,
+        email: user.email,
+        name: userData.displayName || `${userData.givenName} ${userData.lastName}`
+      },
+      details: {
+        role: userData.role,
+        rememberMe
+      },
+      description: 'User logged in successfully'
+    });
+
     // Store current user in localStorage for quick access
     localStorage.setItem('unisync_current_user', JSON.stringify({
       uid: user.uid,
@@ -423,6 +440,22 @@ export const loginUser = async (email, password, rememberMe = false) => {
     };
   } catch (error) {
     console.error('Login error:', error);
+
+    // Log failed login attempt
+    await createLog({
+      category: LOG_CATEGORIES.AUTH,
+      action: LOG_ACTIONS.LOGIN_FAILED,
+      performedBy: {
+        uid: 'anonymous',
+        email: email,
+        name: 'Unknown User'
+      },
+      details: {
+        errorCode: error.code,
+        errorMessage: error.message
+      },
+      description: `Login failed: ${error.code || 'unknown error'}`
+    });
 
     let errorMessage = 'Login failed. Please try again.';
 
@@ -456,6 +489,28 @@ export const loginUser = async (email, password, rememberMe = false) => {
  */
 export const logoutUser = async () => {
   try {
+    // Get current user info before signing out
+    const currentUser = auth.currentUser;
+    const storedUser = localStorage.getItem('unisync_current_user');
+    const userData = storedUser ? JSON.parse(storedUser) : null;
+    
+    // Log the logout before signing out
+    if (currentUser) {
+      await createLog({
+        category: LOG_CATEGORIES.AUTH,
+        action: LOG_ACTIONS.LOGOUT,
+        performedBy: {
+          uid: currentUser.uid,
+          email: currentUser.email,
+          name: userData?.displayName || currentUser.displayName || 'Unknown'
+        },
+        details: {
+          role: userData?.role || 'unknown'
+        },
+        description: 'User logged out'
+      });
+    }
+    
     await signOut(auth);
     localStorage.removeItem('unisync_current_user');
     return { success: true };

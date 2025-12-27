@@ -421,6 +421,23 @@ service cloud.firestore {
     }
     
     // ==========================================
+    // SYSTEM LOGS COLLECTION (Audit Trail)
+    // ==========================================
+    match /system_logs/{logId} {
+      // Read: Only Super Admin can view logs
+      allow read: if isAuthenticated() && isSuperAdmin();
+      
+      // Create: All authenticated users can create log entries
+      // (logs are created automatically on system actions)
+      allow create: if isAuthenticated()
+        && isReasonableSize()
+        && request.resource.data.keys().hasAll(['category', 'action', 'performedBy', 'timestamp']);
+      
+      // Update/Delete: No one can modify logs (immutable audit trail)
+      allow update, delete: if false;
+    }
+    
+    // ==========================================
     // ORGANIZATIONS COLLECTION (Student Orgs)
     // ==========================================
     match /organizations/{orgCode} {
