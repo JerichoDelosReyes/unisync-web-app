@@ -29,20 +29,50 @@ const BAD_WORD_ROOTS = {
     "tanga", "bobo", "vovo", "bubu", "tarantado", "trntado",
     "ulol", "olul", "ulul", "leche", "letse", "piste", "pisti",
     "hindot", "kantot", "tite", "titi", "pepek", "puki", "kiki",
-    "kepyas", "jakol", "jabol", "bayag", "suso", "bilat", "burat", "kupal",
-    "kainin mo to", "haup ka", "hayp", "anak mo", "nanay mo", "tatay mo",
-    "impi", "sulot", "bugbugan", "tawag", "samantalahin", "sira",
-    "bakla", "bading", "tomboy", "inamo", "namo", "namu", "bobomo",
-    "pukinangina", "pukinginamo", "argh"
+    "kepyas", "jakol", "jabol", "bayag", "bilat", "burat", "kupal",
+    "kainin mo to", "haup ka", "hayp", "impi", "sulot", "bugbugan", 
+    "samantalahin", "bakla", "bading", "inamo", "namo", "namu", "bobomo",
+    "pukinangina", "pukinginamo"
   ],
   english: [
     "fuck", "fck", "shit", "shet", "bitch", "btch", "asshole",
-    "bastard", "bullshit", "crap", "damn", "dick", "pussy",
+    "bastard", "bullshit", "crap", "dick", "pussy",
     "cock", "cunt", "whore", "slut", "motherfucker",
-    "nigga", "nigger", "faggot", "retard", "idiot", "stupid",
-    "gay", "gayass", "gaynigger", "fuckingbitch", "bitchass", "fuckingbitchass"
+    "nigga", "nigger", "faggot", "retard"
   ]
 }
+
+// Whitelist of common safe words that might trigger false positives
+const SAFE_WORDS = [
+  "from", "form", "formal", "former", "formula", "format", "formation",
+  "class", "classic", "classroom", "classification",
+  "asset", "assess", "assessment", "assign", "assignment", "assist", "assistant",
+  "pass", "passing", "passed", "password", "passion", "passive",
+  "grass", "glass", "mass", "bass", "compass",
+  "assume", "assumption", "assure", "assurance",
+  "crap", // Remove from bad words - too common in casual speech
+  "sushi", "susana", "susan",
+  "hello", "hell", "shell", "smell", "well", "tell", "fell", "sell", "bell",
+  "count", "counter", "country", "account", "discount",
+  "scrap", "scrape", "scrapped",
+  "therapist", "the rapist", // Common false positive
+  "grape", "drape",
+  "cock", // Keep cockroach, peacock safe
+  "cocktail", "cockpit", "cockroach", "peacock", "hancock",
+  "dictate", "dictionary", "dictation", "predict", "addict",
+  "title", "titled", "subtitle", "entitle",
+  "document", "documentation",
+  "spit", "spite", "hospital", "hospitality",
+  "analysis", "analyst", "analyze",
+  "but", "butter", "button", "butterfly",
+  "hit", "hitting", "white", "while",
+  "sit", "sitting", "site", "website",
+  "this", "that", "them", "they", "there", "then",
+  "with", "within", "without", "withdraw",
+  "come", "comes", "coming", "welcome", "become", "outcome",
+  "bass", "embarrass", "harass", // words with "ass" in them
+  "associate", "association", "assassin"
+]
 
 // Reverse map for normalization (leetspeak to standard letter)
 const REVERSE_LEETSPEAK_MAP = {
@@ -168,6 +198,17 @@ export const normalizeText = (text) => {
 }
 
 /**
+ * Check if a word is in the safe words list (whitelist)
+ * @param {string} word - The word to check
+ * @returns {boolean} - true if the word is safe
+ */
+const isWhitelisted = (word) => {
+  if (!word) return false
+  const lowerWord = word.toLowerCase().trim()
+  return SAFE_WORDS.some(safe => lowerWord === safe || lowerWord.includes(safe))
+}
+
+/**
  * Check if text contains profanity using generated regex patterns
  * @param {string} text - The text to check
  * @returns {object} - { hasProfanity: boolean, matches: string[], language: string }
@@ -180,40 +221,59 @@ export const checkProfanity = (text) => {
   const matches = []
   let detectedLanguage = null
   
+  // Split text into words for whitelist checking
+  const words = text.toLowerCase().split(/\s+/)
+  
+  // Check if all words are whitelisted - if so, skip profanity check
+  const allWordsWhitelisted = words.every(w => isWhitelisted(w) || w.length < 3)
+  if (allWordsWhitelisted && words.length > 0) {
+    return { hasProfanity: false, matches: [], language: null }
+  }
+  
   // Check against Tagalog words
   for (const word of BAD_WORD_ROOTS.tagalog) {
-    const regex = generateRegexFromWord(word)
-    const separatorRegex = generateSeparatorTolerantRegex(word)
-    
-    const match = text.match(regex) || text.match(separatorRegex)
+    // Use word boundary regex for more accurate matching
+    const boundaryRegex = new RegExp(`\\b${generateRegexFromWord(word).source}\\b`, 'gi')
+    const match = text.match(boundaryRegex)
     if (match) {
-      matches.push(...match)
-      detectedLanguage = 'tagalog'
+      // Filter out whitelisted matches
+      const filteredMatches = match.filter(m => !isWhitelisted(m))
+      if (filteredMatches.length > 0) {
+        matches.push(...filteredMatches)
+        detectedLanguage = 'tagalog'
+      }
     }
   }
   
   // Check against English words
   for (const word of BAD_WORD_ROOTS.english) {
-    const regex = generateRegexFromWord(word)
-    const separatorRegex = generateSeparatorTolerantRegex(word)
-    
-    const match = text.match(regex) || text.match(separatorRegex)
+    // Use word boundary regex for more accurate matching
+    const boundaryRegex = new RegExp(`\\b${generateRegexFromWord(word).source}\\b`, 'gi')
+    const match = text.match(boundaryRegex)
     if (match) {
-      matches.push(...match)
-      if (!detectedLanguage) detectedLanguage = 'english'
-      else if (detectedLanguage === 'tagalog') detectedLanguage = 'mixed'
+      // Filter out whitelisted matches
+      const filteredMatches = match.filter(m => !isWhitelisted(m))
+      if (filteredMatches.length > 0) {
+        matches.push(...filteredMatches)
+        if (!detectedLanguage) detectedLanguage = 'english'
+        else if (detectedLanguage === 'tagalog') detectedLanguage = 'mixed'
+      }
     }
   }
   
-  // Also check normalized text for additional detection
+  // Also check normalized text for additional detection (but respect whitelist)
   const normalizedText = normalizeText(text)
+  const normalizedWords = normalizedText.split(/\s+/)
   
   // Simple substring check on normalized text as fallback
   const allRoots = [...BAD_WORD_ROOTS.tagalog, ...BAD_WORD_ROOTS.english]
   for (const word of allRoots) {
-    if (normalizedText.includes(word)) {
-      if (!matches.includes(word)) {
-        matches.push(word)
+    // Only flag if the bad word is the whole word or at word boundaries
+    for (const nWord of normalizedWords) {
+      if (nWord === word && !isWhitelisted(nWord)) {
+        if (!matches.includes(word)) {
+          matches.push(word)
+        }
       }
     }
   }
@@ -297,28 +357,43 @@ export const compilePatterns = () => {
 export const fastCheckProfanity = (text) => {
   if (!text || typeof text !== 'string') return false
   
+  // Quick whitelist check - if all words are safe, return false
+  const words = text.toLowerCase().split(/\s+/)
+  const allWordsWhitelisted = words.every(w => isWhitelisted(w) || w.length < 3)
+  if (allWordsWhitelisted && words.length > 0) {
+    return false
+  }
+  
   const patterns = compilePatterns()
   
-  // Check all compiled patterns
+  // Check all compiled patterns with word boundary awareness
   for (const pattern of [...patterns.tagalog, ...patterns.english]) {
-    if (pattern.regex.test(text) || pattern.separatorRegex.test(text)) {
-      // Reset regex lastIndex for global patterns
-      pattern.regex.lastIndex = 0
-      pattern.separatorRegex.lastIndex = 0
-      return true
+    const matches = text.match(pattern.regex) || text.match(pattern.separatorRegex)
+    if (matches) {
+      // Filter out whitelisted matches
+      const realMatches = matches.filter(m => !isWhitelisted(m))
+      if (realMatches.length > 0) {
+        // Reset regex lastIndex for global patterns
+        pattern.regex.lastIndex = 0
+        pattern.separatorRegex.lastIndex = 0
+        return true
+      }
     }
     // Reset regex lastIndex
     pattern.regex.lastIndex = 0
     pattern.separatorRegex.lastIndex = 0
   }
   
-  // Fallback: check normalized text
+  // Fallback: check normalized text with word boundary
   const normalizedText = normalizeText(text)
+  const normalizedWords = normalizedText.split(/\s+/)
   const allRoots = [...BAD_WORD_ROOTS.tagalog, ...BAD_WORD_ROOTS.english]
   
   for (const word of allRoots) {
-    if (normalizedText.includes(word)) {
-      return true
+    for (const nWord of normalizedWords) {
+      if (nWord === word && !isWhitelisted(nWord)) {
+        return true
+      }
     }
   }
   

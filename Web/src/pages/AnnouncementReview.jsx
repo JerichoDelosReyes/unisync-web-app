@@ -404,9 +404,9 @@ export default function AnnouncementReview() {
                       <span className="text-xs font-semibold text-amber-800">Flagged Content:</span>
                     </div>
                     <div className="flex flex-wrap gap-2">
-                      {announcement.moderationResult.flaggedWords.map((word, idx) => (
+                      {announcement.moderationResult.flaggedWords.map((item, idx) => (
                         <span key={idx} className="px-2 py-1 text-xs font-medium bg-amber-200 text-amber-900 rounded">
-                          {word}
+                          {typeof item === 'string' ? item : item.word}
                         </span>
                       ))}
                     </div>
@@ -527,9 +527,9 @@ export default function AnnouncementReview() {
                     <span className="font-semibold text-amber-800">Content Flagged for Review</span>
                   </div>
                   <div className="flex flex-wrap gap-2">
-                    {selectedAnnouncement.moderationResult.flaggedWords.map((word, idx) => (
+                    {selectedAnnouncement.moderationResult.flaggedWords.map((item, idx) => (
                       <span key={idx} className="px-3 py-1.5 text-sm font-medium bg-amber-200 text-amber-900 rounded-lg">
-                        {word}
+                        {typeof item === 'string' ? item : item.word}
                       </span>
                     ))}
                   </div>

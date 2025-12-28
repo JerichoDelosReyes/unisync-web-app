@@ -1038,6 +1038,33 @@ export default function Announcements() {
     return ROLE_DISPLAY_NAMES[announcement.authorRole] || 'Member'
   }
 
+  // Get organization logo for announcements posted by org officers
+  const getOrgLogo = (orgCode) => {
+    const org = organizations.find(o => o.code === orgCode)
+    return org?.logo || null
+  }
+
+  // Get author display info - returns org info if organization context exists
+  const getAuthorDisplayInfo = (announcement) => {
+    if (announcement.author?.organizationContext) {
+      const { orgCode, orgName, position } = announcement.author.organizationContext
+      return {
+        isOrg: true,
+        logo: getOrgLogo(orgCode),
+        name: orgName,
+        subtitle: `${position} • ${announcement.authorName}`,
+        orgCode
+      }
+    }
+    return {
+      isOrg: false,
+      photo: announcement.authorPhotoURL,
+      name: announcement.authorName,
+      subtitle: getAuthorRoleDisplay(announcement),
+      initial: announcement.authorName?.charAt(0) || 'U'
+    }
+  }
+
   // Generate display text for target tags - strips prefixes for cleaner display
   const getTagDisplayText = (tag) => {
     if (!tag) return ''
@@ -1264,17 +1291,41 @@ export default function Announcements() {
                     <div className="px-4 py-3 border-b border-gray-100">
                       <div className="flex items-start justify-between mb-3">
                         <div className="flex items-center gap-3 flex-1">
-                          {announcement.authorPhotoURL ? (
-                            <img src={announcement.authorPhotoURL} alt="" className="w-10 h-10 rounded-full object-cover flex-shrink-0" />
-                          ) : (
-                            <div className="w-10 h-10 rounded-full bg-green-600 flex items-center justify-center text-white font-bold text-sm flex-shrink-0">
-                              {announcement.authorName?.charAt(0) || 'U'}
-                            </div>
-                          )}
-                          <div className="flex-1 min-w-0">
-                            <p className="text-sm font-bold text-gray-900">{announcement.authorName}</p>
-                            <p className="text-xs text-gray-500">{getAuthorRoleDisplay(announcement)} • {formatDate(announcement.createdAt)}</p>
-                          </div>
+                          {(() => {
+                            const authorInfo = getAuthorDisplayInfo(announcement)
+                            if (authorInfo.isOrg) {
+                              return (
+                                <>
+                                  <div className="w-10 h-10 rounded-xl bg-gray-100 flex items-center justify-center overflow-hidden flex-shrink-0">
+                                    {authorInfo.logo ? (
+                                      <img src={authorInfo.logo} alt={authorInfo.name} className="w-8 h-8 object-contain" />
+                                    ) : (
+                                      <span className="text-lg font-bold text-gray-600">{authorInfo.orgCode?.charAt(0)}</span>
+                                    )}
+                                  </div>
+                                  <div className="flex-1 min-w-0">
+                                    <p className="text-sm font-bold text-gray-900">{authorInfo.name}</p>
+                                    <p className="text-xs text-gray-500">{authorInfo.subtitle} • {formatDate(announcement.createdAt)}</p>
+                                  </div>
+                                </>
+                              )
+                            }
+                            return (
+                              <>
+                                {authorInfo.photo ? (
+                                  <img src={authorInfo.photo} alt="" className="w-10 h-10 rounded-full object-cover flex-shrink-0" />
+                                ) : (
+                                  <div className="w-10 h-10 rounded-full bg-green-600 flex items-center justify-center text-white font-bold text-sm flex-shrink-0">
+                                    {authorInfo.initial}
+                                  </div>
+                                )}
+                                <div className="flex-1 min-w-0">
+                                  <p className="text-sm font-bold text-gray-900">{authorInfo.name}</p>
+                                  <p className="text-xs text-gray-500">{authorInfo.subtitle} • {formatDate(announcement.createdAt)}</p>
+                                </div>
+                              </>
+                            )
+                          })()}
                         </div>
                         <div className="relative group flex-shrink-0">
                           <button
@@ -1316,12 +1367,24 @@ export default function Announcements() {
                               </button>
                             </div>
                           )}
-                          {/* Report option for all users */}
+                          {/* Report option for all users + Delete for own announcements */}
                           {!canModerate && (
                             <div className="absolute right-0 mt-1 w-40 bg-white rounded-lg shadow-lg border border-gray-200 py-1 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-20">
+                              {/* Delete button for own announcements */}
+                              {announcement.authorId === userProfile?.uid && (
+                                <button
+                                  onClick={() => setDeleteConfirm({ open: true, announcement })}
+                                  className="w-full flex items-center gap-2 px-4 py-2 text-sm text-red-600 hover:bg-red-50 transition-colors"
+                                >
+                                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                  </svg>
+                                  Delete
+                                </button>
+                              )}
                               <button
                                 onClick={() => setReportModal({ open: true, announcement })}
-                                className="w-full flex items-center gap-2 px-4 py-2 text-sm text-red-600 hover:bg-red-50 transition-colors"
+                                className={`w-full flex items-center gap-2 px-4 py-2 text-sm text-red-600 hover:bg-red-50 transition-colors ${announcement.authorId === userProfile?.uid ? 'border-t border-gray-100' : ''}`}
                               >
                                 <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
                                   <path d="M4 4a1 1 0 011-1h2.586a1 1 0 01.707.293l.707.707H15l.707-.707A1 1 0 0116.414 3H19a1 1 0 011 1v2a1 1 0 01-1 1h-.172l-.293.707A1 1 0 0117.828 8H16v12a1 1 0 01-1 1H9a1 1 0 01-1-1V8H6.172a1 1 0 01-.707-.293L5.172 7H5a1 1 0 01-1-1V4z" />
@@ -1562,17 +1625,41 @@ export default function Announcements() {
                     <div className="px-4 py-3 border-b border-gray-100">
                       <div className="flex items-start justify-between mb-3">
                         <div className="flex items-center gap-3 flex-1">
-                          {announcement.authorPhotoURL ? (
-                            <img src={announcement.authorPhotoURL} alt="" className="w-10 h-10 rounded-full object-cover flex-shrink-0" />
-                          ) : (
-                            <div className="w-10 h-10 rounded-full bg-green-600 flex items-center justify-center text-white font-bold text-sm flex-shrink-0">
-                              {announcement.authorName?.charAt(0) || 'U'}
-                            </div>
-                          )}
-                          <div className="flex-1 min-w-0">
-                            <p className="text-sm font-bold text-gray-900">{announcement.authorName}</p>
-                            <p className="text-xs text-gray-500">{getAuthorRoleDisplay(announcement)} • {formatDate(announcement.createdAt)}</p>
-                          </div>
+                          {(() => {
+                            const authorInfo = getAuthorDisplayInfo(announcement)
+                            if (authorInfo.isOrg) {
+                              return (
+                                <>
+                                  <div className="w-10 h-10 rounded-xl bg-gray-100 flex items-center justify-center overflow-hidden flex-shrink-0">
+                                    {authorInfo.logo ? (
+                                      <img src={authorInfo.logo} alt={authorInfo.name} className="w-8 h-8 object-contain" />
+                                    ) : (
+                                      <span className="text-lg font-bold text-gray-600">{authorInfo.orgCode?.charAt(0)}</span>
+                                    )}
+                                  </div>
+                                  <div className="flex-1 min-w-0">
+                                    <p className="text-sm font-bold text-gray-900">{authorInfo.name}</p>
+                                    <p className="text-xs text-gray-500">{authorInfo.subtitle} • {formatDate(announcement.createdAt)}</p>
+                                  </div>
+                                </>
+                              )
+                            }
+                            return (
+                              <>
+                                {authorInfo.photo ? (
+                                  <img src={authorInfo.photo} alt="" className="w-10 h-10 rounded-full object-cover flex-shrink-0" />
+                                ) : (
+                                  <div className="w-10 h-10 rounded-full bg-green-600 flex items-center justify-center text-white font-bold text-sm flex-shrink-0">
+                                    {authorInfo.initial}
+                                  </div>
+                                )}
+                                <div className="flex-1 min-w-0">
+                                  <p className="text-sm font-bold text-gray-900">{authorInfo.name}</p>
+                                  <p className="text-xs text-gray-500">{authorInfo.subtitle} • {formatDate(announcement.createdAt)}</p>
+                                </div>
+                              </>
+                            )
+                          })()}
                         </div>
                       </div>
                       <div className="flex items-center gap-2 flex-wrap">
@@ -1622,17 +1709,41 @@ export default function Announcements() {
                   <div className="px-4 py-3 border-b border-amber-100">
                     <div className="flex items-start justify-between mb-3">
                       <div className="flex items-center gap-3 flex-1">
-                        {announcement.authorPhotoURL ? (
-                          <img src={announcement.authorPhotoURL} alt="" className="w-10 h-10 rounded-full object-cover flex-shrink-0" />
-                        ) : (
-                          <div className="w-10 h-10 rounded-full bg-green-600 flex items-center justify-center text-white font-bold text-sm flex-shrink-0">
-                            {announcement.authorName?.charAt(0) || 'U'}
-                          </div>
-                        )}
-                        <div className="flex-1 min-w-0">
-                          <p className="text-sm font-bold text-gray-900">{announcement.authorName}</p>
-                          <p className="text-xs text-gray-500">{getAuthorRoleDisplay(announcement)} • {formatDate(announcement.createdAt)}</p>
-                        </div>
+                        {(() => {
+                          const authorInfo = getAuthorDisplayInfo(announcement)
+                          if (authorInfo.isOrg) {
+                            return (
+                              <>
+                                <div className="w-10 h-10 rounded-xl bg-gray-100 flex items-center justify-center overflow-hidden flex-shrink-0">
+                                  {authorInfo.logo ? (
+                                    <img src={authorInfo.logo} alt={authorInfo.name} className="w-8 h-8 object-contain" />
+                                  ) : (
+                                    <span className="text-lg font-bold text-gray-600">{authorInfo.orgCode?.charAt(0)}</span>
+                                  )}
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                  <p className="text-sm font-bold text-gray-900">{authorInfo.name}</p>
+                                  <p className="text-xs text-gray-500">{authorInfo.subtitle} • {formatDate(announcement.createdAt)}</p>
+                                </div>
+                              </>
+                            )
+                          }
+                          return (
+                            <>
+                              {authorInfo.photo ? (
+                                <img src={authorInfo.photo} alt="" className="w-10 h-10 rounded-full object-cover flex-shrink-0" />
+                              ) : (
+                                <div className="w-10 h-10 rounded-full bg-green-600 flex items-center justify-center text-white font-bold text-sm flex-shrink-0">
+                                  {authorInfo.initial}
+                                </div>
+                              )}
+                              <div className="flex-1 min-w-0">
+                                <p className="text-sm font-bold text-gray-900">{authorInfo.name}</p>
+                                <p className="text-xs text-gray-500">{authorInfo.subtitle} • {formatDate(announcement.createdAt)}</p>
+                              </div>
+                            </>
+                          )
+                        })()}
                       </div>
                       <span className="px-3 py-1 text-xs font-bold bg-amber-100 text-amber-800 rounded-full flex-shrink-0">
                         🔍 PENDING
@@ -2310,17 +2421,41 @@ export default function Announcements() {
               <div className="px-4 py-3">
                 <div className="flex items-start justify-between mb-3">
                   <div className="flex items-center gap-3 flex-1">
-                    {selectedAnnouncement.authorPhotoURL ? (
-                      <img src={selectedAnnouncement.authorPhotoURL} alt="" className="w-10 h-10 rounded-full object-cover flex-shrink-0" />
-                    ) : (
-                      <div className="w-10 h-10 rounded-full bg-green-600 flex items-center justify-center text-white font-bold text-sm flex-shrink-0">
-                        {selectedAnnouncement.authorName?.charAt(0) || 'U'}
-                      </div>
-                    )}
-                    <div className="flex-1 min-w-0">
-                      <p className="font-bold text-gray-900 text-sm">{selectedAnnouncement.authorName}</p>
-                      <p className="text-xs text-gray-500">{getAuthorRoleDisplay(selectedAnnouncement)}</p>
-                    </div>
+                    {(() => {
+                      const authorInfo = getAuthorDisplayInfo(selectedAnnouncement)
+                      if (authorInfo.isOrg) {
+                        return (
+                          <>
+                            <div className="w-10 h-10 rounded-xl bg-gray-100 flex items-center justify-center overflow-hidden flex-shrink-0">
+                              {authorInfo.logo ? (
+                                <img src={authorInfo.logo} alt={authorInfo.name} className="w-8 h-8 object-contain" />
+                              ) : (
+                                <span className="text-lg font-bold text-gray-600">{authorInfo.orgCode?.charAt(0)}</span>
+                              )}
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <p className="font-bold text-gray-900 text-sm">{authorInfo.name}</p>
+                              <p className="text-xs text-gray-500">{authorInfo.subtitle}</p>
+                            </div>
+                          </>
+                        )
+                      }
+                      return (
+                        <>
+                          {authorInfo.photo ? (
+                            <img src={authorInfo.photo} alt="" className="w-10 h-10 rounded-full object-cover flex-shrink-0" />
+                          ) : (
+                            <div className="w-10 h-10 rounded-full bg-green-600 flex items-center justify-center text-white font-bold text-sm flex-shrink-0">
+                              {authorInfo.initial}
+                            </div>
+                          )}
+                          <div className="flex-1 min-w-0">
+                            <p className="font-bold text-gray-900 text-sm">{authorInfo.name}</p>
+                            <p className="text-xs text-gray-500">{authorInfo.subtitle}</p>
+                          </div>
+                        </>
+                      )
+                    })()}
                   </div>
                 </div>
                 <p className="text-xs text-gray-500 flex items-center gap-2">
@@ -2894,9 +3029,9 @@ export default function Announcements() {
               <p className="text-sm font-semibold text-amber-800 mb-2">⚠️ Flagged words/phrases:</p>
               <div className="flex flex-wrap gap-2">
                 {contentWarningModal.flaggedWords.length > 0 ? (
-                  contentWarningModal.flaggedWords.map((word, idx) => (
+                  contentWarningModal.flaggedWords.map((item, idx) => (
                     <span key={idx} className="px-2 py-1 text-xs font-bold bg-amber-200 text-amber-900 rounded-lg">
-                      {word}
+                      {typeof item === 'string' ? item : item.word}
                     </span>
                   ))
                 ) : (

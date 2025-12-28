@@ -441,21 +441,9 @@ export const loginUser = async (email, password, rememberMe = false) => {
   } catch (error) {
     console.error('Login error:', error);
 
-    // Log failed login attempt
-    await createLog({
-      category: LOG_CATEGORIES.AUTH,
-      action: LOG_ACTIONS.LOGIN_FAILED,
-      performedBy: {
-        uid: 'anonymous',
-        email: email,
-        name: 'Unknown User'
-      },
-      details: {
-        errorCode: error.code,
-        errorMessage: error.message
-      },
-      description: `Login failed: ${error.code || 'unknown error'}`
-    });
+    // Note: We cannot log failed login attempts to Firestore since the user is not authenticated
+    // Failed login attempts could be logged to a separate analytics service or server-side function
+    // For security, we don't expose detailed logging for unauthenticated requests
 
     let errorMessage = 'Login failed. Please try again.';
 

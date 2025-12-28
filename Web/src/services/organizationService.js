@@ -528,8 +528,12 @@ export const tagOfficer = async (orgCode, userId, positionId, userInfo, taggedBy
     updatedAt: serverTimestamp()
   })
 
-  // Update user profile with officer tag
-  await updateDocument('users', userId, {
+  // Build the org tag with position (e.g., "org:CSC:PRESIDENT")
+  const orgTag = `org:${orgCode}:${position.title.toUpperCase().replace(/\s+/g, '_')}`
+
+  // Update user profile with officer tag and add to tags array
+  const userDocRef = doc(db, 'users', userId)
+  await updateDoc(userDocRef, {
     [`officerOf.${orgCode}`]: {
       orgCode,
       orgName: org.name,
@@ -537,7 +541,9 @@ export const tagOfficer = async (orgCode, userId, positionId, userInfo, taggedBy
       positionTitle: position.title,
       canTagOfficers: position.canTagOfficers || false,
       taggedAt: new Date().toISOString()
-    }
+    },
+    tags: arrayUnion(orgTag),
+    updatedAt: serverTimestamp()
   })
 
   return officerEntry
@@ -560,12 +566,23 @@ export const removeOfficer = async (orgCode, userId) => {
     updatedAt: serverTimestamp()
   })
 
-  // Remove from user profile
+  // Remove from user profile and remove the org tag
   const userDoc = await getDocument('users', userId)
-  if (userDoc?.officerOf) {
-    const updatedOfficerOf = { ...userDoc.officerOf }
+  if (userDoc) {
+    const updatedOfficerOf = { ...(userDoc.officerOf || {}) }
     delete updatedOfficerOf[orgCode]
-    await updateDocument('users', userId, { officerOf: updatedOfficerOf })
+    
+    // Remove the org tag from tags array (find and remove any tag starting with org:ORGCODE:)
+    const updatedTags = (userDoc.tags || []).filter(tag => 
+      !tag.startsWith(`org:${orgCode}:`)
+    )
+    
+    const userDocRef = doc(db, 'users', userId)
+    await updateDoc(userDocRef, {
+      officerOf: updatedOfficerOf,
+      tags: updatedTags,
+      updatedAt: serverTimestamp()
+    })
   }
 }
 

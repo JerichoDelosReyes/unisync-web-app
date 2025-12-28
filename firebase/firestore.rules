@@ -141,6 +141,12 @@ service cloud.firestore {
         && isFacultyOrAbove()
         && isReasonableSize();
       
+      // Org officers (President/Adviser) can update other users' officerOf and tags fields for tagging
+      allow update: if isAuthenticated()
+        && isOrgOfficer()
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['officerOf', 'tags', 'updatedAt'])
+        && isReasonableSize();
+      
       // Only Admin+ can delete users
       allow delete: if isAuthenticated() && isAdminOrAbove();
     }
@@ -171,8 +177,15 @@ service cloud.firestore {
         && (resource.data.authorId == request.auth.uid || isAdminOrAbove())
         && isReasonableSize();
       
-      // Delete: Admin+ only
-      allow delete: if isAuthenticated() && isAdminOrAbove();
+      // Update for moderation: Org officers can approve/reject announcements (presidents)
+      allow update: if isAuthenticated()
+        && isOrgOfficer()
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'rejectionReason', 'reviewedAt', 'reviewerNote', 'updatedAt'])
+        && isReasonableSize();
+      
+      // Delete: Own announcement or Admin+
+      allow delete: if isAuthenticated() 
+        && (resource.data.authorId == request.auth.uid || isAdminOrAbove());
       
       // Comments subcollection
       match /comments/{commentId} {
@@ -188,8 +201,11 @@ service cloud.firestore {
           && (resource.data.authorId == request.auth.uid || isAdminOrAbove())
           && isReasonableSize();
         
+        // Allow delete by: comment author, announcement author, or Admin+
         allow delete: if isAuthenticated() 
-          && (resource.data.authorId == request.auth.uid || isAdminOrAbove());
+          && (resource.data.authorId == request.auth.uid 
+              || get(/databases/$(database)/documents/announcements/$(announcementId)).data.authorId == request.auth.uid
+              || isAdminOrAbove());
       }
       
       // Reactions subcollection
@@ -227,22 +243,16 @@ service cloud.firestore {
     }
     
     // Allow faculty+ to list/query all schedules (for deriving faculty schedules)
+    // Also allow all authenticated users to read for room schedules display
     match /schedules/{document=**} {
-      allow list: if isAuthenticated() && isFacultyOrAbove();
+      allow read: if isAuthenticated();
+      allow list: if isAuthenticated();
     }
     
     // ==========================================
-    // ROOMS COLLECTION
+    // ROOMS COLLECTION (Duplicate removed - see below)
     // ==========================================
-    match /rooms/{roomId} {
-      allow read: if isAuthenticated();
-      
-      allow create, update: if isAuthenticated() 
-        && isAdminOrAbove()
-        && isReasonableSize();
-      
-      allow delete: if isAuthenticated() && isAdminOrAbove();
-    }
+    // Note: The actual rooms rules are defined after the logs collection
     
     // ==========================================
     // LOGS COLLECTION (Immutable Audit Trail)
@@ -265,11 +275,40 @@ service cloud.firestore {
     // SYSTEM SETTINGS
     // ==========================================
     match /settings/{settingId} {
-      allow read: if isAuthenticated() && isAdminOrAbove();
+      // Room status and room config: All authenticated can read, faculty+ can write roomStatus, admin+ can write roomConfig
+      allow read: if isAuthenticated();
       
+      // RoomStatus can be updated by faculty+, roomConfig by admin+, other settings by super_admin only
       allow write: if isAuthenticated() 
-        && isSuperAdmin()
+        && (
+          (settingId == 'roomStatus' && isFacultyOrAbove())
+          || (settingId == 'roomConfig' && isAdminOrAbove())
+          || isSuperAdmin()
+        )
         && isReasonableSize();
+    }
+    
+    // ==========================================
+    // ROOMS COLLECTION
+    // ==========================================
+    match /rooms/{roomId} {
+      // Read: All authenticated users can view rooms
+      allow read: if isAuthenticated();
+      
+      // Create: Class Rep+ can create rooms (when toggling a room not in system)
+      allow create: if isAuthenticated() && isClassRepOrAbove();
+      
+      // Delete: Admin+ only (deleting rooms)
+      allow delete: if isAuthenticated() && isAdminOrAbove();
+      
+      // Update: Class Rep+ can update room status fields (including vacancyPeriods), Admin+ can update everything
+      allow update: if isAuthenticated() 
+        && (
+          // Class Rep+ can only update status-related fields (including time-based vacancyPeriods)
+          (isClassRepOrAbove() && onlyAllowedFields(['occupied', 'vacancyPeriods', 'statusUpdatedAt', 'statusUpdatedBy']))
+          // Admin+ can update any field
+          || isAdminOrAbove()
+        );
     }
     
     // ==========================================
@@ -459,8 +498,8 @@ service cloud.firestore {
           isAdminOrAbove()
           // Faculty can update (adviser check done at app level)
           || isFacultyOrAbove()
-          // Students who are officers can update (check done at app level)
-          || (resource.data.officers != null && resource.data.officers.size() > 0)
+          // Students who are org officers can update (uses isOrgOfficer helper)
+          || isOrgOfficer()
         );
       
       // Delete: Only Super Admin

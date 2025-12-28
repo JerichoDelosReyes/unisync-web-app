@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useAuth } from '../../contexts/AuthContext'
 import { getFacultySchedule } from '../../services/scheduleService'
+import { updateRoomStatus, subscribeToRooms, isScheduleSlotVacant, isRoomCurrentlyVacant } from '../../services/roomService'
 import ProfessorClasses from './ProfessorClasses'
 
 const days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']
@@ -83,8 +84,43 @@ const FacultyScheduleCard = ({ schedule, onClick, style }) => {
 }
 
 // Schedule Detail Modal for Faculty
-const FacultyScheduleDetailModal = ({ schedule, isOpen, onClose }) => {
+const FacultyScheduleDetailModal = ({ schedule, isOpen, onClose, roomsMap = {}, userId = null }) => {
+  const [isTogglingRoom, setIsTogglingRoom] = useState(false)
+  
   if (!isOpen || !schedule) return null
+
+  // Handle combined room names (e.g., "RM.9/CL3" -> ["RM.9", "CL3"])
+  const normalizedInput = schedule.room?.toUpperCase().trim().replace(/\s+/g, '') || ''
+  const roomNames = normalizedInput.includes('/') 
+    ? normalizedInput.split('/').map(r => r.trim()).filter(r => r)
+    : [normalizedInput]
+  
+  // Find all rooms that exist in the system
+  const foundRooms = roomNames
+    .map(name => Object.values(roomsMap).find(r => r.name?.toUpperCase().trim().replace(/\s+/g, '') === name))
+    .filter(r => r)
+  
+  const missingRooms = roomNames.filter(name => 
+    !Object.values(roomsMap).find(r => r.name?.toUpperCase().trim().replace(/\s+/g, '') === name)
+  )
+  
+  // Check if ANY of the rooms have this time slot marked as vacant
+  const isThisSlotVacant = foundRooms.some(room => isScheduleSlotVacant(room, schedule))
+  // Check if ANY room is currently vacant (based on time)
+  const isCurrentlyVacant = foundRooms.some(room => isRoomCurrentlyVacant(room))
+
+  const handleToggleRoom = async () => {
+    setIsTogglingRoom(true)
+    try {
+      // Pass schedule object for time-based vacancy - will update ALL rooms
+      await updateRoomStatus(schedule.room, !isThisSlotVacant, userId, schedule)
+    } catch (error) {
+      console.error('Error toggling room status:', error)
+      alert(error.message || 'Failed to update room status')
+    } finally {
+      setIsTogglingRoom(false)
+    }
+  }
 
   return (
     <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[100] p-4">
@@ -128,9 +164,108 @@ const FacultyScheduleDetailModal = ({ schedule, isOpen, onClose }) => {
                 </svg>
                 <span className="text-xs font-medium uppercase tracking-wide">Room</span>
               </div>
-              <p className="text-gray-900 font-semibold">{schedule.room}</p>
+              <div className="flex items-center gap-2">
+                <p className="text-gray-900 font-semibold">{schedule.room}</p>
+                {room && (
+                  <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${
+                    isCurrentlyVacant ? 'bg-emerald-100 text-emerald-700' : 'bg-red-100 text-red-700'
+                  }`}>
+                    {isCurrentlyVacant ? 'Vacant Now' : 'Occupied'}
+                  </span>
+                )}
+              </div>
             </div>
           </div>
+
+          {/* Room Status Toggle - Time-Based Vacancy */}
+          {schedule.room && schedule.room !== 'TBA' && (
+            foundRooms.length === 0 ? (
+              // No rooms in system - show warning
+              <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 mb-6">
+                <div className="flex items-start gap-3">
+                  <svg className="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                  </svg>
+                  <div className="flex-1">
+                    <p className="text-sm font-medium text-amber-800 mb-1">Room(s) Not in System</p>
+                    <p className="text-xs text-amber-700">
+                      Room(s) "{roomNames.join(', ')}" not registered in the system. Please contact an admin to add these rooms.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            ) : (
+              // Rooms exist - show toggle
+              <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 mb-6">
+                <div className="flex items-start gap-3">
+                  <svg className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                  </svg>
+                  <div className="flex-1">
+                    <p className="text-sm font-medium text-blue-800 mb-2">Room Status Control</p>
+                    
+                    {/* Show which rooms will be updated */}
+                    {roomNames.length > 1 && (
+                      <div className="bg-white/60 rounded-lg px-3 py-2 mb-2">
+                        <p className="text-xs text-gray-600">
+                          <span className="font-medium">Rooms:</span> {foundRooms.map(r => r.name).join(', ')}
+                          {missingRooms.length > 0 && (
+                            <span className="text-amber-600"> (missing: {missingRooms.join(', ')})</span>
+                          )}
+                        </p>
+                      </div>
+                    )}
+                    
+                    {/* Show time slot info */}
+                    <div className="bg-white/60 rounded-lg px-3 py-2 mb-3">
+                      <div className="flex items-center gap-2 text-xs text-gray-600">
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                        <span className="font-medium">{schedule.day}</span>
+                        <span>•</span>
+                        <span>{schedule.startTime} - {schedule.endTime}</span>
+                      </div>
+                      {isThisSlotVacant && (
+                        <p className="text-emerald-600 text-xs mt-1 font-medium">
+                          ✓ This time slot is marked as vacant
+                        </p>
+                      )}
+                    </div>
+                    
+                    <p className="text-xs text-blue-600 mb-3">
+                      {isThisSlotVacant 
+                        ? 'Remove the vacancy marking for this time slot.'
+                        : `Mark this room as vacant during ${schedule.startTime} - ${schedule.endTime} on ${schedule.day}.`}
+                    </p>
+                    <button
+                      onClick={handleToggleRoom}
+                      disabled={isTogglingRoom}
+                      className={`w-full px-4 py-2 rounded-lg font-medium text-sm transition-colors ${
+                        isThisSlotVacant
+                          ? 'bg-red-500 hover:bg-red-600 text-white'
+                          : 'bg-emerald-500 hover:bg-emerald-600 text-white'
+                      } disabled:opacity-50`}
+                    >
+                      {isTogglingRoom ? (
+                        <span className="flex items-center justify-center gap-2">
+                          <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
+                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                          </svg>
+                          Updating...
+                        </span>
+                      ) : isThisSlotVacant ? (
+                        <>⏺ Remove Vacant Marking</>
+                      ) : (
+                        <>✓ Mark as Vacant ({schedule.startTime} - {schedule.endTime})</>
+                      )}
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )
+          )}
 
           {/* Student Count */}
           <div className="bg-primary/5 border border-primary/20 rounded-xl p-4 mb-6">
@@ -249,9 +384,23 @@ export default function FacultyScheduleView() {
   const [minimumStudentsRequired, setMinimumStudentsRequired] = useState(5)
   // Tab state for switching between views
   const [activeTab, setActiveTab] = useState('schedule') // 'schedule' or 'claim'
+  // Rooms state for real-time room status
+  const [roomsMap, setRoomsMap] = useState({})
 
   // Cell height for calendar view
   const cellHeight = 60
+
+  // Subscribe to rooms for real-time status updates
+  useEffect(() => {
+    const unsubscribe = subscribeToRooms((rooms) => {
+      const map = {}
+      rooms.forEach(room => {
+        map[room.id] = room
+      })
+      setRoomsMap(map)
+    })
+    return () => unsubscribe()
+  }, [])
 
   // Load faculty schedule
   useEffect(() => {
@@ -661,6 +810,8 @@ export default function FacultyScheduleView() {
         schedule={selectedSchedule}
         isOpen={!!selectedSchedule}
         onClose={() => setSelectedSchedule(null)}
+        roomsMap={roomsMap}
+        userId={user?.uid}
       />
     </div>
   )
