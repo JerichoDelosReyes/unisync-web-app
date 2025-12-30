@@ -7,6 +7,7 @@ import { auth } from '../config/firebase'
 import { ALLOWED_DOMAIN } from '../services/authService'
 import { DEPARTMENTS, DEPARTMENT_CODES, DEPT_ORG_MAPPING, STUDENT_ORGS, YEAR_LEVELS } from '../constants/targeting'
 import { createLog, LOG_CATEGORIES, LOG_ACTIONS } from '../services/logService'
+import { tagOfficer, removeOfficer, EXECUTIVE_POSITIONS } from '../services/organizationService'
 
 /**
  * Get pastel tag color based on tag type
@@ -83,17 +84,8 @@ export default function UserManagement() {
     'Honor Society'
   ]
   
-  // Position options
-  const positions = [
-    'President',
-    'Vice President',
-    'Secretary',
-    'Treasurer',
-    'Auditor',
-    'P.R.O',
-    'Officer',
-    'Member'
-  ]
+  // Position options - use EXECUTIVE_POSITIONS from organization service
+  const positions = EXECUTIVE_POSITIONS.map(p => p.title)
   
   // Pagination
   const [currentPage, setCurrentPage] = useState(1)
@@ -1079,16 +1071,57 @@ export default function UserManagement() {
                   {/* Single Add Button */}
                   <button
                     onClick={async () => {
-                      if (selectedOrg && selectedPosition) {
-                        // Add combined tag: ORG POSITION (e.g., "CSC PRESIDENT")
-                        await handleAddTag(`${selectedOrg} ${selectedPosition.toUpperCase()}`)
-                      } else if (selectedOrg) {
-                        await handleAddTag(`org:${selectedOrg}`)
-                      } else if (selectedPosition) {
-                        await handleAddTag(selectedPosition.toUpperCase())
+                      try {
+                        setSavingTags(true)
+                        if (selectedOrg && selectedPosition) {
+                          // Use the organization service to properly tag the officer
+                          // Find position ID from EXECUTIVE_POSITIONS
+                          const positionConfig = EXECUTIVE_POSITIONS.find(
+                            p => p.title.toUpperCase() === selectedPosition.toUpperCase() ||
+                                 p.id.toUpperCase() === selectedPosition.toUpperCase()
+                          )
+                          const positionId = positionConfig?.id || selectedPosition.toLowerCase().replace(/\s+/g, '_')
+                          const positionTitle = positionConfig?.title || selectedPosition
+                          
+                          await tagOfficer(
+                            selectedOrg,
+                            tagModalUser.id,
+                            positionId,
+                            positionTitle,
+                            {
+                              uid: userProfile.id,
+                              name: `${userProfile.givenName} ${userProfile.lastName}`
+                            }
+                          )
+                          
+                          // Refresh user data
+                          const updatedUser = await getDocuments('users').then(users => 
+                            users.find(u => u.id === tagModalUser.id)
+                          )
+                          if (updatedUser) {
+                            setUsers(prevUsers => 
+                              prevUsers.map(user => 
+                                user.id === tagModalUser.id ? updatedUser : user
+                              )
+                            )
+                            setTagModalUser(updatedUser)
+                          }
+                          
+                          showToast(`Tagged as ${selectedOrg} ${positionTitle}`, 'success')
+                        } else if (selectedOrg) {
+                          // Just add org membership tag
+                          await handleAddTag(`org:${selectedOrg}`)
+                        } else if (selectedPosition) {
+                          await handleAddTag(selectedPosition.toUpperCase())
+                        }
+                      } catch (err) {
+                        console.error('Error tagging officer:', err)
+                        showToast(err.message || 'Failed to tag officer', 'error')
+                      } finally {
+                        setSavingTags(false)
+                        setSelectedOrg('')
+                        setSelectedPosition('')
                       }
-                      setSelectedOrg('')
-                      setSelectedPosition('')
                     }}
                     disabled={(!selectedOrg && !selectedPosition) || savingTags}
                     className="px-4 py-2 bg-primary text-white text-sm font-medium rounded-lg hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors whitespace-nowrap"

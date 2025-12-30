@@ -621,17 +621,45 @@ class NaiveBayesClassifier {
 
   /**
    * Get flagged words that contributed to unsafe classification
+   * Excludes common stopwords and short words to reduce false positives
    */
   getFlaggedWords(text) {
+    // Common stopwords that should never be flagged
+    const STOPWORDS = new Set([
+      'a', 'an', 'the', 'and', 'or', 'but', 'is', 'are', 'was', 'were', 'be', 'been', 'being',
+      'have', 'has', 'had', 'do', 'does', 'did', 'will', 'would', 'could', 'should', 'may', 'might',
+      'must', 'can', 'this', 'that', 'these', 'those', 'i', 'you', 'he', 'she', 'it', 'we', 'they',
+      'me', 'him', 'her', 'us', 'them', 'my', 'your', 'his', 'its', 'our', 'their',
+      'what', 'which', 'who', 'whom', 'whose', 'when', 'where', 'why', 'how',
+      'all', 'each', 'every', 'both', 'few', 'more', 'most', 'other', 'some', 'such',
+      'no', 'not', 'only', 'own', 'same', 'so', 'than', 'too', 'very', 'just',
+      'also', 'now', 'here', 'there', 'then', 'once', 'if', 'else', 'while', 'as', 'at', 'by',
+      'for', 'from', 'in', 'into', 'of', 'off', 'on', 'onto', 'out', 'over', 'to', 'up', 'with',
+      'about', 'after', 'again', 'any', 'because', 'before', 'below', 'between', 'during',
+      'under', 'until', 'above', 'through', 'against', 'among', 'around', 'down',
+      'test', 'created', 'echo', 'announcement', 'please', 'thank', 'thanks', 'hello', 'hi',
+      'good', 'great', 'nice', 'well', 'new', 'first', 'last', 'long', 'little', 'own',
+      'today', 'tomorrow', 'yesterday', 'morning', 'afternoon', 'evening', 'night',
+      'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday',
+      'january', 'february', 'march', 'april', 'may', 'june', 'july', 'august',
+      'september', 'october', 'november', 'december'
+    ])
+
     const words = this.tokenize(text)
     const flaggedWords = []
 
     words.forEach(word => {
+      // Skip stopwords and short words (less than 4 characters)
+      if (STOPWORDS.has(word.toLowerCase()) || word.length < 4) {
+        return
+      }
+
       const safeProb = this.wordProbability(word, 'safe')
       const unsafeProb = this.wordProbability(word, 'unsafe')
 
-      // Word is flagged if it's more likely in unsafe content
-      if (unsafeProb > safeProb * 1.5) {
+      // Word is flagged only if it's significantly more likely in unsafe content
+      // Increased threshold from 1.5 to 3.0 to reduce false positives
+      if (unsafeProb > safeProb * 3.0 && unsafeProb > 0.001) {
         flaggedWords.push({
           word,
           unsafeProbability: unsafeProb,
@@ -726,6 +754,10 @@ export const moderateContent = (title, content) => {
 
   // LAYER 2: Naive Bayes classification for spam and subtle unsafe content
   const result = moderationClassifier.classify(fullText)
+  
+  // Get flagged words BEFORE making decision
+  // This filters out stopwords like "this", "only", etc.
+  const flaggedWords = result.category === 'unsafe' ? moderationClassifier.getFlaggedWords(fullText) : []
 
   // Determine action based on classification
   // Lower thresholds to reduce false "pending review" cases
@@ -743,8 +775,12 @@ export const moderateContent = (title, content) => {
       message = 'Content sent for manual review. An administrator will review it shortly.'
     }
   } else {
-    // Classified as unsafe
-    if (result.confidence > 0.75) {
+    // Classified as unsafe - BUT only if there are actual flagged words
+    // If no flagged words after filtering stopwords, approve it (false positive)
+    if (flaggedWords.length === 0) {
+      status = 'approved'
+      message = 'Content approved! Your announcement is now published.'
+    } else if (result.confidence > 0.75) {
       status = 'rejected'
       message = 'Content flagged as potentially inappropriate. It will be reviewed by an administrator.'
     } else if (result.confidence > 0.6) {
@@ -765,7 +801,7 @@ export const moderateContent = (title, content) => {
     category: result.category,
     filterType: 'naive_bayes',
     probabilities: result.probabilities,
-    flaggedWords: result.category === 'unsafe' ? moderationClassifier.getFlaggedWords(fullText) : [],
+    flaggedWords: flaggedWords,
     timestamp: new Date().toISOString()
   }
 }

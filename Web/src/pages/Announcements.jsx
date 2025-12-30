@@ -5,9 +5,6 @@ import {
   createAnnouncement,
   getAnnouncementsForUser,
   getAllAnnouncements,
-  getPendingAnnouncements,
-  approveAnnouncement,
-  rejectAnnouncement,
   deleteAnnouncement,
   updateAnnouncement,
   removeMediaFromAnnouncement,
@@ -47,7 +44,6 @@ import HonorSocLogo from '../assets/img/HONORSOC-removebg-preview.png'
  * Features:
  * - View announcements filtered by user tags
  * - Create announcements with media (photos/videos)
- * - Moderation queue for Admin+ to review pending announcements
  * - Tag-based visibility targeting
  */
 export default function Announcements() {
@@ -56,10 +52,9 @@ export default function Announcements() {
   
   // State
   const [announcements, setAnnouncements] = useState([])
-  const [pendingAnnouncements, setPendingAnnouncements] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
-  const [activeTab, setActiveTab] = useState('all') // 'all', 'pending', 'create'
+  const [activeTab, setActiveTab] = useState('all') // 'all', 'important', 'academic', 'general', 'organizations'
   const [toast, setToast] = useState({ show: false, message: '', kind: 'info' })
   const [selectedAnnouncement, setSelectedAnnouncement] = useState(null)
   
@@ -157,6 +152,7 @@ export default function Announcements() {
   
   // User can create if they are Class Rep OR Org Officer OR higher role
   const canCreate = hasMinRole(ROLES.CLASS_REP) || isOrgOfficer
+  // Admin+ can edit/delete any announcement
   const canModerate = hasMinRole(ROLES.ADMIN)
   // Admin+ skips review queue but profanity is ALWAYS checked
   const skipReviewQueue = hasMinRole(ROLES.ADMIN)
@@ -211,12 +207,6 @@ export default function Announcements() {
         // Pass userId so authors can always see their own announcements
         const data = await getAnnouncementsForUser(userTags, { userId: user?.uid })
         setAnnouncements(data)
-        
-        // Fetch pending if user can moderate
-        if (canModerate) {
-          const pending = await getPendingAnnouncements()
-          setPendingAnnouncements(pending)
-        }
       } catch (err) {
         console.error('Error fetching announcements:', err)
         setError('Failed to load announcements')
@@ -226,7 +216,7 @@ export default function Announcements() {
     }
 
     fetchAnnouncements()
-  }, [userProfile, canModerate, user])
+  }, [userProfile, user])
 
   // Handle navigation state to open specific announcement (only once on initial load)
   useEffect(() => {
@@ -671,80 +661,6 @@ export default function Announcements() {
     await submitAnnouncement(skipReviewQueue)
   }
 
-  // Handle approval
-  const handleApprove = async (announcementId) => {
-    try {
-      const approved = pendingAnnouncements.find(a => a.id === announcementId)
-      await approveAnnouncement(announcementId)
-      showToast('Announcement approved!', 'success')
-      
-      // Log the approval
-      await createLog({
-        category: LOG_CATEGORIES.ANNOUNCEMENTS,
-        action: LOG_ACTIONS.ANNOUNCEMENT_APPROVE,
-        performedBy: {
-          uid: user.uid,
-          email: user.email,
-          name: `${userProfile.givenName} ${userProfile.lastName}`
-        },
-        targetUser: approved ? {
-          uid: approved.authorId,
-          email: null,
-          name: approved.authorName
-        } : null,
-        details: {
-          announcementId,
-          title: approved?.title
-        },
-        description: `Approved announcement: "${approved?.title || announcementId}"`
-      })
-      
-      // Move from pending to approved
-      if (approved) {
-        approved.status = ANNOUNCEMENT_STATUS.APPROVED
-        setAnnouncements(prev => [approved, ...prev])
-        setPendingAnnouncements(prev => prev.filter(a => a.id !== announcementId))
-      }
-    } catch (err) {
-      showToast('Failed to approve announcement', 'error')
-    }
-  }
-
-  // Handle rejection
-  const handleReject = async (announcementId, reason = '') => {
-    try {
-      const rejected = pendingAnnouncements.find(a => a.id === announcementId)
-      await rejectAnnouncement(announcementId, reason)
-      showToast('Announcement rejected', 'info')
-      
-      // Log the rejection
-      await createLog({
-        category: LOG_CATEGORIES.ANNOUNCEMENTS,
-        action: LOG_ACTIONS.ANNOUNCEMENT_REJECT,
-        performedBy: {
-          uid: user.uid,
-          email: user.email,
-          name: `${userProfile.givenName} ${userProfile.lastName}`
-        },
-        targetUser: rejected ? {
-          uid: rejected.authorId,
-          email: null,
-          name: rejected.authorName
-        } : null,
-        details: {
-          announcementId,
-          title: rejected?.title,
-          reason
-        },
-        description: `Rejected announcement: "${rejected?.title || announcementId}"`
-      })
-      
-      setPendingAnnouncements(prev => prev.filter(a => a.id !== announcementId))
-    } catch (err) {
-      showToast('Failed to reject announcement', 'error')
-    }
-  }
-
   // Handle report submission
   const handleSubmitReport = async () => {
     if (!reportModal.announcement) return
@@ -800,7 +716,6 @@ export default function Announcements() {
       })
       
       setAnnouncements(prev => prev.filter(a => a.id !== announcementId))
-      setPendingAnnouncements(prev => prev.filter(a => a.id !== announcementId))
       setSelectedAnnouncement(null)
       setDeleteConfirm({ open: false, announcement: null })
     } catch (err) {
@@ -1208,27 +1123,19 @@ export default function Announcements() {
           { key: 'important', label: 'Important' },
           { key: 'academic', label: 'Academic' },
           { key: 'general', label: 'General' },
-          { key: 'organizations', label: 'Organizations' },
-          { key: 'pending', label: 'Pending Review', show: canModerate }
+          { key: 'organizations', label: 'Organizations' }
         ].map(tab => (
-          tab.show !== false && (
-            <button
-              key={tab.key}
-              onClick={() => setActiveTab(tab.key)}
-              className={`px-4 py-2 font-medium text-sm rounded-lg whitespace-nowrap transition-all ${
-                activeTab === tab.key
-                  ? 'bg-green-600 text-white shadow-md'
-                  : 'bg-white text-gray-700 border border-gray-300 hover:border-green-600 hover:text-green-600'
-              }`}
-            >
-              {tab.label}
-              {tab.key === 'pending' && pendingAnnouncements.length > 0 && (
-                <span className="ml-2 px-2 py-0.5 text-xs font-bold bg-red-500 text-white rounded-full inline-block">
-                  {pendingAnnouncements.length}
-                </span>
-              )}
-            </button>
-          )
+          <button
+            key={tab.key}
+            onClick={() => setActiveTab(tab.key)}
+            className={`px-4 py-2 font-medium text-sm rounded-lg whitespace-nowrap transition-all ${
+              activeTab === tab.key
+                ? 'bg-green-600 text-white shadow-md'
+                : 'bg-white text-gray-700 border border-gray-300 hover:border-green-600 hover:text-green-600'
+            }`}
+          >
+            {tab.label}
+          </button>
         ))}
       </div>
 
@@ -1589,9 +1496,19 @@ export default function Announcements() {
           </div>
           {(() => {
             // Filter by org code in both new format (org:CSC) and legacy format (CSC, Computer Science Clique)
+            // Also include announcements AUTHORED BY the organization (including campus-wide announcements)
             const orgCode = selectedOrganization.code
             const orgName = selectedOrganization.name
             const orgAnnouncements = announcements.filter(a => {
+              // Check if announcement was AUTHORED BY this organization
+              const authorOrg = a.author?.organizationContext
+              if (authorOrg) {
+                if (authorOrg.code === orgCode || authorOrg.orgCode === orgCode) {
+                  return true // This org authored the announcement (including campus-wide)
+                }
+              }
+              
+              // Check if announcement was TARGETED TO this organization
               if (!a.targetTags || a.targetTags.length === 0) return false
               return a.targetTags.some(tag => {
                 const tagLower = tag.toLowerCase()
@@ -1681,146 +1598,6 @@ export default function Announcements() {
               </div>
             )
           })()}
-        </div>
-      )}
-
-      {/* Pending Review Tab */}
-      {!loading && !error && activeTab === 'pending' && canModerate && (
-        <div>
-          {pendingAnnouncements.length === 0 ? (
-            <div className="bg-gradient-to-br from-white to-gray-50 rounded-2xl border-2 border-dashed border-emerald-300 p-16 text-center">
-              <div className="w-20 h-20 rounded-full bg-emerald-100 flex items-center justify-center mx-auto mb-4">
-                <svg className="w-10 h-10 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-              </div>
-              <h3 className="text-2xl font-bold text-gray-900 mb-2">All Clear!</h3>
-              <p className="text-gray-600">No pending announcements to review. Great work keeping things clean!</p>
-            </div>
-          ) : (
-            <div className="space-y-4 max-w-2xl mx-auto">
-              {pendingAnnouncements.map((announcement, idx) => (
-                <div
-                  key={announcement.id}
-                  className="bg-white rounded-2xl border border-amber-200 overflow-hidden shadow-sm hover:shadow-md transition-all"
-                  style={{ animationDelay: `${idx * 50}ms` }}
-                >
-                  {/* Header - Facebook Style */}
-                  <div className="px-4 py-3 border-b border-amber-100">
-                    <div className="flex items-start justify-between mb-3">
-                      <div className="flex items-center gap-3 flex-1">
-                        {(() => {
-                          const authorInfo = getAuthorDisplayInfo(announcement)
-                          if (authorInfo.isOrg) {
-                            return (
-                              <>
-                                <div className="w-10 h-10 rounded-xl bg-gray-100 flex items-center justify-center overflow-hidden flex-shrink-0">
-                                  {authorInfo.logo ? (
-                                    <img src={authorInfo.logo} alt={authorInfo.name} className="w-8 h-8 object-contain" />
-                                  ) : (
-                                    <span className="text-lg font-bold text-gray-600">{authorInfo.orgCode?.charAt(0)}</span>
-                                  )}
-                                </div>
-                                <div className="flex-1 min-w-0">
-                                  <p className="text-sm font-bold text-gray-900">{authorInfo.name}</p>
-                                  <p className="text-xs text-gray-500">{authorInfo.subtitle} • {formatDate(announcement.createdAt)}</p>
-                                </div>
-                              </>
-                            )
-                          }
-                          return (
-                            <>
-                              {authorInfo.photo ? (
-                                <img src={authorInfo.photo} alt="" className="w-10 h-10 rounded-full object-cover flex-shrink-0" />
-                              ) : (
-                                <div className="w-10 h-10 rounded-full bg-green-600 flex items-center justify-center text-white font-bold text-sm flex-shrink-0">
-                                  {authorInfo.initial}
-                                </div>
-                              )}
-                              <div className="flex-1 min-w-0">
-                                <p className="text-sm font-bold text-gray-900">{authorInfo.name}</p>
-                                <p className="text-xs text-gray-500">{authorInfo.subtitle} • {formatDate(announcement.createdAt)}</p>
-                              </div>
-                            </>
-                          )
-                        })()}
-                      </div>
-                      <span className="px-3 py-1 text-xs font-bold bg-amber-100 text-amber-800 rounded-full flex-shrink-0">
-                        🔍 PENDING
-                      </span>
-                    </div>
-                    
-                    {/* Priority Badge */}
-                    <div>
-                      <span className={`px-2.5 py-1 text-xs font-bold rounded-full uppercase tracking-wide inline-block ${getPriorityColor(announcement.priority)}`}>
-                        {announcement.priority?.toUpperCase() || 'NORMAL'}
-                      </span>
-                    </div>
-                  </div>
-                  
-                  {/* Content */}
-                  <div className="px-4 py-3">
-                    <h3 className="text-base font-bold text-gray-900 mb-2 line-clamp-2">
-                      {announcement.title}
-                    </h3>
-                    <p className="text-sm text-gray-700 leading-relaxed mb-4">
-                      {announcement.content}
-                    </p>
-                    
-                    {/* Moderation Details Card */}
-                    {announcement.moderationResult && (
-                      <div className="bg-amber-50 border-l-4 border-amber-400 rounded-lg p-4 mb-4">
-                        <p className="text-xs font-bold text-amber-900 mb-2 flex items-center gap-2">
-                          <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
-                            <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z" />
-                          </svg>
-                          Moderation Details
-                        </p>
-                        <div className="grid grid-cols-2 gap-2 text-xs text-amber-800">
-                          <div>
-                            <p className="font-semibold">Category:</p>
-                            <p className="text-amber-700 capitalize">{announcement.moderationResult.category}</p>
-                          </div>
-                          <div>
-                            <p className="font-semibold">Confidence:</p>
-                            <p className="text-amber-700">{(announcement.moderationResult.confidence * 100).toFixed(1)}%</p>
-                          </div>
-                        </div>
-                        {announcement.moderationResult.flaggedWords?.length > 0 && (
-                          <div className="mt-2">
-                            <p className="font-semibold text-amber-900">Flagged Words:</p>
-                            <div className="flex flex-wrap gap-1 mt-1">
-                              {announcement.moderationResult.flaggedWords.map((w, idx) => (
-                                <span key={idx} className="px-2 py-1 text-xs bg-red-100 text-red-700 rounded font-medium">
-                                  {w.word || w}
-                                </span>
-                              ))}
-                            </div>
-                          </div>
-                        )}
-                      </div>
-                    )}
-                  </div>
-                  
-                  {/* Admin Actions */}
-                  <div className="px-4 py-3 border-t border-amber-100 bg-amber-50 flex gap-2">
-                    <button
-                      onClick={() => handleReject(announcement.id)}
-                      className="flex-1 px-4 py-2.5 text-sm font-bold text-red-700 bg-white border border-red-300 rounded-lg hover:bg-red-50 transition-all"
-                    >
-                      ✗ Reject
-                    </button>
-                    <button
-                      onClick={() => handleApprove(announcement.id)}
-                      className="flex-1 px-4 py-2.5 text-sm font-bold text-white bg-emerald-500 rounded-lg hover:bg-emerald-600 transition-all"
-                    >
-                      ✓ Approve
-                    </button>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
         </div>
       )}
       </div>

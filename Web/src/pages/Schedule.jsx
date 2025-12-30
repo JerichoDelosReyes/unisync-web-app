@@ -309,7 +309,7 @@ const parseStudentName = (fullName) => {
       parts.pop()
     }
     
-    // Check for middle initial
+    // Check for middle initial (at the end, after first name parts)
     if (parts.length >= 2) {
       const potentialMiddle = parts[parts.length - 1]
       if (middleInitialPattern.test(potentialMiddle) && potentialMiddle.length <= 2) {
@@ -318,7 +318,8 @@ const parseStudentName = (fullName) => {
       }
     }
     
-    const lastName = parts.pop() || ''
+    // CvSU format is "LAST FIRST MIDDLE" - first word is lastName
+    const lastName = parts.shift() || ''
     const givenName = parts.join(' ')
     
     return {

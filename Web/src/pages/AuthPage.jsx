@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import BrandLogo from '../components/BrandLogo.jsx'
 import TextInput from '../components/forms/TextInput.jsx'
@@ -14,7 +14,8 @@ import {
   registerUser,
   loginUser,
   resendVerificationEmail,
-  completeRegistration
+  completeRegistration,
+  checkLoginLockout
 } from '../services/authService.js'
 
 export default function AuthPage() {
@@ -25,6 +26,7 @@ export default function AuthPage() {
   const [signInEmail, setSignInEmail] = useState('')
   const [signInPassword, setSignInPassword] = useState('')
   const [signInLoading, setSignInLoading] = useState(false)
+  const [lockoutTime, setLockoutTime] = useState(0) // Countdown timer for lockout
   
   // Sign Up State
   const [givenName, setGivenName] = useState('')
@@ -60,9 +62,42 @@ export default function AuthPage() {
     setTimeout(() => setToast({ show: false, message: '', kind: 'info' }), 5000)
   }
   
+  // Countdown timer effect for lockout
+  useEffect(() => {
+    if (lockoutTime > 0) {
+      const timer = setInterval(() => {
+        setLockoutTime(prev => {
+          if (prev <= 1) {
+            clearInterval(timer)
+            return 0
+          }
+          return prev - 1
+        })
+      }, 1000)
+      return () => clearInterval(timer)
+    }
+  }, [lockoutTime])
+  
+  // Check lockout status when email changes
+  useEffect(() => {
+    if (signInEmail && signInEmail.includes('@')) {
+      const status = checkLoginLockout(signInEmail)
+      if (status.isLocked) {
+        setLockoutTime(status.remainingTime)
+      }
+    }
+  }, [signInEmail])
+  
   // Handle Sign In
   const handleSignIn = async (e) => {
     e.preventDefault()
+    
+    // Check if locked out
+    if (lockoutTime > 0) {
+      showToast(`Please wait ${lockoutTime} seconds before trying again`, 'warning')
+      return
+    }
+    
     setSignInLoading(true)
     setShowResendVerification(false)
     
@@ -92,6 +127,13 @@ export default function AuthPage() {
     // Login with Firebase
     const result = await loginUser(signInEmail, signInPassword)
     setSignInLoading(false)
+    
+    // Handle lockout
+    if (result.isLocked) {
+      setLockoutTime(result.remainingTime)
+      showToast(result.error, 'warning')
+      return
+    }
     
     // Check if email needs verification
     if (result.needsVerification) {
@@ -423,9 +465,19 @@ export default function AuthPage() {
                 </div>
               </div>
 
-              <Button type="submit" disabled={signInLoading} className="w-full">
-                {signInLoading ? 'Signing in...' : 'Sign in'}
+              <Button type="submit" disabled={signInLoading || lockoutTime > 0} className="w-full">
+                {lockoutTime > 0 
+                  ? `Try again in ${lockoutTime}s` 
+                  : signInLoading 
+                    ? 'Signing in...' 
+                    : 'Sign in'}
               </Button>
+              
+              {lockoutTime > 0 && (
+                <p className="text-center text-sm text-red-600">
+                  Too many failed attempts. Please wait before trying again.
+                </p>
+              )}
 
               <p className="text-center text-xs text-gray-500">
                 This system is exclusively for CvSU Imus Campus community.<br />

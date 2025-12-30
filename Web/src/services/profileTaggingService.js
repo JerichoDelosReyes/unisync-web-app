@@ -16,6 +16,7 @@ import {
   STUDENT_ORGS,
   YEAR_LEVELS 
 } from '../constants/targeting'
+import { getOrganizationByCourse } from './organizationService'
 
 /**
  * Tag types used in the system
@@ -344,10 +345,21 @@ export const updateUserProfileTags = async (userId, profileData) => {
     }
   }
   
-  // Handle program
+  // Handle program/course
   if (profileData.program) {
     tags.push(buildTag(TAG_TYPES.PROGRAM, profileData.program.toUpperCase()))
     updates.program = profileData.program.toUpperCase()
+  }
+  
+  // Auto-add organization tag based on course
+  // Students are automatically members of their course organization
+  const courseValue = profileData.course || profileData.program
+  if (courseValue) {
+    const orgCode = getOrganizationByCourse(courseValue)
+    if (orgCode) {
+      tags.push(buildTag(TAG_TYPES.ORGANIZATION, orgCode))
+      updates.courseOrganization = orgCode // Track which org they're auto-enrolled in
+    }
   }
   
   // Handle year level

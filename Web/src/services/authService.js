@@ -39,6 +39,92 @@ export const USER_ROLES = {
 // Default role for new registrations
 export const DEFAULT_ROLE = USER_ROLES.STUDENT;
 
+// Login attempt tracking
+const MAX_LOGIN_ATTEMPTS = 5;
+const LOCKOUT_DURATION_MS = 60000; // 1 minute lockout
+const LOGIN_ATTEMPTS_KEY = 'unisync_login_attempts';
+
+/**
+ * Get login attempts data from localStorage
+ */
+const getLoginAttempts = (email) => {
+  const key = `${LOGIN_ATTEMPTS_KEY}_${email.toLowerCase()}`;
+  const data = localStorage.getItem(key);
+  if (!data) return { attempts: 0, lockoutUntil: null };
+  return JSON.parse(data);
+};
+
+/**
+ * Save login attempts data to localStorage
+ */
+const saveLoginAttempts = (email, attempts, lockoutUntil = null) => {
+  const key = `${LOGIN_ATTEMPTS_KEY}_${email.toLowerCase()}`;
+  localStorage.setItem(key, JSON.stringify({ attempts, lockoutUntil }));
+};
+
+/**
+ * Clear login attempts for an email (called on successful login)
+ */
+export const clearLoginAttempts = (email) => {
+  const key = `${LOGIN_ATTEMPTS_KEY}_${email.toLowerCase()}`;
+  localStorage.removeItem(key);
+};
+
+/**
+ * Check if user is locked out from login attempts
+ * @returns {{ isLocked: boolean, remainingTime: number, attemptsLeft: number }}
+ */
+export const checkLoginLockout = (email) => {
+  const { attempts, lockoutUntil } = getLoginAttempts(email);
+  
+  if (lockoutUntil) {
+    const now = Date.now();
+    if (now < lockoutUntil) {
+      return {
+        isLocked: true,
+        remainingTime: Math.ceil((lockoutUntil - now) / 1000),
+        attemptsLeft: 0
+      };
+    } else {
+      // Lockout expired, reset attempts
+      clearLoginAttempts(email);
+      return { isLocked: false, remainingTime: 0, attemptsLeft: MAX_LOGIN_ATTEMPTS };
+    }
+  }
+  
+  return {
+    isLocked: false,
+    remainingTime: 0,
+    attemptsLeft: MAX_LOGIN_ATTEMPTS - attempts
+  };
+};
+
+/**
+ * Record a failed login attempt
+ * @returns {{ isLocked: boolean, remainingTime: number, attemptsLeft: number }}
+ */
+export const recordFailedLoginAttempt = (email) => {
+  const { attempts } = getLoginAttempts(email);
+  const newAttempts = attempts + 1;
+  
+  if (newAttempts >= MAX_LOGIN_ATTEMPTS) {
+    const lockoutUntil = Date.now() + LOCKOUT_DURATION_MS;
+    saveLoginAttempts(email, newAttempts, lockoutUntil);
+    return {
+      isLocked: true,
+      remainingTime: Math.ceil(LOCKOUT_DURATION_MS / 1000),
+      attemptsLeft: 0
+    };
+  }
+  
+  saveLoginAttempts(email, newAttempts);
+  return {
+    isLocked: false,
+    remainingTime: 0,
+    attemptsLeft: MAX_LOGIN_ATTEMPTS - newAttempts
+  };
+};
+
 // ============================================
 // VALIDATION FUNCTIONS
 // ============================================
@@ -313,12 +399,24 @@ export const completeRegistration = async (userData) => {
  * - Validates credentials
  * - Checks email is verified
  * - Sets persistence based on "Remember Me" option
+ * - Tracks failed login attempts and enforces cooldown
  * @param {string} email - User email
  * @param {string} password - User password
  * @param {boolean} rememberMe - If true, persist session across browser closes
  */
 export const loginUser = async (email, password, rememberMe = false) => {
   try {
+    // Check if user is locked out
+    const lockoutStatus = checkLoginLockout(email);
+    if (lockoutStatus.isLocked) {
+      return {
+        success: false,
+        error: `Too many failed attempts. Please try again in ${lockoutStatus.remainingTime} seconds.`,
+        isLocked: true,
+        remainingTime: lockoutStatus.remainingTime
+      };
+    }
+
     // Set persistence based on Remember Me option
     // LOCAL = persists even after browser is closed
     // SESSION = cleared when browser tab is closed
@@ -430,6 +528,9 @@ export const loginUser = async (email, password, rememberMe = false) => {
       emailVerified: user.emailVerified
     }));
 
+    // Clear failed login attempts on successful login
+    clearLoginAttempts(email);
+
     return {
       success: true,
       user: {
@@ -466,6 +567,23 @@ export const loginUser = async (email, password, rememberMe = false) => {
       case 'auth/invalid-credential':
         errorMessage = 'Invalid email or password.';
         break;
+    }
+
+    // Track failed login attempts for invalid credentials
+    if (error.code === 'auth/invalid-credential' || 
+        error.code === 'auth/wrong-password' || 
+        error.code === 'auth/user-not-found') {
+      const attemptStatus = recordFailedLoginAttempt(email);
+      if (attemptStatus.isLocked) {
+        return {
+          success: false,
+          error: `Too many failed attempts. Please try again in ${attemptStatus.remainingTime} seconds.`,
+          isLocked: true,
+          remainingTime: attemptStatus.remainingTime
+        };
+      } else if (attemptStatus.attemptsLeft <= 2) {
+        errorMessage += ` (${attemptStatus.attemptsLeft} attempts remaining)`;
+      }
     }
 
     return { success: false, error: errorMessage };

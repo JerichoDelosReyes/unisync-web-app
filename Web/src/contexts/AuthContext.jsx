@@ -1,7 +1,7 @@
-import { createContext, useContext, useState, useEffect } from 'react'
+import { createContext, useContext, useState, useEffect, useRef } from 'react'
 import { auth, db } from '../config/firebase'
 import { onAuthStateChanged } from 'firebase/auth'
-import { doc, getDoc } from 'firebase/firestore'
+import { doc, getDoc, onSnapshot } from 'firebase/firestore'
 
 // ============================================
 // ROLE HIERARCHY (Per Ruleset - Strict Order)
@@ -42,8 +42,9 @@ export function AuthProvider({ children }) {
   const [userProfile, setUserProfile] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
+  const profileUnsubscribeRef = useRef(null)
 
-  // Fetch user profile from Firestore
+  // Fetch user profile from Firestore (one-time)
   const fetchUserProfile = async (uid) => {
     try {
       const userDoc = await getDoc(doc(db, 'users', uid))
@@ -63,6 +64,26 @@ export function AuthProvider({ children }) {
     }
   }
 
+  // Subscribe to real-time profile updates (for officer/adviser changes)
+  const subscribeToProfile = (uid) => {
+    // Unsubscribe from previous listener if exists
+    if (profileUnsubscribeRef.current) {
+      profileUnsubscribeRef.current()
+    }
+
+    const userDocRef = doc(db, 'users', uid)
+    profileUnsubscribeRef.current = onSnapshot(userDocRef, (docSnapshot) => {
+      if (docSnapshot.exists()) {
+        const profile = { id: docSnapshot.id, ...docSnapshot.data() }
+        setUserProfile(profile)
+      } else {
+        setUserProfile(null)
+      }
+    }, (err) => {
+      console.error('Error in profile listener:', err)
+    })
+  }
+
   // Listen to auth state changes
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
@@ -74,17 +95,31 @@ export function AuthProvider({ children }) {
         
         // Only fetch profile if email is verified
         if (firebaseUser.emailVerified) {
+          // Initial fetch
           await fetchUserProfile(firebaseUser.uid)
+          // Subscribe to real-time updates for officer/adviser changes
+          subscribeToProfile(firebaseUser.uid)
         }
       } else {
         setUser(null)
         setUserProfile(null)
+        // Cleanup profile listener
+        if (profileUnsubscribeRef.current) {
+          profileUnsubscribeRef.current()
+          profileUnsubscribeRef.current = null
+        }
       }
 
       setLoading(false)
     })
 
-    return () => unsubscribe()
+    return () => {
+      unsubscribe()
+      // Cleanup profile listener on unmount
+      if (profileUnsubscribeRef.current) {
+        profileUnsubscribeRef.current()
+      }
+    }
   }, [])
 
   // Check if user has minimum required role

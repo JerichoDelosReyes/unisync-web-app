@@ -29,6 +29,10 @@ export default function Logs() {
   const [hasMore, setHasMore] = useState(false)
   const [loadingMore, setLoadingMore] = useState(false)
   
+  // Pagination
+  const [currentPage, setCurrentPage] = useState(1)
+  const ITEMS_PER_PAGE = 10
+  
   // Filters
   const [selectedCategory, setSelectedCategory] = useState('')
   const [selectedAction, setSelectedAction] = useState('')
@@ -154,6 +158,53 @@ export default function Logs() {
       log.description?.toLowerCase().includes(query)
     )
   })
+  
+  // Pagination calculations
+  const totalPages = Math.ceil(filteredLogs.length / ITEMS_PER_PAGE)
+  const startIndex = (currentPage - 1) * ITEMS_PER_PAGE
+  const endIndex = startIndex + ITEMS_PER_PAGE
+  const paginatedLogs = filteredLogs.slice(startIndex, endIndex)
+  
+  // Reset to page 1 when filters change
+  useEffect(() => {
+    setCurrentPage(1)
+  }, [selectedCategory, selectedAction, dateRange, searchQuery])
+  
+  // Pagination handlers
+  const goToPage = (page) => {
+    setCurrentPage(page)
+    window.scrollTo({ top: 0, behavior: 'smooth' })
+  }
+  
+  // Generate page numbers for pagination
+  const getPageNumbers = () => {
+    const pages = []
+    const maxVisiblePages = 5
+    
+    if (totalPages <= maxVisiblePages) {
+      for (let i = 1; i <= totalPages; i++) {
+        pages.push(i)
+      }
+    } else {
+      if (currentPage <= 3) {
+        for (let i = 1; i <= 4; i++) pages.push(i)
+        pages.push('...')
+        pages.push(totalPages)
+      } else if (currentPage >= totalPages - 2) {
+        pages.push(1)
+        pages.push('...')
+        for (let i = totalPages - 3; i <= totalPages; i++) pages.push(i)
+      } else {
+        pages.push(1)
+        pages.push('...')
+        for (let i = currentPage - 1; i <= currentPage + 1; i++) pages.push(i)
+        pages.push('...')
+        pages.push(totalPages)
+      }
+    }
+    
+    return pages
+  }
   
   // Format timestamp
   const formatTimestamp = (date) => {
@@ -375,7 +426,7 @@ export default function Logs() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-200">
-                  {filteredLogs.map((log) => (
+                  {paginatedLogs.map((log) => (
                     <tr key={log.id} className="hover:bg-gray-50">
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                         {formatTimestamp(log.timestamp)}
@@ -420,8 +471,58 @@ export default function Logs() {
               </table>
             </div>
             
-            {/* Load More */}
-            {hasMore && (
+            {/* Pagination Controls */}
+            {totalPages > 1 && (
+              <div className="px-6 py-4 border-t border-gray-200 flex items-center justify-between">
+                <div className="text-sm text-gray-500">
+                  Showing {startIndex + 1} to {Math.min(endIndex, filteredLogs.length)} of {filteredLogs.length} logs
+                </div>
+                <div className="flex items-center gap-1">
+                  {/* Previous Button */}
+                  <button
+                    onClick={() => goToPage(currentPage - 1)}
+                    disabled={currentPage === 1}
+                    className="px-3 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                    </svg>
+                  </button>
+                  
+                  {/* Page Numbers */}
+                  {getPageNumbers().map((page, index) => (
+                    <button
+                      key={index}
+                      onClick={() => page !== '...' && goToPage(page)}
+                      disabled={page === '...'}
+                      className={`min-w-[40px] px-3 py-2 text-sm font-medium rounded-lg transition-colors ${
+                        page === currentPage
+                          ? 'bg-primary text-white'
+                          : page === '...'
+                          ? 'text-gray-400 cursor-default'
+                          : 'text-gray-700 bg-white border border-gray-300 hover:bg-gray-50'
+                      }`}
+                    >
+                      {page}
+                    </button>
+                  ))}
+                  
+                  {/* Next Button */}
+                  <button
+                    onClick={() => goToPage(currentPage + 1)}
+                    disabled={currentPage === totalPages}
+                    className="px-3 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                    </svg>
+                  </button>
+                </div>
+              </div>
+            )}
+            
+            {/* Load More for fetching additional data from server */}
+            {hasMore && currentPage === totalPages && (
               <div className="px-6 py-4 border-t border-gray-200 text-center">
                 <button
                   onClick={handleLoadMore}
@@ -431,10 +532,10 @@ export default function Logs() {
                   {loadingMore ? (
                     <span className="flex items-center gap-2">
                       <div className="w-4 h-4 border-2 border-primary border-t-transparent rounded-full animate-spin"></div>
-                      Loading...
+                      Loading more...
                     </span>
                   ) : (
-                    'Load More'
+                    'Load More Logs'
                   )}
                 </button>
               </div>
@@ -445,7 +546,7 @@ export default function Logs() {
       
       {/* Footer Info */}
       <div className="text-center text-sm text-gray-500">
-        Showing {filteredLogs.length} of {logs.length} logs loaded • Logs are retained indefinitely
+        Page {currentPage} of {totalPages || 1} • {filteredLogs.length} logs loaded • Logs are retained indefinitely
       </div>
     </div>
   )

@@ -7,10 +7,12 @@
  * - Tag students as officers (Adviser/President)
  */
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useAuth, ROLES } from '../contexts/AuthContext'
 import Toast from '../components/ui/Toast'
 import ModalOverlay from '../components/ui/ModalOverlay'
+import { ref, uploadBytes, getDownloadURL } from 'firebase/storage'
+import { storage } from '../config/firebase'
 import {
   ORGANIZATIONS,
   ORG_CATEGORIES,
@@ -23,7 +25,10 @@ import {
   tagOfficer,
   removeOfficer,
   canTagOfficers,
-  getUserOrgBadges
+  getUserOrgBadges,
+  createOrganization,
+  updateOrganization,
+  deleteOrganization
 } from '../services/organizationService'
 import { getDocuments } from '../services/dbService'
 import { DEPT_ORG_MAPPING } from '../constants/targeting'
@@ -62,6 +67,9 @@ const ORG_LOGOS = {
 export default function OrganizationsPage() {
   const { user, userProfile, hasMinRole } = useAuth()
   
+  // Refs
+  const orgPhotoInputRef = useRef(null)
+  
   // State
   const [loading, setLoading] = useState(true)
   const [organizations, setOrganizations] = useState([])
@@ -73,12 +81,29 @@ export default function OrganizationsPage() {
   // Modal states
   const [showAdviserModal, setShowAdviserModal] = useState(false)
   const [showOfficerModal, setShowOfficerModal] = useState(false)
+  const [showCreateOrgModal, setShowCreateOrgModal] = useState(false)
   const [facultyList, setFacultyList] = useState([])
   const [studentList, setStudentList] = useState([])
   const [searchTerm, setSearchTerm] = useState('')
   const [selectedUser, setSelectedUser] = useState(null)
   const [selectedPosition, setSelectedPosition] = useState('')
   const [submitting, setSubmitting] = useState(false)
+  
+  // Create organization form state
+  const [newOrgData, setNewOrgData] = useState({
+    code: '',
+    name: '',
+    fullName: '',
+    category: 'academic',
+    description: '',
+    audienceType: 'all',
+    audienceCourse: '',
+    audienceDepartment: '',
+    maxAdvisers: 2
+  })
+  const [orgPhotoFile, setOrgPhotoFile] = useState(null)
+  const [orgPhotoPreview, setOrgPhotoPreview] = useState(null)
+  const [uploadingOrgPhoto, setUploadingOrgPhoto] = useState(false)
   
   // Permission checks
   const isAdmin = hasMinRole(ROLES.ADMIN)
@@ -379,6 +404,127 @@ export default function OrganizationsPage() {
     }
   }
 
+  // Handle organization photo selection
+  const handleOrgPhotoSelect = (e) => {
+    const file = e.target.files[0]
+    if (!file) return
+    
+    // Validate file type
+    if (!file.type.startsWith('image/')) {
+      showToast('Please select an image file', 'error')
+      return
+    }
+    
+    // Validate file size (max 5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      showToast('Image must be less than 5MB', 'error')
+      return
+    }
+    
+    setOrgPhotoFile(file)
+    setOrgPhotoPreview(URL.createObjectURL(file))
+  }
+
+  // Handle creating organization
+  const handleCreateOrganization = async () => {
+    if (!newOrgData.code || !newOrgData.name) {
+      showToast('Organization code and name are required', 'error')
+      return
+    }
+    
+    // Validate code format (uppercase, no spaces)
+    const codeRegex = /^[A-Z0-9_]+$/
+    if (!codeRegex.test(newOrgData.code.toUpperCase())) {
+      showToast('Code must contain only letters, numbers, and underscores', 'error')
+      return
+    }
+    
+    setSubmitting(true)
+    try {
+      let photoURL = null
+      
+      // Upload photo if provided
+      if (orgPhotoFile) {
+        setUploadingOrgPhoto(true)
+        const fileExtension = orgPhotoFile.name.split('.').pop()
+        const storageRef = ref(storage, `organizations/${newOrgData.code.toUpperCase()}/logo.${fileExtension}`)
+        await uploadBytes(storageRef, orgPhotoFile)
+        photoURL = await getDownloadURL(storageRef)
+        setUploadingOrgPhoto(false)
+      }
+      
+      // Create the organization
+      await createOrganization({
+        ...newOrgData,
+        code: newOrgData.code.toUpperCase(),
+        photoURL
+      })
+      
+      showToast(`Organization "${newOrgData.name}" created successfully!`, 'success')
+      
+      // Refresh organizations list
+      const orgsData = await getAllOrganizationsData()
+      setOrganizations(orgsData)
+      
+      // Reset form
+      setShowCreateOrgModal(false)
+      setNewOrgData({
+        code: '',
+        name: '',
+        fullName: '',
+        category: 'academic',
+        description: '',
+        audienceType: 'all',
+        audienceCourse: '',
+        audienceDepartment: '',
+        maxAdvisers: 2
+      })
+      setOrgPhotoFile(null)
+      setOrgPhotoPreview(null)
+    } catch (error) {
+      console.error('Error creating organization:', error)
+      showToast(error.message || 'Failed to create organization', 'error')
+    } finally {
+      setSubmitting(false)
+      setUploadingOrgPhoto(false)
+    }
+  }
+
+  // Handle deleting organization
+  const handleDeleteOrganization = async () => {
+    if (!selectedOrg) return
+    
+    // Cannot delete system organizations
+    if (ORGANIZATIONS[selectedOrg.code]) {
+      showToast('Cannot delete system organizations', 'error')
+      return
+    }
+    
+    if (!confirm(`Are you sure you want to delete "${selectedOrg.name}"? This action cannot be undone. All advisers and officers will be removed.`)) {
+      return
+    }
+    
+    setSubmitting(true)
+    try {
+      await deleteOrganization(selectedOrg.code)
+      
+      showToast(`Organization "${selectedOrg.name}" deleted successfully`, 'success')
+      
+      // Refresh organizations list
+      const orgsData = await getAllOrganizationsData()
+      setOrganizations(orgsData)
+      
+      // Clear selection
+      setSelectedOrg(null)
+      setOrgOfficers(null)
+    } catch (error) {
+      console.error('Error deleting organization:', error)
+      showToast(error.message || 'Failed to delete organization', 'error')
+    } finally {
+      setSubmitting(false)
+    }
+  }
+
   // Filter users by search term
   const filteredFaculty = facultyList.filter(f => 
     f.displayName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -426,15 +572,30 @@ export default function OrganizationsPage() {
       )}
 
       {/* Header */}
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold text-gray-900">Student Organizations</h1>
-        <p className="text-gray-600 mt-1">
-          {isAdmin 
-            ? 'Manage organization advisers' 
-            : isAdviser || isPresidentWithTagging
-              ? 'Manage your organization officers'
-              : 'View your organization details'}
-        </p>
+      <div className="mb-6 flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900">Student Organizations</h1>
+          <p className="text-gray-600 mt-1">
+            {isAdmin 
+              ? 'Manage organization advisers' 
+              : isAdviser || isPresidentWithTagging
+                ? 'Manage your organization officers'
+                : 'View your organization details'}
+          </p>
+        </div>
+        
+        {/* Create Organization Button (Admin only) */}
+        {isAdmin && (
+          <button
+            onClick={() => setShowCreateOrgModal(true)}
+            className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-medium"
+          >
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+            </svg>
+            Create Organization
+          </button>
+        )}
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -459,11 +620,24 @@ export default function OrganizationsPage() {
                         selectedOrg?.code === org.id ? 'bg-primary/5 border-l-4 border-primary' : ''
                       }`}
                     >
-                      <img 
-                        src={ORG_LOGOS[org.id]} 
-                        alt={org.name}
-                        className="w-10 h-10 object-contain rounded-lg"
-                      />
+                      {/* Organization Logo - use uploaded photo or static logo */}
+                      {org.photoURL ? (
+                        <img 
+                          src={org.photoURL} 
+                          alt={org.name}
+                          className="w-10 h-10 object-cover rounded-lg"
+                        />
+                      ) : ORG_LOGOS[org.id] ? (
+                        <img 
+                          src={ORG_LOGOS[org.id]} 
+                          alt={org.name}
+                          className="w-10 h-10 object-contain rounded-lg"
+                        />
+                      ) : (
+                        <div className="w-10 h-10 rounded-lg bg-gray-200 flex items-center justify-center">
+                          <span className="text-xs font-bold text-gray-500">{org.id?.substring(0, 2)}</span>
+                        </div>
+                      )}
                       <div className="flex-1 min-w-0">
                         <p className="font-medium text-gray-900 truncate">{org.id}</p>
                         <p className="text-xs text-gray-500 truncate">{orgConfig?.name || org.name}</p>
@@ -486,11 +660,24 @@ export default function OrganizationsPage() {
             <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
               {/* Org Header */}
               <div className="p-6 border-b border-gray-200 flex items-center gap-4">
-                <img 
-                  src={ORG_LOGOS[selectedOrg.code]} 
-                  alt={selectedOrg.name}
-                  className="w-20 h-20 object-contain"
-                />
+                {/* Organization Logo - use uploaded photo or static logo */}
+                {selectedOrg.photoURL ? (
+                  <img 
+                    src={selectedOrg.photoURL} 
+                    alt={selectedOrg.name}
+                    className="w-20 h-20 object-cover rounded-xl"
+                  />
+                ) : ORG_LOGOS[selectedOrg.code] ? (
+                  <img 
+                    src={ORG_LOGOS[selectedOrg.code]} 
+                    alt={selectedOrg.name}
+                    className="w-20 h-20 object-contain"
+                  />
+                ) : (
+                  <div className="w-20 h-20 rounded-xl bg-gray-200 flex items-center justify-center">
+                    <span className="text-2xl font-bold text-gray-500">{selectedOrg.code?.substring(0, 2)}</span>
+                  </div>
+                )}
                 <div className="flex-1">
                   <h2 className="text-xl font-bold text-gray-900">{selectedOrg.name}</h2>
                   <p className="text-gray-600">{selectedOrg.fullName}</p>
@@ -505,11 +692,28 @@ export default function OrganizationsPage() {
                         ? '📢 Announces to all students' 
                         : `📢 Announces to ${selectedOrg.audienceCourse || selectedOrg.audienceDepartment || 'members'}`}
                     </span>
+                    {selectedOrg.isCustom && (
+                      <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                        Custom
+                      </span>
+                    )}
                   </div>
                 </div>
-                <div className="text-right">
-                  <p className="text-sm text-gray-500">School Year</p>
-                  <p className="font-semibold text-gray-900">{orgOfficers?.schoolYear || '2025-2026'}</p>
+                <div className="text-right flex flex-col items-end gap-2">
+                  <div>
+                    <p className="text-sm text-gray-500">School Year</p>
+                    <p className="font-semibold text-gray-900">{orgOfficers?.schoolYear || '2025-2026'}</p>
+                  </div>
+                  {/* Delete button for custom organizations (Admin only) */}
+                  {isAdmin && selectedOrg.isCustom && (
+                    <button
+                      onClick={handleDeleteOrganization}
+                      disabled={submitting}
+                      className="px-3 py-1.5 text-xs font-medium text-red-600 bg-red-50 rounded-lg hover:bg-red-100 transition-colors disabled:opacity-50"
+                    >
+                      🗑️ Delete Org
+                    </button>
+                  )}
                 </div>
               </div>
 
@@ -871,6 +1075,197 @@ export default function OrganizationsPage() {
                 className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
               >
                 {submitting ? 'Tagging...' : 'Tag Officer'}
+              </button>
+            </div>
+          </div>
+        </ModalOverlay>
+      )}
+
+      {/* Create Organization Modal */}
+      {showCreateOrgModal && (
+        <ModalOverlay onClose={() => !submitting && setShowCreateOrgModal(false)}>
+          <div className="bg-white rounded-2xl max-w-lg w-full max-h-[90vh] overflow-hidden flex flex-col">
+            <div className="p-6 border-b border-gray-200">
+              <h3 className="text-xl font-bold text-gray-900">Create New Organization</h3>
+              <p className="text-gray-500 text-sm mt-1">Add a new student organization to the system</p>
+            </div>
+            
+            <div className="p-6 space-y-4 overflow-y-auto flex-1">
+              {/* Organization Photo */}
+              <div className="flex flex-col items-center">
+                <input
+                  type="file"
+                  ref={orgPhotoInputRef}
+                  onChange={handleOrgPhotoSelect}
+                  accept="image/*"
+                  className="hidden"
+                />
+                <div 
+                  onClick={() => orgPhotoInputRef.current?.click()}
+                  className="w-24 h-24 rounded-full bg-gray-100 border-2 border-dashed border-gray-300 flex items-center justify-center cursor-pointer hover:border-green-400 hover:bg-green-50 transition-colors overflow-hidden"
+                >
+                  {orgPhotoPreview ? (
+                    <img src={orgPhotoPreview} alt="Preview" className="w-full h-full object-cover" />
+                  ) : (
+                    <svg className="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                    </svg>
+                  )}
+                </div>
+                <p className="text-xs text-gray-500 mt-2">Click to upload logo (optional)</p>
+              </div>
+
+              {/* Code and Name */}
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Code <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    value={newOrgData.code}
+                    onChange={(e) => setNewOrgData(prev => ({ ...prev, code: e.target.value.toUpperCase() }))}
+                    placeholder="e.g., CSO"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 uppercase"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Short Name <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    value={newOrgData.name}
+                    onChange={(e) => setNewOrgData(prev => ({ ...prev, name: e.target.value }))}
+                    placeholder="e.g., Computer Society"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500"
+                  />
+                </div>
+              </div>
+
+              {/* Full Name */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Full Name</label>
+                <input
+                  type="text"
+                  value={newOrgData.fullName}
+                  onChange={(e) => setNewOrgData(prev => ({ ...prev, fullName: e.target.value }))}
+                  placeholder="e.g., Computer Society Organization"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500"
+                />
+              </div>
+
+              {/* Category */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Category</label>
+                <select
+                  value={newOrgData.category}
+                  onChange={(e) => setNewOrgData(prev => ({ ...prev, category: e.target.value }))}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500"
+                >
+                  {Object.entries(ORG_CATEGORIES).map(([key, cat]) => (
+                    <option key={key} value={key}>{cat.label}</option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Description */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
+                <textarea
+                  value={newOrgData.description}
+                  onChange={(e) => setNewOrgData(prev => ({ ...prev, description: e.target.value }))}
+                  placeholder="Brief description of the organization..."
+                  rows={2}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 resize-none"
+                />
+              </div>
+
+              {/* Audience Type */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Audience Type</label>
+                <select
+                  value={newOrgData.audienceType}
+                  onChange={(e) => setNewOrgData(prev => ({ ...prev, audienceType: e.target.value }))}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500"
+                >
+                  <option value="all">All Students (Campus-wide)</option>
+                  <option value="course">Specific Course</option>
+                  <option value="department">Specific Department</option>
+                </select>
+              </div>
+
+              {/* Audience Course (if course type) */}
+              {newOrgData.audienceType === 'course' && (
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Target Course</label>
+                  <input
+                    type="text"
+                    value={newOrgData.audienceCourse}
+                    onChange={(e) => setNewOrgData(prev => ({ ...prev, audienceCourse: e.target.value }))}
+                    placeholder="e.g., BS Computer Science"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500"
+                  />
+                </div>
+              )}
+
+              {/* Audience Department (if department type) */}
+              {newOrgData.audienceType === 'department' && (
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Target Department</label>
+                  <input
+                    type="text"
+                    value={newOrgData.audienceDepartment}
+                    onChange={(e) => setNewOrgData(prev => ({ ...prev, audienceDepartment: e.target.value }))}
+                    placeholder="e.g., Department of Computer Studies"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500"
+                  />
+                </div>
+              )}
+
+              {/* Max Advisers */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Maximum Advisers</label>
+                <input
+                  type="number"
+                  value={newOrgData.maxAdvisers}
+                  onChange={(e) => setNewOrgData(prev => ({ ...prev, maxAdvisers: parseInt(e.target.value) || 1 }))}
+                  min={1}
+                  max={5}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500"
+                />
+              </div>
+            </div>
+            
+            <div className="p-6 border-t border-gray-200 flex justify-end gap-3">
+              <button
+                onClick={() => {
+                  setShowCreateOrgModal(false)
+                  setNewOrgData({
+                    code: '',
+                    name: '',
+                    fullName: '',
+                    category: 'academic',
+                    description: '',
+                    audienceType: 'all',
+                    audienceCourse: '',
+                    audienceDepartment: '',
+                    maxAdvisers: 2
+                  })
+                  setOrgPhotoFile(null)
+                  setOrgPhotoPreview(null)
+                }}
+                disabled={submitting}
+                className="px-4 py-2 text-gray-700 hover:bg-gray-100 rounded-lg transition-colors disabled:opacity-50"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleCreateOrganization}
+                disabled={!newOrgData.code || !newOrgData.name || submitting}
+                className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              >
+                {submitting ? (uploadingOrgPhoto ? 'Uploading Photo...' : 'Creating...') : 'Create Organization'}
               </button>
             </div>
           </div>

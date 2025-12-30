@@ -252,6 +252,51 @@ export const getOrganizationsByCategory = (category) => {
 }
 
 /**
+ * Get organization code by course name
+ * Maps student courses to their corresponding organizations
+ * @param {string} courseName - Course name (e.g., 'BS Computer Science', 'BSCS')
+ * @returns {string|null} Organization code or null if no match
+ */
+export const getOrganizationByCourse = (courseName) => {
+  if (!courseName) return null
+  
+  const normalizedCourse = courseName.toUpperCase().trim()
+  
+  // Direct mapping for abbreviations
+  const courseAbbreviations = {
+    'BSCS': 'CSC',
+    'BSIT': 'BITS',
+    'BSBA': 'BMS',
+    'BSHM': 'CHLS',
+    'BSENT': 'CYLE',
+    'BSOA': 'YOPA',
+    'BSPSY': 'SMSP',
+    'BACOMM': 'CC',
+    'BSED': 'EDGE',
+    'BEED': 'EDGE'
+  }
+  
+  // Check abbreviation first
+  if (courseAbbreviations[normalizedCourse]) {
+    return courseAbbreviations[normalizedCourse]
+  }
+  
+  // Search by audienceCourse in ORGANIZATIONS
+  for (const [code, org] of Object.entries(ORGANIZATIONS)) {
+    if (org.audienceCourse) {
+      const audienceNormalized = org.audienceCourse.toUpperCase()
+      if (normalizedCourse === audienceNormalized || 
+          normalizedCourse.includes(audienceNormalized) ||
+          audienceNormalized.includes(normalizedCourse)) {
+        return code
+      }
+    }
+  }
+  
+  return null
+}
+
+/**
  * Get available positions for an organization
  */
 export const getPositionsForOrg = (orgCode) => {
@@ -270,26 +315,41 @@ export const getPositionsForOrg = (orgCode) => {
  */
 export const initializeOrganization = async (orgCode, schoolYear) => {
   const org = ORGANIZATIONS[orgCode]
-  if (!org) throw new Error(`Invalid organization: ${orgCode}`)
+  // Don't throw error for orgs not in static config - they may exist in Firestore
 
   const docRef = doc(db, 'organizations', orgCode)
   const docSnap = await getDoc(docRef)
 
   if (!docSnap.exists()) {
-    await setDoc(docRef, {
-      code: orgCode,
-      name: org.name,
-      fullName: org.fullName,
-      category: org.category,
-      audienceType: org.audienceType,
-      audienceCourse: org.audienceCourse || null,
-      audienceDepartment: org.audienceDepartment || null,
-      officers: [],
-      advisers: [],
-      schoolYear: schoolYear || getCurrentSchoolYear(),
-      createdAt: serverTimestamp(),
-      updatedAt: serverTimestamp()
-    })
+    // If org exists in static config, use that data
+    if (org) {
+      await setDoc(docRef, {
+        code: orgCode,
+        name: org.name,
+        fullName: org.fullName,
+        category: org.category,
+        audienceType: org.audienceType,
+        audienceCourse: org.audienceCourse || null,
+        audienceDepartment: org.audienceDepartment || null,
+        officers: [],
+        advisers: [],
+        schoolYear: schoolYear || getCurrentSchoolYear(),
+        createdAt: serverTimestamp(),
+        updatedAt: serverTimestamp()
+      })
+    } else {
+      // For Firestore-only orgs, create minimal structure
+      await setDoc(docRef, {
+        code: orgCode,
+        name: orgCode,
+        officers: [],
+        advisers: [],
+        maxAdvisers: 2,
+        schoolYear: schoolYear || getCurrentSchoolYear(),
+        createdAt: serverTimestamp(),
+        updatedAt: serverTimestamp()
+      })
+    }
   }
 
   return docRef
@@ -388,15 +448,17 @@ export const getAllOrganizationsData = async () => {
  * @param {object} userInfo - { displayName, email }
  */
 export const tagAdviser = async (orgCode, userId, userInfo) => {
-  const org = ORGANIZATIONS[orgCode]
-  if (!org) throw new Error(`Invalid organization: ${orgCode}`)
-
-  // Get current org data
+  // Get org from static config OR Firestore
+  const staticOrg = ORGANIZATIONS[orgCode]
   const orgData = await getOrganizationData(orgCode)
   
+  // Use Firestore data if static config doesn't exist
+  const orgName = staticOrg?.name || orgData?.name || orgCode
+  const maxAdvisers = staticOrg?.maxAdvisers || orgData?.maxAdvisers || 2
+  
   // Check max advisers
-  if (orgData.advisers?.length >= org.maxAdvisers) {
-    throw new Error(`${org.name} can only have ${org.maxAdvisers} adviser(s)`)
+  if (orgData.advisers?.length >= maxAdvisers) {
+    throw new Error(`${orgName} can only have ${maxAdvisers} adviser(s)`)
   }
 
   // Check if already an adviser
@@ -412,18 +474,18 @@ export const tagAdviser = async (orgCode, userId, userInfo) => {
     taggedBy: userInfo.taggedBy || null
   }
 
-  // Update organization
+  // Update organization (use setDoc with merge for orgs not in Firestore yet)
   const docRef = doc(db, 'organizations', orgCode)
-  await updateDoc(docRef, {
+  await setDoc(docRef, {
     advisers: arrayUnion(adviserEntry),
     updatedAt: serverTimestamp()
-  })
+  }, { merge: true })
 
   // Update user profile with adviser tag
   await updateDocument('users', userId, {
     [`adviserOf.${orgCode}`]: {
       orgCode,
-      orgName: org.name,
+      orgName: orgName,
       taggedAt: new Date().toISOString()
     }
   })
@@ -488,15 +550,16 @@ export const getAdviserOrganizations = async (userId) => {
  * @param {string} taggedByUserId - ID of user doing the tagging
  */
 export const tagOfficer = async (orgCode, userId, positionId, userInfo, taggedByUserId) => {
-  const org = ORGANIZATIONS[orgCode]
-  if (!org) throw new Error(`Invalid organization: ${orgCode}`)
-
-  // Find position
-  const position = org.positions.find(p => p.id === positionId)
-  if (!position) throw new Error(`Invalid position: ${positionId}`)
-
-  // Get current org data
+  const staticOrg = ORGANIZATIONS[orgCode]
   const orgData = await getOrganizationData(orgCode)
+  
+  // Get org name from static config or Firestore
+  const orgName = staticOrg?.name || orgData?.name || orgCode
+
+  // Find position from static config or use default executive positions
+  const positions = staticOrg?.positions || EXECUTIVE_POSITIONS
+  const position = positions.find(p => p.id === positionId)
+  if (!position) throw new Error(`Invalid position: ${positionId}`)
 
   // Check if position is already filled
   const existingOfficer = orgData.officers?.find(o => o.positionId === positionId)
@@ -523,10 +586,10 @@ export const tagOfficer = async (orgCode, userId, positionId, userInfo, taggedBy
 
   // Update organization
   const docRef = doc(db, 'organizations', orgCode)
-  await updateDoc(docRef, {
+  await setDoc(docRef, {
     officers: arrayUnion(officerEntry),
     updatedAt: serverTimestamp()
-  })
+  }, { merge: true })
 
   // Build the org tag with position (e.g., "org:CSC:PRESIDENT")
   const orgTag = `org:${orgCode}:${position.title.toUpperCase().replace(/\s+/g, '_')}`
@@ -536,7 +599,7 @@ export const tagOfficer = async (orgCode, userId, positionId, userInfo, taggedBy
   await updateDoc(userDocRef, {
     [`officerOf.${orgCode}`]: {
       orgCode,
-      orgName: org.name,
+      orgName: orgName,
       positionId,
       positionTitle: position.title,
       canTagOfficers: position.canTagOfficers || false,
@@ -636,14 +699,14 @@ export const canAnnounceForOrg = async (userId, orgCode) => {
     return null // Cannot announce
   }
   
-  const org = ORGANIZATIONS[orgCode]
+  const staticOrg = ORGANIZATIONS[orgCode]
   return {
     canAnnounce: true,
-    audienceType: org.audienceType,
-    audienceCourse: org.audienceCourse,
-    audienceDepartment: org.audienceDepartment,
-    orgName: org.name,
-    orgCode: org.code
+    audienceType: staticOrg?.audienceType || orgData?.audienceType || 'all',
+    audienceCourse: staticOrg?.audienceCourse || orgData?.audienceCourse,
+    audienceDepartment: staticOrg?.audienceDepartment || orgData?.audienceDepartment,
+    orgName: staticOrg?.name || orgData?.name || orgCode,
+    orgCode: orgCode
   }
 }
 
@@ -657,17 +720,16 @@ export const getUserAnnouncementOrgs = async (userId) => {
   // Check adviser positions
   if (user?.adviserOf) {
     for (const orgCode of Object.keys(user.adviserOf)) {
-      const org = ORGANIZATIONS[orgCode]
-      if (org) {
-        orgs.push({
-          orgCode,
-          orgName: org.name,
-          role: 'Adviser',
-          audienceType: org.audienceType,
-          audienceCourse: org.audienceCourse,
-          audienceDepartment: org.audienceDepartment
-        })
-      }
+      const staticOrg = ORGANIZATIONS[orgCode]
+      const orgData = staticOrg ? null : await getOrganizationData(orgCode).catch(() => null)
+      orgs.push({
+        orgCode,
+        orgName: staticOrg?.name || orgData?.name || orgCode,
+        role: 'Adviser',
+        audienceType: staticOrg?.audienceType || orgData?.audienceType || 'all',
+        audienceCourse: staticOrg?.audienceCourse || orgData?.audienceCourse,
+        audienceDepartment: staticOrg?.audienceDepartment || orgData?.audienceDepartment
+      })
     }
   }
   
@@ -677,17 +739,16 @@ export const getUserAnnouncementOrgs = async (userId) => {
       // Skip if already added as adviser
       if (orgs.some(o => o.orgCode === orgCode)) continue
       
-      const org = ORGANIZATIONS[orgCode]
-      if (org) {
-        orgs.push({
-          orgCode,
-          orgName: org.name,
-          role: user.officerOf[orgCode].positionTitle,
-          audienceType: org.audienceType,
-          audienceCourse: org.audienceCourse,
-          audienceDepartment: org.audienceDepartment
-        })
-      }
+      const staticOrg = ORGANIZATIONS[orgCode]
+      const orgData = staticOrg ? null : await getOrganizationData(orgCode).catch(() => null)
+      orgs.push({
+        orgCode,
+        orgName: staticOrg?.name || orgData?.name || orgCode,
+        role: user.officerOf[orgCode].positionTitle,
+        audienceType: staticOrg?.audienceType || orgData?.audienceType || 'all',
+        audienceCourse: staticOrg?.audienceCourse || orgData?.audienceCourse,
+        audienceDepartment: staticOrg?.audienceDepartment || orgData?.audienceDepartment
+      })
     }
   }
   
@@ -698,21 +759,25 @@ export const getUserAnnouncementOrgs = async (userId) => {
  * Get audience tags for an organization announcement
  * Used when creating announcement to auto-set target tags
  */
-export const getOrgAudienceTags = (orgCode) => {
-  const org = ORGANIZATIONS[orgCode]
-  if (!org) return []
+export const getOrgAudienceTags = async (orgCode) => {
+  const staticOrg = ORGANIZATIONS[orgCode]
+  const orgData = staticOrg ? null : await getOrganizationData(orgCode).catch(() => null)
+  
+  const audienceType = staticOrg?.audienceType || orgData?.audienceType || 'all'
+  const audienceCourse = staticOrg?.audienceCourse || orgData?.audienceCourse
+  const audienceDepartment = staticOrg?.audienceDepartment || orgData?.audienceDepartment
   
   const tags = [`org:${orgCode}`]
   
-  if (org.audienceType === 'all') {
+  if (audienceType === 'all') {
     // CSG announces to all - no specific course tag
     tags.push('audience:all')
-  } else if (org.audienceType === 'course' && org.audienceCourse) {
+  } else if (audienceType === 'course' && audienceCourse) {
     // Course-specific organization
-    tags.push(`course:${org.audienceCourse}`)
-  } else if (org.audienceType === 'department' && org.audienceDepartment) {
+    tags.push(`course:${audienceCourse}`)
+  } else if (audienceType === 'department' && audienceDepartment) {
     // Department-specific organization
-    tags.push(`dept:${org.audienceDepartment}`)
+    tags.push(`dept:${audienceDepartment}`)
   }
   
   return tags
@@ -772,21 +837,22 @@ export const searchStudentsForTagging = async (orgCode, searchTerm) => {
  */
 export const getOrganizationOfficers = async (orgCode) => {
   const orgData = await getOrganizationData(orgCode)
-  const org = ORGANIZATIONS[orgCode]
+  const staticOrg = ORGANIZATIONS[orgCode]
   
-  if (!org) return { officers: [], advisers: [], positions: [] }
+  // Get positions from static config, Firestore org data, or use executive positions as fallback
+  const positions = staticOrg?.positions || orgData?.positions || EXECUTIVE_POSITIONS
   
   // Sort officers by position priority
   const officers = (orgData.officers || []).sort((a, b) => {
-    const posA = org.positions.find(p => p.id === a.positionId)
-    const posB = org.positions.find(p => p.id === b.positionId)
+    const posA = positions.find(p => p.id === a.positionId)
+    const posB = positions.find(p => p.id === b.positionId)
     return (posA?.priority || 99) - (posB?.priority || 99)
   })
   
   return {
     officers,
     advisers: orgData.advisers || [],
-    positions: org.positions,
+    positions: positions,
     schoolYear: orgData.schoolYear
   }
 }
@@ -796,12 +862,95 @@ export const getOrganizationOfficers = async (orgCode) => {
  */
 export const getAvailablePositions = async (orgCode) => {
   const orgData = await getOrganizationData(orgCode)
-  const org = ORGANIZATIONS[orgCode]
+  const staticOrg = ORGANIZATIONS[orgCode]
   
-  if (!org) return []
+  // Get positions from static config, Firestore org data, or use executive positions as fallback
+  const positions = staticOrg?.positions || orgData?.positions || EXECUTIVE_POSITIONS
   
   const filledPositionIds = (orgData.officers || []).map(o => o.positionId)
-  return org.positions.filter(p => !filledPositionIds.includes(p.id))
+  return positions.filter(p => !filledPositionIds.includes(p.id))
+}
+
+/**
+ * Create a new organization (Admin only)
+ * @param {object} orgData - Organization data
+ * @param {string} orgData.code - Unique organization code (e.g., "NEW_ORG")
+ * @param {string} orgData.name - Short name
+ * @param {string} orgData.fullName - Full organization name
+ * @param {string} orgData.category - Category: 'program', 'academic', 'governance', 'media', 'honor'
+ * @param {string} orgData.description - Description
+ * @param {string} orgData.audienceType - 'all', 'course', 'department'
+ * @param {string} orgData.audienceCourse - Course name if audienceType is 'course'
+ * @param {string} orgData.audienceDepartment - Department name if audienceType is 'department'
+ * @param {number} orgData.maxAdvisers - Maximum number of advisers (default: 2)
+ * @param {string} orgData.photoURL - Organization profile photo URL
+ */
+export const createOrganization = async (orgData) => {
+  const { code, name, fullName, category, description, audienceType, audienceCourse, audienceDepartment, maxAdvisers, photoURL } = orgData
+  
+  if (!code || !name) {
+    throw new Error('Organization code and name are required')
+  }
+  
+  // Check if org already exists
+  const existingDoc = await getDoc(doc(db, 'organizations', code))
+  if (existingDoc.exists()) {
+    throw new Error(`Organization with code "${code}" already exists`)
+  }
+  
+  // Also check static config
+  if (ORGANIZATIONS[code]) {
+    throw new Error(`Organization "${code}" is a system organization and cannot be created`)
+  }
+  
+  const newOrg = {
+    code,
+    name,
+    fullName: fullName || name,
+    category: category || 'academic',
+    description: description || '',
+    audienceType: audienceType || 'all',
+    audienceCourse: audienceCourse || null,
+    audienceDepartment: audienceDepartment || null,
+    maxAdvisers: maxAdvisers || 2,
+    photoURL: photoURL || null,
+    positions: EXECUTIVE_POSITIONS, // Include standard officer positions
+    officers: [],
+    advisers: [],
+    schoolYear: getCurrentSchoolYear(),
+    isCustom: true, // Flag to identify admin-created orgs
+    createdAt: serverTimestamp(),
+    updatedAt: serverTimestamp()
+  }
+  
+  const docRef = doc(db, 'organizations', code)
+  await setDoc(docRef, newOrg)
+  
+  return { id: code, ...newOrg }
+}
+
+/**
+ * Update organization details
+ */
+export const updateOrganization = async (orgCode, updates) => {
+  const docRef = doc(db, 'organizations', orgCode)
+  await updateDoc(docRef, {
+    ...updates,
+    updatedAt: serverTimestamp()
+  })
+}
+
+/**
+ * Delete an organization (only custom orgs, not static ones)
+ */
+export const deleteOrganization = async (orgCode) => {
+  // Cannot delete static organizations
+  if (ORGANIZATIONS[orgCode]) {
+    throw new Error('Cannot delete system organizations')
+  }
+  
+  const docRef = doc(db, 'organizations', orgCode)
+  await deleteDoc(docRef)
 }
 
 export default {
@@ -816,6 +965,9 @@ export default {
   initializeOrganization,
   getOrganizationData,
   getAllOrganizationsData,
+  createOrganization,
+  updateOrganization,
+  deleteOrganization,
   tagAdviser,
   removeAdviser,
   isAdviserOf,

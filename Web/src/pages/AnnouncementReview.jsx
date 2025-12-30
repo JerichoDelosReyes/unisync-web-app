@@ -3,7 +3,6 @@
  * 
  * Page for reviewing and approving/rejecting pending announcements.
  * Accessible to:
- * - Admin/Super Admin: Can review ALL pending announcements
  * - Organization Presidents: Can review announcements from their org officers/members
  */
 
@@ -80,7 +79,7 @@ export default function AnnouncementReview() {
   }
   
   const isAdmin = hasMinRole(ROLES.ADMIN)
-  const canReview = isAdmin || isOrgPresident()
+  const canReview = isOrgPresident() // Only Org Presidents can review
   
   // Show toast notification
   const showToast = (message, kind = 'info') => {
@@ -124,11 +123,8 @@ export default function AnnouncementReview() {
   
   // Filter announcements based on user's role
   useEffect(() => {
-    console.log('[AnnouncementReview] Filtering', pendingAnnouncements.length, 'announcements, isAdmin:', isAdmin)
-    if (isAdmin) {
-      // Admins see all
-      setFilteredAnnouncements(pendingAnnouncements)
-    } else if (isOrgPresident()) {
+    console.log('[AnnouncementReview] Filtering', pendingAnnouncements.length, 'announcements')
+    if (isOrgPresident()) {
       // Presidents only see their org's announcements
       const presidentOrgs = getPresidentOrgCodes()
       const filtered = pendingAnnouncements.filter(ann => {

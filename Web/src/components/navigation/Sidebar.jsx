@@ -149,10 +149,10 @@ export default function Sidebar({ isOpen, onClose }) {
     return false
   }
 
-  // Check if user can review announcements (Admin or Org President)
+  // Check if user can review announcements (Org President only - not Admin/Super Admin)
   const canReviewAnnouncements = () => {
-    // Admin always has access
-    if (hasMinRole(ROLES.ADMIN)) return true
+    // Admin and Super Admin no longer have review access
+    // Only Org Presidents can review announcements
     
     // Check if user is an Org President (has canTagOfficers = true)
     if (userProfile?.officerOf) {
