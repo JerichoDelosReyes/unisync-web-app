@@ -5,7 +5,7 @@ import { resolve } from 'path'
 
 export default defineConfig(({ command }) => ({
   root: resolve(__dirname, 'Web'),
-  base: command === 'serve' ? '/' : '/unisync-web-app/', // Use / for dev, /unisync-web-app/ for build
+  base: '/', // Use / for Firebase Hosting
   plugins: [
     react(),
     VitePWA({
