@@ -1,7 +1,10 @@
 import { createContext, useContext, useState, useEffect, useRef } from 'react'
 import { auth, db } from '../config/firebase'
-import { onAuthStateChanged } from 'firebase/auth'
+import { onAuthStateChanged, signOut } from 'firebase/auth'
 import { doc, getDoc, onSnapshot } from 'firebase/firestore'
+
+// Session token key (must match authService.js)
+const SESSION_TOKEN_KEY = 'unisync_session_token';
 
 // ============================================
 // ROLE HIERARCHY (Per Ruleset - Strict Order)
@@ -42,6 +45,7 @@ export function AuthProvider({ children }) {
   const [userProfile, setUserProfile] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
+  const [sessionInvalidated, setSessionInvalidated] = useState(false)
   const profileUnsubscribeRef = useRef(null)
 
   // Fetch user profile from Firestore (one-time)
@@ -76,12 +80,41 @@ export function AuthProvider({ children }) {
       if (docSnapshot.exists()) {
         const profile = { id: docSnapshot.id, ...docSnapshot.data() }
         setUserProfile(profile)
+        
+        // Check session token on every profile update (real-time session validation)
+        const localToken = localStorage.getItem(SESSION_TOKEN_KEY)
+        const firestoreToken = profile.activeSessionToken
+        
+        if (localToken && firestoreToken && localToken !== firestoreToken) {
+          // Another device logged in - invalidate this session
+          console.warn('🔒 Session invalidated: Another device has logged in')
+          setSessionInvalidated(true)
+          handleSessionInvalidation()
+        }
       } else {
         setUserProfile(null)
       }
     }, (err) => {
       console.error('Error in profile listener:', err)
     })
+  }
+
+  // Handle session invalidation - force logout
+  const handleSessionInvalidation = async () => {
+    try {
+      // Clear local storage
+      localStorage.removeItem('unisync_current_user')
+      localStorage.removeItem(SESSION_TOKEN_KEY)
+      // Sign out from Firebase
+      await signOut(auth)
+    } catch (err) {
+      console.error('Error during session invalidation logout:', err)
+    }
+  }
+
+  // Clear session invalidation flag (called after user acknowledges)
+  const clearSessionInvalidation = () => {
+    setSessionInvalidated(false)
   }
 
   // Listen to auth state changes
@@ -95,8 +128,24 @@ export function AuthProvider({ children }) {
         
         // Only fetch profile if email is verified
         if (firebaseUser.emailVerified) {
-          // Initial fetch
-          await fetchUserProfile(firebaseUser.uid)
+          // Initial fetch and session validation
+          const profile = await fetchUserProfile(firebaseUser.uid)
+          
+          // Validate session token on auth state change
+          if (profile) {
+            const localToken = localStorage.getItem(SESSION_TOKEN_KEY)
+            const firestoreToken = profile.activeSessionToken
+            
+            if (localToken && firestoreToken && localToken !== firestoreToken) {
+              // Session mismatch - another device is logged in
+              console.warn('🔒 Session invalid on load: Another device is active')
+              setSessionInvalidated(true)
+              handleSessionInvalidation()
+              setLoading(false)
+              return
+            }
+          }
+          
           // Subscribe to real-time updates for officer/adviser changes
           subscribeToProfile(firebaseUser.uid)
         }
@@ -195,6 +244,7 @@ export function AuthProvider({ children }) {
     userProfile,
     loading,
     error,
+    sessionInvalidated,
     
     // Computed
     isAuthenticated: !!user && !!userProfile,
@@ -207,7 +257,8 @@ export function AuthProvider({ children }) {
     getAssignableRoles,
     
     // Actions
-    refreshProfile
+    refreshProfile,
+    clearSessionInvalidation
   }
 
   return (

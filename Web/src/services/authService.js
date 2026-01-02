@@ -44,6 +44,41 @@ const MAX_LOGIN_ATTEMPTS = 5;
 const LOCKOUT_DURATION_MS = 60000; // 1 minute lockout
 const LOGIN_ATTEMPTS_KEY = 'unisync_login_attempts';
 
+// Session token key for single-device login
+const SESSION_TOKEN_KEY = 'unisync_session_token';
+
+/**
+ * Generate a unique session token
+ * Uses crypto API for secure random generation
+ */
+const generateSessionToken = () => {
+  if (typeof crypto !== 'undefined' && crypto.randomUUID) {
+    return crypto.randomUUID();
+  }
+  // Fallback for older browsers
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
+    const r = Math.random() * 16 | 0;
+    const v = c === 'x' ? r : (r & 0x3 | 0x8);
+    return v.toString(16);
+  });
+};
+
+/**
+ * Get device info for session tracking
+ */
+const getDeviceInfo = () => {
+  const ua = navigator.userAgent;
+  let browser = 'Unknown';
+  let platform = navigator.platform || 'Unknown';
+  
+  if (ua.includes('Chrome')) browser = 'Chrome';
+  else if (ua.includes('Safari')) browser = 'Safari';
+  else if (ua.includes('Firefox')) browser = 'Firefox';
+  else if (ua.includes('Edge')) browser = 'Edge';
+  
+  return { browser, platform };
+};
+
 /**
  * Get login attempts data from localStorage
  */
@@ -496,12 +531,23 @@ export const loginUser = async (email, password, rememberMe = false) => {
 
     const userData = userDoc.data();
 
-    // Update Firestore to mark email as verified and record login
+    // Generate unique session token for single-device login
+    const sessionToken = generateSessionToken();
+    const deviceInfo = getDeviceInfo();
+
+    // Update Firestore to mark email as verified, record login, and store session token
     await updateDoc(doc(db, 'users', user.uid), {
       emailVerified: true,
       lastLoginAt: serverTimestamp(),
-      updatedAt: serverTimestamp()
+      updatedAt: serverTimestamp(),
+      // Single-device session tracking
+      activeSessionToken: sessionToken,
+      activeSessionDevice: deviceInfo,
+      activeSessionStartedAt: serverTimestamp()
     });
+
+    // Store session token in localStorage for validation
+    localStorage.setItem(SESSION_TOKEN_KEY, sessionToken);
 
     // Log successful login
     await createLog({
@@ -600,6 +646,19 @@ export const logoutUser = async () => {
     const storedUser = localStorage.getItem('unisync_current_user');
     const userData = storedUser ? JSON.parse(storedUser) : null;
     
+    // Clear session token from Firestore before signing out
+    if (currentUser) {
+      try {
+        await updateDoc(doc(db, 'users', currentUser.uid), {
+          activeSessionToken: null,
+          activeSessionDevice: null,
+          activeSessionStartedAt: null
+        });
+      } catch (sessionError) {
+        console.warn('Failed to clear session token:', sessionError);
+      }
+    }
+    
     // Log the logout before signing out
     if (currentUser) {
       await createLog({
@@ -619,6 +678,7 @@ export const logoutUser = async () => {
     
     await signOut(auth);
     localStorage.removeItem('unisync_current_user');
+    localStorage.removeItem(SESSION_TOKEN_KEY);
     return { success: true };
   } catch (error) {
     console.error('Logout error:', error);
