@@ -520,74 +520,79 @@ export default function Rooms() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+      <div className="flex flex-col gap-4">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Room Status</h1>
           <p className="text-gray-600 mt-1">View room availability and schedules across buildings.</p>
         </div>
         
-        <div className="flex items-center gap-3">
-          {/* Reset Rooms Button (Super Admin only) */}
-          {userProfile?.role === 'super_admin' && (
-            <button
-              onClick={resetRoomsCollection}
-              className="flex items-center gap-2 px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors font-medium text-sm"
-            >
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-              </svg>
-              Reset Rooms
-            </button>
-          )}
-          
-          {/* Add Room Button (Admin only) */}
-          {canManageRooms && (
-            <button
-              onClick={() => {
-                setEditingRoom(null)
-                setRoomForm({ 
-                  name: '', 
-                  building: activeBuilding, 
-                  floor: '' 
-                })
-                setShowRoomManager(true)
-              }}
-              className="flex items-center gap-2 px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors font-medium text-sm"
-            >
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-              </svg>
-              Add Room
-            </button>
-          )}
+        <div className="flex flex-col sm:flex-row sm:items-center gap-3">
+          {/* Buttons */}
+          <div className="flex items-center gap-2 flex-wrap">
+            {/* Reset Rooms Button (Super Admin only) */}
+            {userProfile?.role === 'super_admin' && (
+              <button
+                onClick={resetRoomsCollection}
+                className="flex items-center gap-2 px-3 sm:px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors font-medium text-sm"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                </svg>
+                <span className="hidden sm:inline">Reset Rooms</span>
+                <span className="sm:hidden">Reset</span>
+              </button>
+            )}
+            
+            {/* Add Room Button (Admin only) */}
+            {canManageRooms && (
+              <button
+                onClick={() => {
+                  setEditingRoom(null)
+                  setRoomForm({ 
+                    name: '', 
+                    building: activeBuilding, 
+                    floor: '' 
+                  })
+                  setShowRoomManager(true)
+                }}
+                className="flex items-center gap-2 px-3 sm:px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors font-medium text-sm"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                </svg>
+                <span className="hidden sm:inline">Add Room</span>
+                <span className="sm:hidden">Add</span>
+              </button>
+            )}
+          </div>
           
           {/* Legend */}
-          <div className="flex items-center gap-4 text-sm">
-            <div className="flex items-center gap-2">
-              <div className="w-4 h-4 rounded-full bg-emerald-500"></div>
-              <span className="text-gray-600">Vacant</span>
+          <div className="flex items-center gap-3 sm:gap-4 text-sm sm:ml-auto overflow-x-auto">
+            <div className="flex items-center gap-1.5 sm:gap-2 flex-shrink-0">
+              <div className="w-3 h-3 sm:w-4 sm:h-4 rounded-full bg-emerald-500"></div>
+              <span className="text-gray-600 whitespace-nowrap">Vacant</span>
             </div>
-            <div className="flex items-center gap-2">
-              <div className="w-4 h-4 rounded-full bg-red-500"></div>
-              <span className="text-gray-600">Occupied</span>
+            <div className="flex items-center gap-1.5 sm:gap-2 flex-shrink-0">
+              <div className="w-3 h-3 sm:w-4 sm:h-4 rounded-full bg-red-500"></div>
+              <span className="text-gray-600 whitespace-nowrap">Occupied</span>
             </div>
           </div>
         </div>
       </div>
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-3 gap-4">
-        <div className="bg-white rounded-xl border border-gray-200 p-4 text-center">
-          <p className="text-3xl font-bold text-gray-900">{stats.total}</p>
-          <p className="text-sm text-gray-500">Total Rooms</p>
+      <div className="grid grid-cols-3 gap-2 sm:gap-4">
+        <div className="bg-white rounded-xl border border-gray-200 p-3 sm:p-4 text-center">
+          <p className="text-xl sm:text-3xl font-bold text-gray-900">{stats.total}</p>
+          <p className="text-xs sm:text-sm text-gray-500">Total Rooms</p>
         </div>
-        <div className="bg-emerald-50 rounded-xl border border-emerald-200 p-4 text-center">
-          <p className="text-3xl font-bold text-emerald-600">{stats.vacant}</p>
-          <p className="text-sm text-emerald-600">Vacant</p>
+        <div className="bg-emerald-50 rounded-xl border border-emerald-200 p-3 sm:p-4 text-center">
+          <p className="text-xl sm:text-3xl font-bold text-emerald-600">{stats.vacant}</p>
+          <p className="text-xs sm:text-sm text-emerald-600">Vacant</p>
         </div>
-        <div className="bg-red-50 rounded-xl border border-red-200 p-4 text-center">
-          <p className="text-3xl font-bold text-red-600">{stats.occupied}</p>
-          <p className="text-sm text-red-600">Occupied</p>
+        <div className="bg-red-50 rounded-xl border border-red-200 p-3 sm:p-4 text-center">
+          <p className="text-xl sm:text-3xl font-bold text-red-600">{stats.occupied}</p>
+          <p className="text-xs sm:text-sm text-red-600">Occupied</p>
         </div>
       </div>
 

@@ -282,26 +282,26 @@ export default function Dashboard() {
 
       {/* Faculty Role Request Card - Only for students/class reps, hidden if dismissed */}
       {(userProfile?.role === ROLES.STUDENT || userProfile?.role === ROLES.CLASS_REP) && !facultyCardDismissed && (
-        <div className="bg-indigo-50 rounded-xl border border-indigo-100 p-6 relative">
+        <div className="bg-indigo-50 rounded-xl border border-indigo-100 p-4 sm:p-6 relative">
           {/* Dismiss/Close Button */}
           <button
             onClick={dismissFacultyCard}
-            className="absolute top-3 right-3 p-1.5 text-gray-400 hover:text-gray-600 hover:bg-white/50 rounded-full transition-colors"
+            className="absolute top-2 right-2 sm:top-3 sm:right-3 p-1.5 text-gray-400 hover:text-gray-600 hover:bg-white/50 rounded-full transition-colors z-10"
             title="Don't show again"
           >
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
             </svg>
           </button>
-          <div className="flex items-start justify-between gap-4 pr-8">
-            <div className="flex items-start gap-4">
-              <div className="w-12 h-12 rounded-xl bg-indigo-100 flex items-center justify-center flex-shrink-0">
-                <svg className="w-6 h-6 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4 pr-8 sm:pr-8">
+            <div className="flex items-start gap-3 sm:gap-4">
+              <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-indigo-100 flex items-center justify-center flex-shrink-0">
+                <svg className="w-5 h-5 sm:w-6 sm:h-6 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
                 </svg>
               </div>
-              <div>
-                <h3 className="text-lg font-semibold text-gray-900">Faculty Role Verification</h3>
+              <div className="min-w-0 flex-1">
+                <h3 className="text-base sm:text-lg font-semibold text-gray-900">Faculty Role Verification</h3>
                 {pendingFacultyRequest ? (
                   <div className="mt-2">
                     <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-yellow-100 text-yellow-700 rounded-full text-sm font-medium">
@@ -337,7 +337,7 @@ export default function Dashboard() {
             {!pendingFacultyRequest && (
               <button
                 onClick={() => setShowFacultyRequestModal(true)}
-                className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors text-sm font-medium flex-shrink-0"
+                className="w-full sm:w-auto px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors text-sm font-medium flex-shrink-0 text-center"
               >
                 Request Faculty Role
               </button>

@@ -1101,7 +1101,7 @@ export default function Announcements() {
   }
 
   return (
-    <div className="min-h-screen bg-white">
+    <div className="min-h-screen">
       {/* Toast */}
       {toast.show && (
         <div className={`fixed top-4 right-4 z-[10000] px-4 py-3 rounded-xl shadow-2xl transition-all duration-300 ${
@@ -1114,16 +1114,16 @@ export default function Announcements() {
       )}
 
       {/* Hero Section */}
-      <div className="py-8">
-        <div className="max-w-7xl mx-auto px-6">
-          <div className="flex items-center justify-between">
+      <div className="py-6 sm:py-8">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
             <div className="max-w-2xl">
-              <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-gray-100 mb-6">
+              <div className="inline-flex items-center gap-2 px-3 sm:px-4 py-1.5 sm:py-2 rounded-full bg-gray-100 mb-4 sm:mb-6">
                 <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
-                <span className="text-sm font-medium text-gray-800">Campus News & Updates</span>
+                <span className="text-xs sm:text-sm font-medium text-gray-800">Campus News & Updates</span>
               </div>
-              <h1 className="text-5xl font-bold mb-3 leading-tight text-gray-900">Announcements</h1>
-              <p className="text-xl text-gray-600 leading-relaxed">
+              <h1 className="text-3xl sm:text-5xl font-bold mb-2 sm:mb-3 leading-tight text-gray-900">Announcements</h1>
+              <p className="text-base sm:text-xl text-gray-600 leading-relaxed">
                 Important campus updates, events, and announcements
               </p>
             </div>
@@ -1131,7 +1131,7 @@ export default function Announcements() {
             {canCreate && (
               <button
                 onClick={handleCreateClick}
-                className="group inline-flex items-center gap-3 px-6 py-3 bg-green-600 text-white rounded-xl hover:bg-green-700 transition-all duration-300 text-base font-semibold shadow-lg transform hover:-translate-y-1"
+                className="group inline-flex items-center justify-center gap-2 sm:gap-3 px-4 sm:px-6 py-2.5 sm:py-3 bg-green-600 text-white rounded-xl hover:bg-green-700 transition-all duration-300 text-sm sm:text-base font-semibold shadow-lg w-full sm:w-auto"
               >
                 <svg className="w-5 h-5 group-hover:rotate-90 transition-transform duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 4v16m8-8H4" />
@@ -1144,27 +1144,28 @@ export default function Announcements() {
       </div>
 
       {/* Main Content */}
-      <div className="max-w-7xl mx-auto px-6 py-12">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 py-6 sm:py-12">
 
       {/* Tabs */}
-      <div className="flex gap-2 mb-8 overflow-x-auto pb-2">
+      <div className="grid grid-cols-3 sm:grid-cols-5 gap-2 mb-6 sm:mb-8">
         {[
           { key: 'all', label: 'All' },
           { key: 'important', label: 'Important' },
           { key: 'academic', label: 'Academic' },
           { key: 'general', label: 'General' },
-          { key: 'organizations', label: 'Organizations' }
+          { key: 'organizations', label: 'Orgs' }
         ].map(tab => (
           <button
             key={tab.key}
             onClick={() => setActiveTab(tab.key)}
-            className={`px-4 py-2 font-medium text-sm rounded-lg whitespace-nowrap transition-all ${
+            className={`px-3 sm:px-4 py-2 font-medium text-xs sm:text-sm rounded-lg transition-all text-center ${
               activeTab === tab.key
                 ? 'bg-green-600 text-white shadow-md'
                 : 'bg-white text-gray-700 border border-gray-300 hover:border-green-600 hover:text-green-600'
             }`}
           >
-            {tab.label}
+            <span className="hidden sm:inline">{tab.key === 'organizations' ? 'Organizations' : tab.label}</span>
+            <span className="sm:hidden">{tab.label}</span>
           </button>
         ))}
       </div>

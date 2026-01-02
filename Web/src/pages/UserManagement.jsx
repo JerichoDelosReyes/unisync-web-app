@@ -626,14 +626,14 @@ export default function UserManagement() {
       {/* User Table */}
       <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
         {/* Table Header */}
-        <div className="px-6 py-4 border-b border-gray-200 flex items-center justify-between">
-          <div className="relative">
+        <div className="px-4 sm:px-6 py-4 border-b border-gray-200 flex flex-col sm:flex-row gap-3 sm:items-center sm:justify-between">
+          <div className="relative flex-1 sm:flex-none">
             <input
               type="text"
               placeholder="Search users..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-64 pl-10 pr-4 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
+              className="w-full sm:w-64 pl-10 pr-4 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
             />
             <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
@@ -643,7 +643,7 @@ export default function UserManagement() {
             <select 
               value={roleFilter}
               onChange={(e) => setRoleFilter(e.target.value)}
-              className="text-sm border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary/20"
+              className="w-full sm:w-auto text-sm border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary/20"
             >
               <option value="">All Roles</option>
               {Object.entries(ROLE_DISPLAY_NAMES).map(([key, name]) => (
