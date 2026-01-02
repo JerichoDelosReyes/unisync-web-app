@@ -566,8 +566,21 @@ export default function AIChat() {
         className="fixed bottom-6 right-6 w-14 h-14 bg-primary text-white rounded-full shadow-lg hover:shadow-xl hover:scale-110 transition-all duration-300 flex items-center justify-center z-40 group"
         aria-label="Open AI Assistant"
       >
-        <svg className="w-7 h-7" fill="currentColor" viewBox="0 0 24 24">
-          <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 17.93c-3.95-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 15v1c0 1.1.9 2 2 2v1.93zm6.9-2.54c-.26-.81-1-1.39-1.9-1.39h-1v-3c0-.55-.45-1-1-1H8v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.41c2.93 1.19 5 4.06 5 7.41 0 2.08-.8 3.97-2.1 5.39z"/>
+        {/* Minimalist Robot Icon */}
+        <svg className="w-7 h-7" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          {/* Antenna */}
+          <line x1="12" y1="2" x2="12" y2="5" />
+          <circle cx="12" cy="2" r="1" fill="currentColor" />
+          {/* Head */}
+          <rect x="5" y="5" width="14" height="10" rx="2" />
+          {/* Eyes */}
+          <circle cx="9" cy="10" r="1.5" fill="currentColor" />
+          <circle cx="15" cy="10" r="1.5" fill="currentColor" />
+          {/* Body */}
+          <rect x="7" y="15" width="10" height="6" rx="1" />
+          {/* Feet */}
+          <line x1="9" y1="21" x2="9" y2="23" />
+          <line x1="15" y1="21" x2="15" y2="23" />
         </svg>
         <span className="absolute bottom-16 right-0 bg-gray-900 text-white text-xs rounded-lg px-3 py-2 whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none shadow-lg">
           🤖 UNISYNC AI Assistant
@@ -582,8 +595,16 @@ export default function AIChat() {
       <div className="bg-gradient-to-r from-green-600 to-green-500 text-white rounded-t-2xl p-4 flex items-center justify-between">
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 bg-white/20 rounded-full flex items-center justify-center">
-            <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 24 24">
-              <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 17.93c-3.95-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 15v1c0 1.1.9 2 2 2v1.93zm6.9-2.54c-.26-.81-1-1.39-1.9-1.39h-1v-3c0-.55-.45-1-1-1H8v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.41c2.93 1.19 5 4.06 5 7.41 0 2.08-.8 3.97-2.1 5.39z"/>
+            {/* Minimalist Robot Icon */}
+            <svg className="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <line x1="12" y1="2" x2="12" y2="5" />
+              <circle cx="12" cy="2" r="1" fill="currentColor" />
+              <rect x="5" y="5" width="14" height="10" rx="2" />
+              <circle cx="9" cy="10" r="1.5" fill="currentColor" />
+              <circle cx="15" cy="10" r="1.5" fill="currentColor" />
+              <rect x="7" y="15" width="10" height="6" rx="1" />
+              <line x1="9" y1="21" x2="9" y2="23" />
+              <line x1="15" y1="21" x2="15" y2="23" />
             </svg>
           </div>
           <div>
