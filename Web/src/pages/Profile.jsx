@@ -5,6 +5,10 @@ import { db, storage } from '../config/firebase'
 import { updateProfile } from 'firebase/auth'
 import { auth } from '../config/firebase'
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage'
+import {
+  ExclamationTriangleIcon,
+  UserIcon
+} from '@heroicons/react/24/outline'
 
 const ROLE_DISPLAY_NAMES = {
   super_admin: 'Super Admin',
@@ -626,8 +630,8 @@ export default function Profile() {
                     )}
                   </p>
                   {!userProfile?.course && (
-                    <p className="text-xs text-amber-600 mt-1">
-                      ⚠️ Go to Schedule page and upload your registration form to set your course.
+                    <p className="text-xs text-amber-600 mt-1 flex items-center gap-1">
+                      <ExclamationTriangleIcon className="w-3.5 h-3.5" /> Go to Schedule page and upload your registration form to set your course.
                     </p>
                   )}
                 </div>
@@ -646,8 +650,8 @@ export default function Profile() {
                     )}
                   </p>
                   {!userProfile?.yearLevel && (
-                    <p className="text-xs text-amber-600 mt-1">
-                      ⚠️ Go to Schedule page and upload your registration form to set your year level.
+                    <p className="text-xs text-amber-600 mt-1 flex items-center gap-1">
+                      <ExclamationTriangleIcon className="w-3.5 h-3.5" /> Go to Schedule page and upload your registration form to set your year level.
                     </p>
                   )}
                 </div>
@@ -666,8 +670,8 @@ export default function Profile() {
                     )}
                   </p>
                   {!userProfile?.section && (
-                    <p className="text-xs text-amber-600 mt-1">
-                      ⚠️ Go to Schedule page and upload your registration form to set your section.
+                    <p className="text-xs text-amber-600 mt-1 flex items-center gap-1">
+                      <ExclamationTriangleIcon className="w-3.5 h-3.5" /> Go to Schedule page and upload your registration form to set your section.
                     </p>
                   )}
                 </div>
@@ -717,7 +721,7 @@ export default function Profile() {
                           key={orgCode}
                           className="inline-flex items-center px-3 py-1.5 rounded-full text-sm font-medium bg-purple-100 text-purple-800"
                         >
-                          <span className="mr-1">👨‍🏫</span>
+                          <UserIcon className="w-4 h-4 mr-1" />
                           {info.orgName} Adviser
                         </span>
                       ))}

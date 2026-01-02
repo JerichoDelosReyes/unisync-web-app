@@ -2,6 +2,17 @@ import { useState, useEffect, useRef } from 'react'
 import { useLocation } from 'react-router-dom'
 import { useAuth, ROLES, ROLE_HIERARCHY, ROLE_DISPLAY_NAMES } from '../contexts/AuthContext'
 import {
+  AcademicCapIcon,
+  BuildingLibraryIcon,
+  PencilIcon,
+  XCircleIcon,
+  ExclamationTriangleIcon,
+  LightBulbIcon,
+  CheckCircleIcon,
+  SparklesIcon,
+  ArrowUpTrayIcon
+} from '@heroicons/react/24/outline'
+import {
   createAnnouncement,
   getAnnouncementsForUser,
   getAllAnnouncements,
@@ -1670,7 +1681,7 @@ export default function Announcements() {
                       }`}
                     >
                       <div className="flex items-center gap-2 justify-center">
-                        <span className="text-lg">🎓</span>
+                        <AcademicCapIcon className="w-5 h-5 text-green-600" />
                         <div className="text-left">
                           <p className="font-semibold text-sm text-gray-900">Class Representative</p>
                           <p className="text-xs text-gray-500">Section {userProfile?.section}</p>
@@ -1692,7 +1703,7 @@ export default function Announcements() {
                       }`}
                     >
                       <div className="flex items-center gap-2 justify-center">
-                        <span className="text-lg">🏛️</span>
+                        <BuildingLibraryIcon className="w-5 h-5 text-blue-600" />
                         <div className="text-left">
                           <p className="font-semibold text-sm text-gray-900">Organization Officer</p>
                           <p className="text-xs text-gray-500">
@@ -1733,7 +1744,7 @@ export default function Announcements() {
               {announcementMode === 'org' && userAnnouncementOrgs.length === 1 && (
                 <div className="mb-6 p-4 bg-blue-50 rounded-xl border border-blue-200">
                   <div className="flex items-center gap-3">
-                    <span className="text-2xl">🏛️</span>
+                    <BuildingLibraryIcon className="w-7 h-7 text-blue-600" />
                     <div>
                       <p className="font-semibold text-blue-900">Announcing as {selectedAnnouncementOrg?.position || userAnnouncementOrgs[0].position}</p>
                       <p className="text-sm text-blue-700">{selectedAnnouncementOrg?.name || userAnnouncementOrgs[0].name}</p>
@@ -1864,7 +1875,7 @@ export default function Announcements() {
                   <div className="mt-4 p-3 bg-gray-50 border border-gray-200 rounded-lg">
                     <div className="flex items-center justify-between mb-2">
                       <div className="flex items-center gap-2">
-                        <span className="text-lg">✍️</span>
+                        <PencilIcon className="w-5 h-5 text-gray-600" />
                         <span className="text-sm font-semibold text-gray-700">Writing Assistant</span>
                       </div>
                       <div className="flex items-center gap-2">
@@ -1934,7 +1945,7 @@ export default function Announcements() {
                           <div className="space-y-2 max-h-40 overflow-y-auto">
                             {grammarCheck.errors.map((issue, idx) => (
                               <div key={`error-${idx}`} className="flex items-start gap-2 p-2 bg-red-50 rounded-lg border border-red-100">
-                                <span className="text-red-500 flex-shrink-0">❌</span>
+                                <XCircleIcon className="w-4 h-4 text-red-500 flex-shrink-0 mt-0.5" />
                                 <div className="flex-1 min-w-0">
                                   <p className="text-xs text-red-800">{issue.message}</p>
                                   {issue.suggestion && (
@@ -1945,7 +1956,7 @@ export default function Announcements() {
                             ))}
                             {grammarCheck.warnings.map((issue, idx) => (
                               <div key={`warning-${idx}`} className="flex items-start gap-2 p-2 bg-yellow-50 rounded-lg border border-yellow-100">
-                                <span className="text-yellow-500 flex-shrink-0">⚠️</span>
+                                <ExclamationTriangleIcon className="w-4 h-4 text-yellow-500 flex-shrink-0 mt-0.5" />
                                 <div className="flex-1 min-w-0">
                                   <p className="text-xs text-yellow-800">{issue.message}</p>
                                   {issue.word && (
@@ -1956,7 +1967,7 @@ export default function Announcements() {
                             ))}
                             {grammarCheck.suggestions.slice(0, 3).map((issue, idx) => (
                               <div key={`suggestion-${idx}`} className="flex items-start gap-2 p-2 bg-blue-50 rounded-lg border border-blue-100">
-                                <span className="text-blue-500 flex-shrink-0">💡</span>
+                                <LightBulbIcon className="w-4 h-4 text-blue-500 flex-shrink-0 mt-0.5" />
                                 <p className="text-xs text-blue-800 flex-1">{issue.message}</p>
                               </div>
                             ))}
@@ -1965,7 +1976,7 @@ export default function Announcements() {
                         
                         {grammarCheck.allIssues.length === 0 && (
                           <div className="flex items-center gap-2 p-2 bg-green-50 rounded-lg border border-green-100">
-                            <span className="text-green-500">✅</span>
+                            <CheckCircleIcon className="w-4 h-4 text-green-500" />
                             <p className="text-xs text-green-800">No grammar or spelling issues found!</p>
                           </div>
                         )}
@@ -2002,9 +2013,9 @@ export default function Announcements() {
                           {skipReviewQueue ? 'Publishing...' : 'Submitting...'}
                         </>
                       ) : (
-                        <>
-                          {skipReviewQueue ? '✨ Publish' : '📤 Submit'}
-                        </>
+                        <span className="flex items-center gap-1.5">
+                          {skipReviewQueue ? <><SparklesIcon className="w-4 h-4" /> Publish</> : <><ArrowUpTrayIcon className="w-4 h-4" /> Submit</>}
+                        </span>
                       )}
                     </button>
                   </div>
@@ -2177,10 +2188,8 @@ export default function Announcements() {
                   </span>
                 ) : (
                   <span className="flex items-center justify-center gap-2">
-                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-                    </svg>
-                    {skipReviewQueue ? '✨ Publish Now' : '📤 Submit for Review'}
+                    {skipReviewQueue ? <SparklesIcon className="w-5 h-5" /> : <ArrowUpTrayIcon className="w-5 h-5" />}
+                    {skipReviewQueue ? 'Publish Now' : 'Submit for Review'}
                   </span>
                 )}
               </button>
@@ -2822,7 +2831,7 @@ export default function Announcements() {
             
             {/* Flagged Content Display */}
             <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 mb-6">
-              <p className="text-sm font-semibold text-amber-800 mb-2">⚠️ Flagged words/phrases:</p>
+              <p className="text-sm font-semibold text-amber-800 mb-2 flex items-center gap-1.5"><ExclamationTriangleIcon className="w-4 h-4" /> Flagged words/phrases:</p>
               <div className="flex flex-wrap gap-2">
                 {contentWarningModal.flaggedWords.length > 0 ? (
                   contentWarningModal.flaggedWords.map((item, idx) => (

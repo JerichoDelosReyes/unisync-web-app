@@ -1,6 +1,15 @@
 import { useState, useEffect } from 'react'
 import { useAuth, ROLES } from '../../contexts/AuthContext'
 import {
+  AcademicCapIcon,
+  MegaphoneIcon,
+  BuildingLibraryIcon,
+  AdjustmentsHorizontalIcon,
+  LockClosedIcon,
+  ExclamationTriangleIcon,
+  ClipboardDocumentListIcon
+} from '@heroicons/react/24/outline'
+import {
   DEPARTMENTS,
   DEPARTMENT_CODES,
   DCS_TARGET_ORGS,
@@ -269,7 +278,7 @@ export default function AudienceSelector({ value = [], onChange, userProfile, an
   const getSummaryText = () => {
     // Class Rep mode - section only
     if (isClassRepMode) {
-      return `🎓 Section ${userProfile.section.toUpperCase()} Only`
+      return <span className="flex items-center gap-1"><AcademicCapIcon className="w-4 h-4" /> Section {userProfile.section.toUpperCase()} Only</span>
     }
     
     // Faculty mode - department-restricted
@@ -284,7 +293,7 @@ export default function AudienceSelector({ value = [], onChange, userProfile, an
       if (selections.section) {
         parts.push(`Section ${selections.section}`)
       }
-      return `🎯 ${parts.join(' • ')}`
+      return <span className="flex items-center gap-1"><AdjustmentsHorizontalIcon className="w-4 h-4" /> {parts.join(' • ')}</span>
     }
     
     // Org Officer mode - based on selected org or campus-wide
@@ -294,7 +303,7 @@ export default function AudienceSelector({ value = [], onChange, userProfile, an
         const yearLevelText = selections.yearLevels.length > 0 
           ? ` • ${selections.yearLevels.map(y => `Year ${y}`).join(', ')}`
           : ''
-        return `📢 Campus-Wide (All Students)${yearLevelText}`
+        return <span className="flex items-center gap-1"><MegaphoneIcon className="w-4 h-4" /> Campus-Wide (All Students){yearLevelText}</span>
       }
       
       // Get org audience info from officerOf
@@ -315,11 +324,11 @@ export default function AudienceSelector({ value = [], onChange, userProfile, an
         ? ` • ${selections.yearLevels.map(y => `Year ${y}`).join(', ')}`
         : ''
       
-      return `🏛️ ${audienceDesc}${yearLevelText}`
+      return <span className="flex items-center gap-1"><BuildingLibraryIcon className="w-4 h-4" /> {audienceDesc}{yearLevelText}</span>
     }
     
     if (selections.targetType === 'all' && !isOrgOfficerMode && !isClassRepMode) {
-      return '📢 Campus-Wide (All Students & Faculty)'
+      return <span className="flex items-center gap-1"><MegaphoneIcon className="w-4 h-4" /> Campus-Wide (All Students & Faculty)</span>
     }
     
     const parts = []
@@ -343,7 +352,7 @@ export default function AudienceSelector({ value = [], onChange, userProfile, an
       parts.push(`Section ${selections.section}`)
     }
     
-    return parts.length > 0 ? `🎯 ${parts.join(' • ')}` : '📢 Campus-Wide'
+    return parts.length > 0 ? <span className="flex items-center gap-1"><AdjustmentsHorizontalIcon className="w-4 h-4" /> {parts.join(' • ')}</span> : <span className="flex items-center gap-1"><MegaphoneIcon className="w-4 h-4" /> Campus-Wide</span>
   }
   
   // Determine if selection should be locked (only class rep, not org officers anymore)
@@ -388,7 +397,7 @@ export default function AudienceSelector({ value = [], onChange, userProfile, an
           {isOrgOfficerMode && selectedOrg && (
             <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg">
               <div className="flex items-center gap-2 mb-2">
-                <span className="text-lg">🏛️</span>
+                <BuildingLibraryIcon className="w-5 h-5 text-blue-600" />
                 <span className="text-sm font-semibold text-blue-900">Announcing as {selectedOrg.position}</span>
               </div>
               <p className="text-xs text-blue-700 mb-3">
@@ -412,13 +421,13 @@ export default function AudienceSelector({ value = [], onChange, userProfile, an
                         targetType: 'custom'
                       }))
                     }}
-                    className={`flex-1 px-3 py-2 text-xs font-semibold rounded-lg transition-all ${
+                    className={`flex-1 px-3 py-2 text-xs font-semibold rounded-lg transition-all flex items-center justify-center gap-1 ${
                       !selections.campusWide
                         ? 'bg-blue-600 text-white'
                         : 'bg-white border border-blue-200 text-blue-700 hover:bg-blue-50'
                     }`}
                   >
-                    🏛️ {selectedOrg.code} Members
+                    <BuildingLibraryIcon className="w-4 h-4" /> {selectedOrg.code} Members
                   </button>
                   <button
                     type="button"
@@ -430,13 +439,13 @@ export default function AudienceSelector({ value = [], onChange, userProfile, an
                         targetType: 'all'
                       }))
                     }}
-                    className={`flex-1 px-3 py-2 text-xs font-semibold rounded-lg transition-all ${
+                    className={`flex-1 px-3 py-2 text-xs font-semibold rounded-lg transition-all flex items-center justify-center gap-1 ${
                       selections.campusWide
                         ? 'bg-green-600 text-white'
                         : 'bg-white border border-blue-200 text-blue-700 hover:bg-blue-50'
                     }`}
                   >
-                    📢 Campus-Wide
+                    <MegaphoneIcon className="w-4 h-4" /> Campus-Wide
                   </button>
                 </div>
               </div>
@@ -469,10 +478,11 @@ export default function AudienceSelector({ value = [], onChange, userProfile, an
                     </button>
                   )}
                 </div>
-                <p className="text-xs text-blue-600 mt-2">
+                <p className="text-xs text-blue-600 mt-2 flex items-center gap-1">
+                  <MegaphoneIcon className="w-3.5 h-3.5" />
                   {selections.yearLevels.length === 0 
-                    ? '📢 Announcing to all year levels'
-                    : `📢 Announcing to ${selections.yearLevels.map(y => `Year ${y}`).join(', ')} only`
+                    ? 'Announcing to all year levels'
+                    : `Announcing to ${selections.yearLevels.map(y => `Year ${y}`).join(', ')} only`
                   }
                 </p>
               </div>
@@ -483,14 +493,14 @@ export default function AudienceSelector({ value = [], onChange, userProfile, an
           {isClassRepMode && (
             <div className="p-3 bg-green-50 border border-green-200 rounded-lg">
               <div className="flex items-center gap-2 mb-1">
-                <span className="text-xs font-semibold text-green-800">🔒 Class Representative Mode</span>
+                <span className="text-xs font-semibold text-green-800 flex items-center gap-1"><LockClosedIcon className="w-3.5 h-3.5" /> Class Representative Mode</span>
               </div>
               <p className="text-xs text-green-700 mb-2">
                 Your announcements will only be visible to students in your section.
               </p>
               <div className="flex items-center gap-2">
                 <span className="px-3 py-1.5 text-sm font-bold bg-green-600 text-white rounded-lg">
-                  📍 Section: {userProfile.section.toUpperCase()}
+                  Section: {userProfile.section.toUpperCase()}
                 </span>
               </div>
             </div>
@@ -500,7 +510,7 @@ export default function AudienceSelector({ value = [], onChange, userProfile, an
           {isFaculty && (
             <div className="p-3 bg-amber-50 border border-amber-200 rounded-lg">
               <div className="flex items-center gap-2 mb-1">
-                <span className="text-lg">⚠️</span>
+                <ExclamationTriangleIcon className="w-5 h-5 text-amber-600" />
                 <span className="text-xs font-semibold text-amber-800">Faculty Targeting Restrictions</span>
               </div>
               <p className="text-xs text-amber-700">
@@ -515,24 +525,24 @@ export default function AudienceSelector({ value = [], onChange, userProfile, an
               <button
                 type="button"
                 onClick={() => handleTargetTypeChange('all')}
-                className={`flex-1 px-3 py-2 text-xs font-semibold rounded-lg transition-all ${
+                className={`flex-1 px-3 py-2 text-xs font-semibold rounded-lg transition-all flex items-center justify-center gap-1 ${
                   selections.targetType === 'all'
                     ? 'bg-green-600 text-white'
                     : 'bg-white border border-gray-200 text-gray-700 hover:bg-gray-50'
                 }`}
               >
-                📢 Campus-Wide
+                <MegaphoneIcon className="w-4 h-4" /> Campus-Wide
               </button>
               <button
                 type="button"
                 onClick={() => handleTargetTypeChange('custom')}
-                className={`flex-1 px-3 py-2 text-xs font-semibold rounded-lg transition-all ${
+                className={`flex-1 px-3 py-2 text-xs font-semibold rounded-lg transition-all flex items-center justify-center gap-1 ${
                   selections.targetType === 'custom'
                     ? 'bg-green-600 text-white'
                     : 'bg-white border border-gray-200 text-gray-700 hover:bg-gray-50'
                 }`}
               >
-                🎯 Specific Audience
+                <AdjustmentsHorizontalIcon className="w-4 h-4" /> Specific Audience
               </button>
             </div>
           )}
@@ -544,7 +554,7 @@ export default function AudienceSelector({ value = [], onChange, userProfile, an
               {isFaculty && facultyDepartment && (
                 <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg">
                   <div className="flex items-center gap-2 mb-1">
-                    <span className="text-xs font-semibold text-blue-800">🔒 Your Department:</span>
+                    <span className="text-xs font-semibold text-blue-800 flex items-center gap-1"><LockClosedIcon className="w-3.5 h-3.5" /> Your Department:</span>
                     <span className="px-2 py-0.5 text-xs font-bold bg-blue-600 text-white rounded">
                       {DEPARTMENT_CODES[facultyDepartment]}
                     </span>
@@ -684,9 +694,9 @@ export default function AudienceSelector({ value = [], onChange, userProfile, an
                     {selections.orgs.map((org) => (
                       <span
                         key={org}
-                        className="px-3 py-2 text-xs font-semibold bg-orange-100 text-orange-700 rounded-lg"
+                        className="px-3 py-2 text-xs font-semibold bg-orange-100 text-orange-700 rounded-lg flex items-center gap-1"
                       >
-                        🔒 {org}
+                        <LockClosedIcon className="w-3.5 h-3.5" /> {org}
                       </span>
                     ))}
                   </div>
@@ -698,7 +708,7 @@ export default function AudienceSelector({ value = [], onChange, userProfile, an
           {/* Targeting Summary */}
           {(selections.targetType === 'custom' || defaultTargeting.locked || (isOrgOfficerMode && selections.campusWide)) && (
             <div className="p-3 bg-green-50 border border-green-200 rounded-lg">
-              <p className="text-xs font-semibold text-green-800 mb-1">📋 Targeting Summary:</p>
+              <p className="text-xs font-semibold text-green-800 mb-1 flex items-center gap-1"><ClipboardDocumentListIcon className="w-3.5 h-3.5" /> Targeting Summary:</p>
               <p className="text-xs text-green-700">
                 {isOrgOfficerMode && selections.campusWide 
                   ? `Campus-Wide Announcement${selections.yearLevels.length > 0 ? ` (${selections.yearLevels.map(y => `Year ${y}`).join(', ')})` : ''}`

@@ -12,6 +12,7 @@
     "deploy": "gh-pages -d dist"
   },
   "dependencies": {
+    "@heroicons/react": "^2.2.0",
     "clsx": "^2.1.0",
     "firebase": "^12.7.0",
     "pdfjs-dist": "^5.4.449",

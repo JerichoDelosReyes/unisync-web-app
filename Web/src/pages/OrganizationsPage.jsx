@@ -11,6 +11,13 @@ import { useState, useEffect, useRef } from 'react'
 import { useAuth, ROLES } from '../contexts/AuthContext'
 import Toast from '../components/ui/Toast'
 import ModalOverlay from '../components/ui/ModalOverlay'
+import {
+  MegaphoneIcon,
+  UserIcon,
+  UserGroupIcon,
+  BuildingLibraryIcon,
+  LockClosedIcon
+} from '@heroicons/react/24/outline'
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage'
 import { storage } from '../config/firebase'
 import {
@@ -687,10 +694,11 @@ export default function OrganizationsPage() {
                     } ${ORG_CATEGORIES[selectedOrg.category]?.textColor || 'text-gray-800'}`}>
                       {ORG_CATEGORIES[selectedOrg.category]?.label || selectedOrg.category}
                     </span>
-                    <span className="text-xs text-gray-500">
+                    <span className="text-xs text-gray-500 flex items-center gap-1">
+                      <MegaphoneIcon className="w-3.5 h-3.5" />
                       {selectedOrg.audienceType === 'all' 
-                        ? '📢 Announces to all students' 
-                        : `📢 Announces to ${selectedOrg.audienceCourse || selectedOrg.audienceDepartment || 'members'}`}
+                        ? 'Announces to all students' 
+                        : `Announces to ${selectedOrg.audienceCourse || selectedOrg.audienceDepartment || 'members'}`}
                     </span>
                     {selectedOrg.isCustom && (
                       <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
@@ -721,7 +729,7 @@ export default function OrganizationsPage() {
               <div className="p-6 border-b border-gray-200">
                 <div className="flex items-center justify-between mb-4">
                   <h3 className="font-semibold text-gray-900 flex items-center gap-2">
-                    <span className="text-purple-600">👨‍🏫</span>
+                    <UserIcon className="w-5 h-5 text-purple-600" />
                     Advisers
                     <span className="text-sm text-gray-500 font-normal">
                       ({orgOfficers?.advisers?.length || 0}/{selectedOrg.maxAdvisers})
@@ -770,7 +778,7 @@ export default function OrganizationsPage() {
               <div className="p-6">
                 <div className="flex items-center justify-between mb-4">
                   <h3 className="font-semibold text-gray-900 flex items-center gap-2">
-                    <span className="text-blue-600">👥</span>
+                    <UserGroupIcon className="w-5 h-5 text-blue-600" />
                     Officers
                     <span className="text-sm text-gray-500 font-normal">
                       ({orgOfficers?.officers?.length || 0}/{selectedOrg.positions?.length || 0} positions filled)
@@ -888,7 +896,7 @@ export default function OrganizationsPage() {
             </div>
           ) : (
             <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-12 text-center">
-              <div className="text-6xl mb-4">🏛️</div>
+              <BuildingLibraryIcon className="w-16 h-16 text-gray-400 mx-auto mb-4" />
               <h3 className="text-lg font-semibold text-gray-900 mb-2">Select an Organization</h3>
               <p className="text-gray-500">
                 Choose an organization from the list to view its officers and advisers
@@ -911,8 +919,9 @@ export default function OrganizationsPage() {
               {/* Course/Department Filter Notice */}
               {selectedOrg && !['CSG', 'ST', 'TF', 'HS'].includes(selectedOrg.code) && (
                 <div className="mb-4 p-3 bg-purple-50 border border-purple-200 rounded-lg">
-                  <p className="text-xs text-purple-800">
-                    <span className="font-semibold">🔒 Filtered by: </span>
+                  <p className="text-xs text-purple-800 flex items-center gap-1">
+                    <LockClosedIcon className="w-3.5 h-3.5" />
+                    <span className="font-semibold">Filtered by: </span>
                     {Object.entries(DEPT_ORG_MAPPING).find(([, orgs]) => orgs.includes(selectedOrg.code))?.[0] || 'Related Department'}
                   </p>
                 </div>
@@ -989,8 +998,9 @@ export default function OrganizationsPage() {
               {/* Course Filter Notice */}
               {selectedOrg && !['CSG', 'ST', 'TF', 'HS'].includes(selectedOrg.code) && (
                 <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg">
-                  <p className="text-xs text-blue-800">
-                    <span className="font-semibold">🔒 Filtered by: </span>
+                  <p className="text-xs text-blue-800 flex items-center gap-1">
+                    <LockClosedIcon className="w-3.5 h-3.5" />
+                    <span className="font-semibold">Filtered by: </span>
                     {ORGANIZATIONS[selectedOrg.code]?.audienceCourse || ORGANIZATIONS[selectedOrg.code]?.audienceDepartment || 'Related Course'}
                   </p>
                 </div>

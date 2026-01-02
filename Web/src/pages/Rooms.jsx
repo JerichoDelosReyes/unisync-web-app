@@ -23,8 +23,8 @@ const DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'
 
 // Building options
 const BUILDING_OPTIONS = {
-  old: { name: 'Old Building', icon: '🏫' },
-  new: { name: 'New Building', icon: '🏢' }
+  old: { name: 'Old Building' },
+  new: { name: 'New Building' }
 }
 
 // Default rooms to seed when collection is empty (all VACANT by default - occupied only when regform indicates a section)
@@ -604,7 +604,6 @@ export default function Rooms() {
                   : 'bg-gray-50 text-gray-600 hover:bg-gray-100'
               }`}
             >
-              <span className="mr-2">{building.icon}</span>
               {building.name}
             </button>
           ))}

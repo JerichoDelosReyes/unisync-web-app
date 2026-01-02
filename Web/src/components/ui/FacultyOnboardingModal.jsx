@@ -2,6 +2,9 @@ import { useState, useEffect } from 'react'
 import { doc, updateDoc, serverTimestamp } from 'firebase/firestore'
 import { db } from '../../config/firebase'
 import {
+  LightBulbIcon
+} from '@heroicons/react/24/outline'
+import {
   DEPARTMENTS,
   DEPARTMENT_CODES,
   DEPT_ORG_MAPPING,
@@ -248,8 +251,8 @@ export default function FacultyOnboardingModal({ isOpen, userProfile, onComplete
                   </div>
                 )}
                 
-                <p className="text-xs text-gray-400 mt-3">
-                  💡 You can skip this if you don't want to be linked to any organization.
+                <p className="text-xs text-gray-400 mt-3 flex items-center gap-1">
+                  <LightBulbIcon className="w-4 h-4" /> You can skip this if you don't want to be linked to any organization.
                 </p>
               </div>
             </div>
