@@ -1125,7 +1125,7 @@ export default function OrganizationsPage() {
                     type="text"
                     value={newOrgData.code}
                     onChange={(e) => setNewOrgData(prev => ({ ...prev, code: e.target.value.toUpperCase() }))}
-                    placeholder="e.g., CSO"
+                    placeholder="e.g., CSC"
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 uppercase"
                   />
                 </div>
@@ -1137,7 +1137,7 @@ export default function OrganizationsPage() {
                     type="text"
                     value={newOrgData.name}
                     onChange={(e) => setNewOrgData(prev => ({ ...prev, name: e.target.value }))}
-                    placeholder="e.g., Computer Society"
+                    placeholder="e.g., Computer Science Clique"
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500"
                   />
                 </div>
@@ -1150,7 +1150,7 @@ export default function OrganizationsPage() {
                   type="text"
                   value={newOrgData.fullName}
                   onChange={(e) => setNewOrgData(prev => ({ ...prev, fullName: e.target.value }))}
-                  placeholder="e.g., Computer Society Organization"
+                  placeholder="e.g., Computer Science Clique"
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500"
                 />
               </div>
