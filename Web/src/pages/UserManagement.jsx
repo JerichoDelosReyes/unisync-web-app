@@ -26,10 +26,106 @@ const getTagColor = (tag) => {
 }
 
 /**
- * Format tag for display by removing prefixes like dept:, org:, year:, etc.
+ * Format tag for display with shortened, readable names
+ * Examples:
+ * - org:CSC:COMMITTEE:INTERNAL_AFFAIRS → CSC:CMTE:INTERNAL
+ * - org:CSC:YEAR_REP:1 → CSC:YR_REP:1ST
+ * - dept:DCS → DCS
+ * - year:3 → 3rd Year
  */
 const formatTagDisplay = (tag) => {
   if (!tag) return ''
+  
+  // Committee tags: org:CODE:COMMITTEE:NAME → CODE:CMTE:SHORT_NAME
+  if (tag.includes(':COMMITTEE:')) {
+    const parts = tag.split(':')
+    const orgCode = parts[1] || ''
+    const committeeFull = parts[3] || ''
+    
+    // Shorten committee names
+    const committeeShortNames = {
+      'INTERNAL_AFFAIRS': 'INTERNAL',
+      'EXTERNAL_AFFAIRS': 'EXTERNAL',
+      'MEMBERSHIP_DUES': 'MEMBERSHIP',
+      'SECRETARIAT': 'SECRETARIAT',
+      'PUBLICITY': 'PUBLICITY',
+      'MULTIMEDIA': 'MULTIMEDIA',
+      'FINANCE_SPONSORSHIP': 'FINANCE',
+      'AUDITS': 'AUDITS'
+    }
+    
+    const shortName = committeeShortNames[committeeFull] || committeeFull
+    return `${orgCode}:CMTE:${shortName}`
+  }
+  
+  // Year Rep tags: org:CODE:YEAR_REP:N → CODE:YR_REP:Nth
+  if (tag.includes(':YEAR_REP:')) {
+    const parts = tag.split(':')
+    const orgCode = parts[1] || ''
+    const yearNum = parts[3] || ''
+    
+    const yearSuffix = { '1': '1ST', '2': '2ND', '3': '3RD', '4': '4TH' }
+    return `${orgCode}:YR_REP:${yearSuffix[yearNum] || yearNum}`
+  }
+  
+  // Officer tags: org:CODE:OFFICER:POSITION → CODE:POSITION
+  if (tag.includes(':OFFICER:')) {
+    const parts = tag.split(':')
+    const orgCode = parts[1] || ''
+    const position = parts[3] || ''
+    
+    // Shorten position names
+    const positionShortNames = {
+      'PRESIDENT': 'PRES',
+      'VICE_PRESIDENT': 'VP',
+      'VP_INTERNAL': 'VP_INT',
+      'VP_EXTERNAL': 'VP_EXT',
+      'SECRETARY': 'SEC',
+      'SECRETARY_GENERAL': 'SEC_GEN',
+      'TREASURER': 'TREAS',
+      'TREASURER_GENERAL': 'TREAS_GEN',
+      'AUDITOR': 'AUD',
+      'PRO': 'PRO',
+      'ADVISER': 'ADV'
+    }
+    
+    const shortPos = positionShortNames[position] || position
+    return `${orgCode}:${shortPos}`
+  }
+  
+  // Year level tags: year:N → Nth Year
+  if (tag.startsWith('year:')) {
+    const year = tag.split(':')[1]
+    const ordinals = { '1': '1st', '2': '2nd', '3': '3rd', '4': '4th' }
+    return `${ordinals[year] || year} Year`
+  }
+  
+  // Section tags: section:X → Section X
+  if (tag.startsWith('section:')) {
+    return `Section ${tag.split(':')[1]}`
+  }
+  
+  // Department tags: dept:X → X
+  if (tag.startsWith('dept:')) {
+    return tag.split(':')[1]
+  }
+  
+  // Program tags: program:X → X
+  if (tag.startsWith('program:')) {
+    return tag.split(':')[1]
+  }
+  
+  // College tags: college:X → X
+  if (tag.startsWith('college:')) {
+    return tag.split(':')[1]
+  }
+  
+  // Simple org tags: org:CODE → CODE
+  if (tag.startsWith('org:') && tag.split(':').length === 2) {
+    return tag.split(':')[1]
+  }
+  
+  // Default: remove first prefix
   const colonIndex = tag.indexOf(':')
   if (colonIndex !== -1) {
     return tag.substring(colonIndex + 1)
