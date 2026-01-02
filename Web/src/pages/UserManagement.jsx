@@ -783,10 +783,11 @@ export default function UserManagement() {
                             }
                           }}
                           className="p-1 text-gray-400 hover:text-primary hover:bg-gray-100 rounded"
-                          title="Manage tags"
+                          title="View tags"
                         >
                           <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
                           </svg>
                         </button>
                       </div>
@@ -869,7 +870,7 @@ export default function UserManagement() {
             {/* Header */}
             <div className="bg-green-600 text-white px-6 py-4 flex items-center justify-between flex-shrink-0">
               <div>
-                <h3 className="text-lg font-bold">Manage Tags</h3>
+                <h3 className="text-lg font-bold">View Tags</h3>
                 <p className="text-sm text-white/80">
                   Tags for {tagModalUser.givenName} {tagModalUser.lastName}
                   {tagModalUser.role === ROLES.FACULTY || tagModalUser.role === 'faculty' ? ' (Faculty)' : ''}
@@ -979,6 +980,7 @@ export default function UserManagement() {
             {/* Current Tags */}
             <div className="mb-4">
               <label className="text-sm font-medium text-gray-700 mb-2 block">Current Tags</label>
+              <p className="text-xs text-gray-500 mb-2">Tags are automatically assigned through organization tagging in the Organizations page</p>
               <div className="flex flex-wrap gap-2 min-h-[40px] p-3 bg-gray-50 rounded-lg">
                 {(tagModalUser.tags || []).length === 0 ? (
                   <span className="text-sm text-gray-400">No tags yet</span>
@@ -1001,180 +1003,6 @@ export default function UserManagement() {
                     </span>
                   ))
                 )}
-              </div>
-            </div>
-            
-            {/* Add Organization & Position Tag (for students only - not faculty) */}
-            {tagModalUser.role !== ROLES.FACULTY && tagModalUser.role !== 'faculty' && (
-              <>
-                {/* Year Level and Section (for Class Rep validation) */}
-                <div className="mb-4">
-                  <label className="text-sm font-medium text-gray-700 mb-2 block">Year Level & Section</label>
-                  <p className="text-xs text-gray-500 mb-2">Required for Class Rep role validation</p>
-                  
-                  <div className="grid grid-cols-[1fr_1fr_auto] gap-2">
-                    {/* Year Level Selection */}
-                    <select
-                      value={selectedYearLevel}
-                      onChange={(e) => setSelectedYearLevel(e.target.value)}
-                      className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary bg-white"
-                    >
-                      <option value="">Year Level</option>
-                      {YEAR_LEVELS.map((year) => (
-                        <option key={year.value} value={year.value}>{year.label}</option>
-                      ))}
-                    </select>
-                    
-                    {/* Section Input */}
-                    <input
-                      type="text"
-                      value={selectedSection}
-                      onChange={(e) => setSelectedSection(e.target.value.toUpperCase())}
-                      placeholder="Section (e.g., A, B, 1A)"
-                      maxLength={5}
-                      className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary bg-white"
-                    />
-                    
-                    {/* Add Button */}
-                    <button
-                      onClick={async () => {
-                        if (selectedYearLevel) {
-                          await handleAddTag(`year:${selectedYearLevel}`)
-                        }
-                        if (selectedSection.trim()) {
-                          await handleAddTag(`section:${selectedSection.trim().toUpperCase()}`)
-                        }
-                        setSelectedYearLevel('')
-                        setSelectedSection('')
-                      }}
-                      disabled={(!selectedYearLevel && !selectedSection.trim()) || savingTags}
-                      className="px-4 py-2 bg-primary text-white text-sm font-medium rounded-lg hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors whitespace-nowrap"
-                    >
-                      {savingTags ? '...' : 'Add'}
-                    </button>
-                  </div>
-                </div>
-
-                {/* Organization & Position */}
-                <div className="mb-4">
-                  <label className="text-sm font-medium text-gray-700 mb-2 block">Add Organization & Position</label>
-                  <p className="text-xs text-gray-500 mb-2">For student organization members/officers</p>
-                
-                <div className="grid grid-cols-[1fr_1fr_auto] gap-2">
-                  {/* Organization Selection */}
-                  <select
-                    value={selectedOrg}
-                    onChange={(e) => setSelectedOrg(e.target.value)}
-                    className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary bg-white truncate"
-                  >
-                    <option value="">Organization</option>
-                    {STUDENT_ORGS.map((org) => (
-                      <option key={org.code} value={org.code}>{org.code}</option>
-                    ))}
-                  </select>
-                  
-                  {/* Position Selection */}
-                  <select
-                    value={selectedPosition}
-                    onChange={(e) => setSelectedPosition(e.target.value)}
-                    className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary bg-white truncate"
-                  >
-                    <option value="">Position</option>
-                    {positions.map((pos) => (
-                      <option key={pos} value={pos}>{pos}</option>
-                    ))}
-                  </select>
-                  
-                  {/* Single Add Button */}
-                  <button
-                    onClick={async () => {
-                      try {
-                        setSavingTags(true)
-                        if (selectedOrg && selectedPosition) {
-                          // Use the organization service to properly tag the officer
-                          // Find position ID from EXECUTIVE_POSITIONS
-                          const positionConfig = EXECUTIVE_POSITIONS.find(
-                            p => p.title.toUpperCase() === selectedPosition.toUpperCase() ||
-                                 p.id.toUpperCase() === selectedPosition.toUpperCase()
-                          )
-                          const positionId = positionConfig?.id || selectedPosition.toLowerCase().replace(/\s+/g, '_')
-                          const positionTitle = positionConfig?.title || selectedPosition
-                          
-                          await tagOfficer(
-                            selectedOrg,
-                            tagModalUser.id,
-                            positionId,
-                            positionTitle,
-                            {
-                              uid: userProfile.id,
-                              name: `${userProfile.givenName} ${userProfile.lastName}`
-                            }
-                          )
-                          
-                          // Refresh user data
-                          const updatedUser = await getDocuments('users').then(users => 
-                            users.find(u => u.id === tagModalUser.id)
-                          )
-                          if (updatedUser) {
-                            setUsers(prevUsers => 
-                              prevUsers.map(user => 
-                                user.id === tagModalUser.id ? updatedUser : user
-                              )
-                            )
-                            setTagModalUser(updatedUser)
-                          }
-                          
-                          showToast(`Tagged as ${selectedOrg} ${positionTitle}`, 'success')
-                        } else if (selectedOrg) {
-                          // Just add org membership tag
-                          await handleAddTag(`org:${selectedOrg}`)
-                        } else if (selectedPosition) {
-                          await handleAddTag(selectedPosition.toUpperCase())
-                        }
-                      } catch (err) {
-                        console.error('Error tagging officer:', err)
-                        showToast(err.message || 'Failed to tag officer', 'error')
-                      } finally {
-                        setSavingTags(false)
-                        setSelectedOrg('')
-                        setSelectedPosition('')
-                      }
-                    }}
-                    disabled={(!selectedOrg && !selectedPosition) || savingTags}
-                    className="px-4 py-2 bg-primary text-white text-sm font-medium rounded-lg hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors whitespace-nowrap"
-                  >
-                    {savingTags ? '...' : 'Add'}
-                  </button>
-                </div>
-              </div>
-              </>
-            )}
-
-            <div className="relative flex items-center my-4">
-              <div className="flex-grow border-t border-gray-200" />
-              <span className="mx-3 text-xs text-gray-400">or</span>
-              <div className="flex-grow border-t border-gray-200" />
-            </div>
-            
-            {/* Add Custom Tag */}
-            <div>
-              <label className="text-sm font-medium text-gray-700 mb-2 block">Add Custom Tag</label>
-              <div className="flex gap-2">
-                <input
-                  type="text"
-                  value={newTag}
-                  onChange={(e) => setNewTag(e.target.value)}
-                  onKeyDown={(e) => e.key === 'Enter' && handleAddTag()}
-                  placeholder="Enter custom tag"
-                  className="flex-1 px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
-                />
-                <button
-                  onClick={() => handleAddTag()}
-                  disabled={!newTag.trim() || savingTags}
-                  className="px-4 py-2 bg-green-600 text-white text-sm font-medium rounded-lg hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  {savingTags ? '...' : 'Add'}
-                </button>
               </div>
             </div>
             </div>
