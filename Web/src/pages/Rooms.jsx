@@ -779,13 +779,25 @@ export default function Rooms() {
 
       {/* Room Schedule Modal */}
       {selectedRoom && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50" onClick={() => setSelectedRoom(null)}>
+        <div 
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm"
+          style={{ 
+            position: 'fixed',
+            top: '-50px',
+            left: 0,
+            right: 0,
+            bottom: '-50px',
+            paddingTop: '50px',
+            paddingBottom: '50px'
+          }}
+          onClick={() => setSelectedRoom(null)}
+        >
           <div 
             className="bg-white rounded-2xl shadow-2xl w-full max-w-4xl max-h-[90vh] overflow-hidden"
             onClick={(e) => e.stopPropagation()}
           >
             {/* Modal Header */}
-            <div className="bg-primary text-white px-6 py-4 flex items-center justify-between">
+            <div className="bg-green-600 text-white px-6 py-4 flex items-center justify-between">
               <div>
                 <h2 className="text-xl font-bold">Room {typeof selectedRoom === 'object' ? selectedRoom.name : selectedRoom} Schedule</h2>
                 <p className="text-sm text-white/80">View class schedules for this room</p>
@@ -978,12 +990,24 @@ export default function Rooms() {
 
       {/* Room Manager Modal */}
       {showRoomManager && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50" onClick={() => setShowRoomManager(false)}>
+        <div 
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm"
+          style={{ 
+            position: 'fixed',
+            top: '-50px',
+            left: 0,
+            right: 0,
+            bottom: '-50px',
+            paddingTop: '50px',
+            paddingBottom: '50px'
+          }}
+          onClick={() => setShowRoomManager(false)}
+        >
           <div 
             className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="bg-primary text-white px-6 py-4 flex items-center justify-between">
+            <div className="bg-green-600 text-white px-6 py-4 flex items-center justify-between">
               <h2 className="text-xl font-bold">{editingRoom ? 'Edit Room' : 'Add New Room'}</h2>
               <button 
                 onClick={() => setShowRoomManager(false)}

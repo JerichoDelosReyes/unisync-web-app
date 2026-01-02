@@ -24,21 +24,16 @@ export default function ModalOverlay({
 
   const overlay = (
     <div 
-      className={`z-[9999] flex items-center justify-center ${blur ? 'backdrop-blur-sm' : ''} bg-black/50 ${className}`}
+      className={`z-[9999] flex items-center justify-center ${blur ? 'backdrop-blur-sm' : ''} bg-black/40 ${className}`}
       style={{
         position: 'fixed',
-        top: 0,
+        top: '-50px',
         left: 0,
         right: 0,
-        bottom: 0,
-        width: '100vw',
-        height: '100vh',
-        minHeight: '100%',
+        bottom: '-50px',
+        paddingTop: '50px',
+        paddingBottom: '50px',
         margin: 0,
-        paddingTop: 'env(safe-area-inset-top, 0px)',
-        paddingBottom: 'env(safe-area-inset-bottom, 0px)',
-        paddingLeft: 'env(safe-area-inset-left, 0px)',
-        paddingRight: 'env(safe-area-inset-right, 0px)',
       }}
       onClick={handleBackdropClick}
     >

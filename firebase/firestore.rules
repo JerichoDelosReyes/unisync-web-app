@@ -141,10 +141,10 @@ service cloud.firestore {
         && isFacultyOrAbove()
         && isReasonableSize();
       
-      // Org officers (President/Adviser) can update other users' officerOf and tags fields for tagging
+      // Org officers (President/Adviser) can update other users' org-related fields for tagging
       allow update: if isAuthenticated()
         && isOrgOfficer()
-        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['officerOf', 'tags', 'updatedAt'])
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['officerOf', 'committeeMemberOf', 'yearRepOf', 'tags', 'updatedAt'])
         && isReasonableSize();
       
       // Only Admin+ can delete users

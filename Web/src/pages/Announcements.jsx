@@ -1644,8 +1644,8 @@ export default function Announcements() {
         }}>
           <div className="bg-white rounded-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto shadow-2xl mx-4">
             {/* Modal Header */}
-            <div className="sticky top-0 bg-white border-b border-gray-200 p-6 flex items-center justify-between z-10">
-              <h2 className="text-2xl font-bold text-gray-900">Create Announcement</h2>
+            <div className="sticky top-0 bg-green-600 text-white px-6 py-4 flex items-center justify-between z-10 rounded-t-2xl">
+              <h2 className="text-xl font-bold">Create Announcement</h2>
               <button
                 onClick={() => {
                   setShowCreateModal(false)
@@ -1655,9 +1655,11 @@ export default function Announcements() {
                   setAnnouncementMode('classrep')
                   setSelectedAnnouncementOrg(null)
                 }}
-                className="text-gray-500 hover:text-gray-700 text-2xl"
+                className="p-2 hover:bg-white/20 rounded-lg transition-colors"
               >
-                ✕
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
               </button>
             </div>
             

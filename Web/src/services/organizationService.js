@@ -73,6 +73,80 @@ export const getOrgSapPosition = (orgCode, courseName) => ({
 })
 
 /**
+ * Committee positions - assigned under respective parent officers
+ * Each committee can have up to 5 members
+ */
+export const COMMITTEE_POSITIONS = [
+  { 
+    id: 'internal_affairs', 
+    title: 'Internal Affairs Committee', 
+    parentOfficerId: 'vp_internal',
+    parentOfficerTitle: 'Vice President for Internal Affairs',
+    maxMembers: 5 
+  },
+  { 
+    id: 'external_affairs', 
+    title: 'External Affairs Committee', 
+    parentOfficerId: 'vp_external',
+    parentOfficerTitle: 'Vice President for External Affairs',
+    maxMembers: 5 
+  },
+  { 
+    id: 'membership_dues', 
+    title: 'Membership and Dues Committee', 
+    parentOfficerId: 'treasurer_general',
+    parentOfficerTitle: 'Treasurer General',
+    maxMembers: 5 
+  },
+  { 
+    id: 'secretariat', 
+    title: 'Secretariat Committee', 
+    parentOfficerId: 'secretary_general',
+    parentOfficerTitle: 'Secretary General',
+    maxMembers: 5 
+  },
+  { 
+    id: 'publicity', 
+    title: 'Publicity Committee', 
+    parentOfficerId: 'pro',
+    parentOfficerTitle: 'Public Relations Officer',
+    maxMembers: 5 
+  },
+  { 
+    id: 'multimedia', 
+    title: 'Multimedia Committee', 
+    parentOfficerId: 'pro',
+    parentOfficerTitle: 'Public Relations Officer',
+    maxMembers: 5 
+  },
+  { 
+    id: 'finance_sponsorship', 
+    title: 'Finance and Sponsorship Committee', 
+    parentOfficerId: 'treasurer_general',
+    parentOfficerTitle: 'Treasurer General',
+    maxMembers: 5 
+  },
+  { 
+    id: 'audits', 
+    title: 'Audits Committee', 
+    parentOfficerId: 'auditor',
+    parentOfficerTitle: 'Auditor',
+    maxMembers: 5 
+  }
+]
+
+/**
+ * Year Representative positions
+ * Each year can have 1 representative
+ */
+export const YEAR_REP_POSITIONS = [
+  { id: 'year_rep_1', title: '1st Year Representative', yearLevel: 1 },
+  { id: 'year_rep_2', title: '2nd Year Representative', yearLevel: 2 },
+  { id: 'year_rep_3', title: '3rd Year Representative', yearLevel: 3 },
+  { id: 'year_rep_4', title: '4th Year Representative', yearLevel: 4 }
+]
+
+/**
  * All organizations with their configurations
  */
 export const ORGANIZATIONS = {
@@ -333,6 +407,8 @@ export const initializeOrganization = async (orgCode, schoolYear) => {
         audienceDepartment: org.audienceDepartment || null,
         officers: [],
         advisers: [],
+        committeeMembers: {},
+        yearReps: [],
         schoolYear: schoolYear || getCurrentSchoolYear(),
         createdAt: serverTimestamp(),
         updatedAt: serverTimestamp()
@@ -344,6 +420,8 @@ export const initializeOrganization = async (orgCode, schoolYear) => {
         name: orgCode,
         officers: [],
         advisers: [],
+        committeeMembers: {},
+        yearReps: [],
         maxAdvisers: 2,
         schoolYear: schoolYear || getCurrentSchoolYear(),
         createdAt: serverTimestamp(),
@@ -383,7 +461,19 @@ export const getOrganizationData = async (orgCode) => {
     return { id: newSnap.id, ...newSnap.data() }
   }
   
-  return { id: docSnap.id, ...docSnap.data() }
+  const data = docSnap.data()
+  
+  // Ensure committeeMembers and yearReps fields exist (migration for existing orgs)
+  if (!data.committeeMembers || !data.yearReps) {
+    const updates = {}
+    if (!data.committeeMembers) updates.committeeMembers = {}
+    if (!data.yearReps) updates.yearReps = []
+    
+    await updateDoc(docRef, updates)
+    return { id: docSnap.id, ...data, ...updates }
+  }
+  
+  return { id: docSnap.id, ...data }
 }
 
 /**
@@ -662,6 +752,60 @@ export const canTagOfficers = async (userId, orgCode) => {
   }
   
   // Check if president or position with tagging rights
+  const officer = orgData.officers?.find(o => o.userId === userId)
+  if (officer?.canTagOfficers) {
+    return true
+  }
+  
+  return false
+}
+
+/**
+ * Check which committees a user can manage in an organization
+ * Returns array of committee IDs the user can assign members to
+ * - Adviser/President can manage all committees
+ * - Officers can only manage their respective committees
+ */
+export const getManageableCommittees = async (userId, orgCode) => {
+  const orgData = await getOrganizationData(orgCode)
+  
+  // Check if adviser - can manage all
+  if (orgData.advisers?.some(a => a.userId === userId)) {
+    return COMMITTEE_POSITIONS.map(c => c.id)
+  }
+  
+  // Check if officer
+  const officer = orgData.officers?.find(o => o.userId === userId)
+  if (!officer) {
+    return []
+  }
+  
+  // President can manage all committees
+  if (officer.canTagOfficers) {
+    return COMMITTEE_POSITIONS.map(c => c.id)
+  }
+  
+  // Other officers can only manage their respective committees
+  const manageableCommittees = COMMITTEE_POSITIONS
+    .filter(c => c.parentOfficerId === officer.positionId)
+    .map(c => c.id)
+  
+  return manageableCommittees
+}
+
+/**
+ * Check if user can tag year representatives
+ * Only Adviser or President can tag year reps
+ */
+export const canTagYearReps = async (userId, orgCode) => {
+  const orgData = await getOrganizationData(orgCode)
+  
+  // Check if adviser
+  if (orgData.advisers?.some(a => a.userId === userId)) {
+    return true
+  }
+  
+  // Check if president (has tagging rights)
   const officer = orgData.officers?.find(o => o.userId === userId)
   if (officer?.canTagOfficers) {
     return true
@@ -953,10 +1097,273 @@ export const deleteOrganization = async (orgCode) => {
   await deleteDoc(docRef)
 }
 
+// ============================================
+// COMMITTEE MEMBER TAGGING
+// ============================================
+
+/**
+ * Tag a student as committee member
+ * @param {string} orgCode - Organization code
+ * @param {string} userId - Student user ID
+ * @param {string} committeeId - Committee ID (e.g., 'internal_affairs')
+ * @param {object} userInfo - { displayName, email }
+ * @param {string} taggedByUserId - ID of user doing the tagging
+ */
+export const tagCommitteeMember = async (orgCode, userId, committeeId, userInfo, taggedByUserId) => {
+  const staticOrg = ORGANIZATIONS[orgCode]
+  const orgData = await getOrganizationData(orgCode)
+  const orgName = staticOrg?.name || orgData?.name || orgCode
+  
+  // Find committee
+  const committee = COMMITTEE_POSITIONS.find(c => c.id === committeeId)
+  if (!committee) throw new Error(`Invalid committee: ${committeeId}`)
+  
+  // Check if committee is full (max 5 members)
+  const committeeMembers = orgData.committeeMembers?.[committeeId] || []
+  if (committeeMembers.length >= committee.maxMembers) {
+    throw new Error(`${committee.title} already has ${committee.maxMembers} members`)
+  }
+  
+  // Check if user is already in this committee
+  if (committeeMembers.some(m => m.userId === userId)) {
+    throw new Error(`${userInfo.displayName} is already a member of ${committee.title}`)
+  }
+  
+  // Check if user is already in another committee in this org
+  const allCommittees = orgData.committeeMembers || {}
+  for (const [cId, members] of Object.entries(allCommittees)) {
+    if (members.some(m => m.userId === userId)) {
+      const existingCommittee = COMMITTEE_POSITIONS.find(c => c.id === cId)
+      throw new Error(`${userInfo.displayName} is already a member of ${existingCommittee?.title || cId}`)
+    }
+  }
+
+  const memberEntry = {
+    userId,
+    displayName: userInfo.displayName,
+    email: userInfo.email,
+    taggedAt: new Date().toISOString(),
+    taggedBy: taggedByUserId
+  }
+
+  // Update organization - add member to the committee array
+  const docRef = doc(db, 'organizations', orgCode)
+  const updatedCommitteeMembers = {
+    ...orgData.committeeMembers,
+    [committeeId]: [...committeeMembers, memberEntry]
+  }
+  
+  await updateDoc(docRef, {
+    committeeMembers: updatedCommitteeMembers,
+    updatedAt: serverTimestamp()
+  })
+
+  // Build the committee tag (e.g., "org:CSC:COMMITTEE:INTERNAL_AFFAIRS")
+  const committeeTag = `org:${orgCode}:COMMITTEE:${committeeId.toUpperCase()}`
+
+  // Update user profile
+  const userDocRef = doc(db, 'users', userId)
+  await updateDoc(userDocRef, {
+    [`committeeMemberOf.${orgCode}`]: {
+      orgCode,
+      orgName,
+      committeeId,
+      committeeTitle: committee.title,
+      parentOfficerId: committee.parentOfficerId,
+      taggedAt: new Date().toISOString()
+    },
+    tags: arrayUnion(committeeTag),
+    updatedAt: serverTimestamp()
+  })
+
+  return memberEntry
+}
+
+/**
+ * Remove committee member from organization
+ */
+export const removeCommitteeMember = async (orgCode, userId, committeeId) => {
+  const orgData = await getOrganizationData(orgCode)
+  const committeeMembers = orgData.committeeMembers?.[committeeId] || []
+  const memberEntry = committeeMembers.find(m => m.userId === userId)
+  
+  if (!memberEntry) {
+    throw new Error('Committee member not found')
+  }
+
+  // Update organization - remove member from the committee array
+  const docRef = doc(db, 'organizations', orgCode)
+  const updatedCommitteeMembers = {
+    ...orgData.committeeMembers,
+    [committeeId]: committeeMembers.filter(m => m.userId !== userId)
+  }
+  
+  await updateDoc(docRef, {
+    committeeMembers: updatedCommitteeMembers,
+    updatedAt: serverTimestamp()
+  })
+
+  // Remove from user profile
+  const userDoc = await getDocument('users', userId)
+  if (userDoc) {
+    const updatedCommitteeMemberOf = { ...(userDoc.committeeMemberOf || {}) }
+    delete updatedCommitteeMemberOf[orgCode]
+    
+    // Remove the committee tag
+    const updatedTags = (userDoc.tags || []).filter(tag => 
+      !tag.startsWith(`org:${orgCode}:COMMITTEE:`)
+    )
+    
+    const userDocRef = doc(db, 'users', userId)
+    await updateDoc(userDocRef, {
+      committeeMemberOf: updatedCommitteeMemberOf,
+      tags: updatedTags,
+      updatedAt: serverTimestamp()
+    })
+  }
+}
+
+/**
+ * Get committee members for an organization
+ */
+export const getCommitteeMembers = async (orgCode) => {
+  const orgData = await getOrganizationData(orgCode)
+  return orgData.committeeMembers || {}
+}
+
+// ============================================
+// YEAR REPRESENTATIVE TAGGING
+// ============================================
+
+/**
+ * Tag a student as year representative
+ * @param {string} orgCode - Organization code
+ * @param {string} userId - Student user ID
+ * @param {string} yearRepId - Year rep ID (e.g., 'year_rep_1')
+ * @param {object} userInfo - { displayName, email }
+ * @param {string} taggedByUserId - ID of user doing the tagging
+ */
+export const tagYearRep = async (orgCode, userId, yearRepId, userInfo, taggedByUserId) => {
+  const staticOrg = ORGANIZATIONS[orgCode]
+  const orgData = await getOrganizationData(orgCode)
+  const orgName = staticOrg?.name || orgData?.name || orgCode
+  
+  // Find year rep position
+  const yearRep = YEAR_REP_POSITIONS.find(y => y.id === yearRepId)
+  if (!yearRep) throw new Error(`Invalid year representative position: ${yearRepId}`)
+  
+  // Check if position is already filled
+  const existingRep = orgData.yearReps?.find(r => r.yearRepId === yearRepId)
+  if (existingRep) {
+    throw new Error(`${yearRep.title} is already filled by ${existingRep.displayName}`)
+  }
+  
+  // Check if user is already a year rep for this org
+  const userExistingRep = orgData.yearReps?.find(r => r.userId === userId)
+  if (userExistingRep) {
+    const existingPosition = YEAR_REP_POSITIONS.find(y => y.id === userExistingRep.yearRepId)
+    throw new Error(`${userInfo.displayName} already holds the position of ${existingPosition?.title}`)
+  }
+
+  const repEntry = {
+    userId,
+    displayName: userInfo.displayName,
+    email: userInfo.email,
+    yearRepId,
+    yearRepTitle: yearRep.title,
+    yearLevel: yearRep.yearLevel,
+    taggedAt: new Date().toISOString(),
+    taggedBy: taggedByUserId
+  }
+
+  // Update organization - add year rep to array
+  const docRef = doc(db, 'organizations', orgCode)
+  await updateDoc(docRef, {
+    yearReps: arrayUnion(repEntry),
+    updatedAt: serverTimestamp()
+  })
+
+  // Build the year rep tag (e.g., "org:CSC:YEAR_REP:1ST")
+  const yearRepTag = `org:${orgCode}:YEAR_REP:${yearRep.yearLevel}`
+
+  // Update user profile
+  const userDocRef = doc(db, 'users', userId)
+  await updateDoc(userDocRef, {
+    [`yearRepOf.${orgCode}`]: {
+      orgCode,
+      orgName,
+      yearRepId,
+      yearRepTitle: yearRep.title,
+      yearLevel: yearRep.yearLevel,
+      taggedAt: new Date().toISOString()
+    },
+    tags: arrayUnion(yearRepTag),
+    updatedAt: serverTimestamp()
+  })
+
+  return repEntry
+}
+
+/**
+ * Remove year representative from organization
+ */
+export const removeYearRep = async (orgCode, userId) => {
+  const orgData = await getOrganizationData(orgCode)
+  const repEntry = orgData.yearReps?.find(r => r.userId === userId)
+  
+  if (!repEntry) {
+    throw new Error('Year representative not found')
+  }
+
+  const docRef = doc(db, 'organizations', orgCode)
+  await updateDoc(docRef, {
+    yearReps: arrayRemove(repEntry),
+    updatedAt: serverTimestamp()
+  })
+
+  // Remove from user profile
+  const userDoc = await getDocument('users', userId)
+  if (userDoc) {
+    const updatedYearRepOf = { ...(userDoc.yearRepOf || {}) }
+    delete updatedYearRepOf[orgCode]
+    
+    // Remove the year rep tag
+    const updatedTags = (userDoc.tags || []).filter(tag => 
+      !tag.startsWith(`org:${orgCode}:YEAR_REP:`)
+    )
+    
+    const userDocRef = doc(db, 'users', userId)
+    await updateDoc(userDocRef, {
+      yearRepOf: updatedYearRepOf,
+      tags: updatedTags,
+      updatedAt: serverTimestamp()
+    })
+  }
+}
+
+/**
+ * Get year representatives for an organization
+ */
+export const getYearReps = async (orgCode) => {
+  const orgData = await getOrganizationData(orgCode)
+  return orgData.yearReps || []
+}
+
+/**
+ * Get available year rep positions for an organization
+ */
+export const getAvailableYearRepPositions = async (orgCode) => {
+  const orgData = await getOrganizationData(orgCode)
+  const filledPositionIds = (orgData.yearReps || []).map(r => r.yearRepId)
+  return YEAR_REP_POSITIONS.filter(p => !filledPositionIds.includes(p.id))
+}
+
 export default {
   ORGANIZATIONS,
   EXECUTIVE_POSITIONS,
   CSG_BOARD_POSITIONS,
+  COMMITTEE_POSITIONS,
+  YEAR_REP_POSITIONS,
   ORG_CATEGORIES,
   getOrganization,
   getAllOrganizations,
@@ -975,11 +1382,20 @@ export default {
   tagOfficer,
   removeOfficer,
   canTagOfficers,
+  getManageableCommittees,
+  canTagYearReps,
   getUserOfficerPositions,
   canAnnounceForOrg,
   getUserAnnouncementOrgs,
   getOrgAudienceTags,
   getUserOrgBadges,
   getOrganizationOfficers,
-  getAvailablePositions
+  getAvailablePositions,
+  tagCommitteeMember,
+  removeCommitteeMember,
+  getCommitteeMembers,
+  tagYearRep,
+  removeYearRep,
+  getYearReps,
+  getAvailableYearRepPositions
 }

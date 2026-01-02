@@ -838,10 +838,22 @@ export default function UserManagement() {
 
       {/* Tags Modal */}
       {tagModalUser && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center">
+        <div 
+          className="fixed inset-0 z-[100] flex items-center justify-center"
+          style={{ 
+            position: 'fixed',
+            top: '-50px',
+            left: 0,
+            right: 0,
+            bottom: '-50px',
+            paddingTop: '50px',
+            paddingBottom: '50px'
+          }}
+        >
           {/* Backdrop */}
           <div 
-            className="absolute inset-0 bg-black/50" 
+            className="absolute bg-black/40 backdrop-blur-sm"
+            style={{ top: 0, left: 0, right: 0, bottom: 0 }}
             onClick={() => {
               setTagModalUser(null)
               setNewTag('')
@@ -853,11 +865,16 @@ export default function UserManagement() {
           />
           
           {/* Modal */}
-          <div className="relative bg-white rounded-xl shadow-xl w-full max-w-md mx-4 p-6 max-h-[90vh] overflow-y-auto">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-semibold text-gray-900">
-                Manage Tags
-              </h3>
+          <div className="relative bg-white rounded-xl shadow-xl w-full max-w-md mx-4 max-h-[90vh] overflow-hidden flex flex-col">
+            {/* Header */}
+            <div className="bg-green-600 text-white px-6 py-4 flex items-center justify-between flex-shrink-0">
+              <div>
+                <h3 className="text-lg font-bold">Manage Tags</h3>
+                <p className="text-sm text-white/80">
+                  Tags for {tagModalUser.givenName} {tagModalUser.lastName}
+                  {tagModalUser.role === ROLES.FACULTY || tagModalUser.role === 'faculty' ? ' (Faculty)' : ''}
+                </p>
+              </div>
               <button
                 onClick={() => {
                   setTagModalUser(null)
@@ -867,7 +884,7 @@ export default function UserManagement() {
                   setFacultyDepartment('')
                   setFacultyOrgs([])
                 }}
-                className="text-gray-400 hover:text-gray-600"
+                className="p-2 hover:bg-white/20 rounded-lg transition-colors"
               >
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -875,13 +892,8 @@ export default function UserManagement() {
               </button>
             </div>
             
-            <p className="text-sm text-gray-600 mb-4">
-              Tags for <span className="font-medium">{tagModalUser.givenName} {tagModalUser.lastName}</span>
-              {tagModalUser.role === ROLES.FACULTY || tagModalUser.role === 'faculty' ? (
-                <span className="ml-2 px-2 py-0.5 text-xs bg-purple-100 text-purple-700 rounded-full">Faculty</span>
-              ) : null}
-            </p>
-            
+            {/* Content */}
+            <div className="p-6 overflow-y-auto">
             {/* Faculty Department & Organization Section */}
             {(tagModalUser.role === ROLES.FACULTY || tagModalUser.role === 'faculty') && (
               <div className="mb-6 p-4 bg-purple-50 border border-purple-200 rounded-xl">
@@ -1159,11 +1171,12 @@ export default function UserManagement() {
                 <button
                   onClick={() => handleAddTag()}
                   disabled={!newTag.trim() || savingTags}
-                  className="px-4 py-2 bg-gray-600 text-white text-sm font-medium rounded-lg hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="px-4 py-2 bg-green-600 text-white text-sm font-medium rounded-lg hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {savingTags ? '...' : 'Add'}
                 </button>
               </div>
+            </div>
             </div>
           </div>
         </div>
@@ -1171,25 +1184,37 @@ export default function UserManagement() {
 
       {/* Add User Modal */}
       {showAddUserModal && createPortal(
-        <div className="fixed inset-0 z-[9999] flex items-center justify-center">
+        <div 
+          className="fixed inset-0 z-[9999] flex items-center justify-center"
+          style={{ 
+            position: 'fixed',
+            top: '-50px',
+            left: 0,
+            right: 0,
+            bottom: '-50px',
+            paddingTop: '50px',
+            paddingBottom: '50px'
+          }}
+        >
           <div 
-            className="absolute inset-0 bg-black/50 backdrop-blur-sm" 
+            className="absolute bg-black/40 backdrop-blur-sm" 
+            style={{ top: 0, left: 0, right: 0, bottom: 0 }}
             onClick={resetAddUserForm}
           />
-          <div className="relative bg-white rounded-xl shadow-xl w-full max-w-md mx-4 p-6 max-h-[90vh] overflow-y-auto">
+          <div className="relative bg-white rounded-xl shadow-xl w-full max-w-md mx-4 max-h-[90vh] overflow-hidden flex flex-col">
             {/* Header */}
-            <div className="flex items-center justify-between mb-6">
+            <div className="bg-green-600 text-white px-6 py-4 flex items-center justify-between flex-shrink-0">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 bg-primary/10 rounded-full flex items-center justify-center">
-                  <svg className="w-5 h-5 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <div className="w-10 h-10 bg-white/20 rounded-full flex items-center justify-center">
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" />
                   </svg>
                 </div>
-                <h3 className="text-lg font-semibold text-gray-900">Add New User</h3>
+                <h3 className="text-lg font-bold">Add New User</h3>
               </div>
               <button
                 onClick={resetAddUserForm}
-                className="text-gray-400 hover:text-gray-600"
+                className="p-2 hover:bg-white/20 rounded-lg transition-colors"
               >
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -1197,6 +1222,8 @@ export default function UserManagement() {
               </button>
             </div>
 
+            {/* Content */}
+            <div className="p-6 overflow-y-auto">
             {/* Error Message */}
             {addUserError && (
               <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-600">
@@ -1282,7 +1309,7 @@ export default function UserManagement() {
                 <button
                   type="submit"
                   disabled={addingUser}
-                  className="flex-1 px-4 py-2 text-sm font-medium text-white bg-primary rounded-lg hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                  className="flex-1 px-4 py-2 text-sm font-medium text-white bg-green-600 rounded-lg hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                 >
                   {addingUser ? (
                     <span className="flex items-center justify-center gap-2">
@@ -1295,6 +1322,7 @@ export default function UserManagement() {
                 </button>
               </div>
             </form>
+            </div>
           </div>
         </div>,
         document.body

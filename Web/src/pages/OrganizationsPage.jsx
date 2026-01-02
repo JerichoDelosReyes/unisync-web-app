@@ -23,6 +23,8 @@ import { storage } from '../config/firebase'
 import {
   ORGANIZATIONS,
   ORG_CATEGORIES,
+  COMMITTEE_POSITIONS,
+  YEAR_REP_POSITIONS,
   getAllOrganizationsData,
   getOrganizationData,
   getOrganizationOfficers,
@@ -32,10 +34,19 @@ import {
   tagOfficer,
   removeOfficer,
   canTagOfficers,
+  getManageableCommittees,
+  canTagYearReps,
   getUserOrgBadges,
   createOrganization,
   updateOrganization,
-  deleteOrganization
+  deleteOrganization,
+  tagCommitteeMember,
+  removeCommitteeMember,
+  getCommitteeMembers,
+  tagYearRep,
+  removeYearRep,
+  getYearReps,
+  getAvailableYearRepPositions
 } from '../services/organizationService'
 import { getDocuments } from '../services/dbService'
 import { DEPT_ORG_MAPPING } from '../constants/targeting'
@@ -89,12 +100,23 @@ export default function OrganizationsPage() {
   const [showAdviserModal, setShowAdviserModal] = useState(false)
   const [showOfficerModal, setShowOfficerModal] = useState(false)
   const [showCreateOrgModal, setShowCreateOrgModal] = useState(false)
+  const [showCommitteeModal, setShowCommitteeModal] = useState(false)
+  const [showYearRepModal, setShowYearRepModal] = useState(false)
   const [facultyList, setFacultyList] = useState([])
   const [studentList, setStudentList] = useState([])
   const [searchTerm, setSearchTerm] = useState('')
   const [selectedUser, setSelectedUser] = useState(null)
   const [selectedPosition, setSelectedPosition] = useState('')
+  const [selectedCommittee, setSelectedCommittee] = useState('')
+  const [selectedYearRep, setSelectedYearRep] = useState('')
   const [submitting, setSubmitting] = useState(false)
+  
+  // Committee and Year Rep data
+  const [committeeMembers, setCommitteeMembers] = useState({})
+  const [yearReps, setYearReps] = useState([])
+  const [availableYearRepPositions, setAvailableYearRepPositions] = useState([])
+  const [manageableCommitteeIds, setManageableCommitteeIds] = useState([])
+  const [canManageYearReps, setCanManageYearReps] = useState(false)
   
   // Create organization form state
   const [newOrgData, setNewOrgData] = useState({
@@ -196,6 +218,8 @@ export default function OrganizationsPage() {
       if (!selectedOrg) {
         setOrgOfficers(null)
         setCanTagForSelectedOrg(false)
+        setManageableCommitteeIds([])
+        setCanManageYearReps(false)
         return
       }
       
@@ -206,10 +230,31 @@ export default function OrganizationsPage() {
         const positions = await getAvailablePositions(selectedOrg.code)
         setAvailablePositions(positions)
         
-        // Check if user can tag officers (Adviser or President only, NOT Admin)
+        // Fetch committee members
+        const members = await getCommitteeMembers(selectedOrg.code)
+        setCommitteeMembers(members)
+        
+        // Fetch year reps
+        const reps = await getYearReps(selectedOrg.code)
+        setYearReps(reps)
+        
+        // Fetch available year rep positions
+        const availableYearReps = await getAvailableYearRepPositions(selectedOrg.code)
+        setAvailableYearRepPositions(availableYearReps)
+        
+        // Check permissions for current user
         if (user) {
+          // Check if user can tag officers (Adviser or President only, NOT Admin)
           const canTag = await canTagOfficers(user.uid, selectedOrg.code)
-          setCanTagForSelectedOrg(canTag) // Admin can only tag advisers, not officers
+          setCanTagForSelectedOrg(canTag)
+          
+          // Check which committees user can manage
+          const manageableCommittees = await getManageableCommittees(user.uid, selectedOrg.code)
+          setManageableCommitteeIds(manageableCommittees)
+          
+          // Check if user can tag year reps (Adviser or President only)
+          const canYearRep = await canTagYearReps(user.uid, selectedOrg.code)
+          setCanManageYearReps(canYearRep)
         }
       } catch (error) {
         console.error('Error fetching org details:', error)
@@ -254,10 +299,10 @@ export default function OrganizationsPage() {
     fetchFaculty()
   }, [showAdviserModal, selectedOrg])
 
-  // Fetch student list for officer modal - filtered by org's course
+  // Fetch student list for officer/committee/year rep modal - filtered by org's course
   useEffect(() => {
     const fetchStudents = async () => {
-      if (!showOfficerModal || !selectedOrg) return
+      if ((!showOfficerModal && !showCommitteeModal && !showYearRepModal) || !selectedOrg) return
       
       try {
         const users = await getDocuments('users')
@@ -293,7 +338,7 @@ export default function OrganizationsPage() {
     }
     
     fetchStudents()
-  }, [showOfficerModal, selectedOrg])
+  }, [showOfficerModal, showCommitteeModal, showYearRepModal, selectedOrg])
 
   // Handle adding adviser
   const handleAddAdviser = async () => {
@@ -408,6 +453,122 @@ export default function OrganizationsPage() {
     } catch (error) {
       console.error('Error removing officer:', error)
       showToast(error.message || 'Failed to remove officer', 'error')
+    }
+  }
+
+  // Handle adding committee member
+  const handleAddCommitteeMember = async () => {
+    if (!selectedUser || !selectedOrg || !selectedCommittee) return
+    
+    setSubmitting(true)
+    try {
+      await tagCommitteeMember(
+        selectedOrg.code, 
+        selectedUser.uid, 
+        selectedCommittee,
+        {
+          displayName: selectedUser.displayName,
+          email: selectedUser.email
+        },
+        user.uid
+      )
+      
+      const committee = COMMITTEE_POSITIONS.find(c => c.id === selectedCommittee)
+      showToast(`${selectedUser.displayName} added to ${committee?.title}`, 'success')
+      
+      // Refresh committee members
+      const members = await getCommitteeMembers(selectedOrg.code)
+      setCommitteeMembers(members)
+      
+      setShowCommitteeModal(false)
+      setSelectedUser(null)
+      setSelectedCommittee('')
+      setSearchTerm('')
+    } catch (error) {
+      console.error('Error adding committee member:', error)
+      showToast(error.message || 'Failed to add committee member', 'error')
+    } finally {
+      setSubmitting(false)
+    }
+  }
+
+  // Handle removing committee member
+  const handleRemoveCommitteeMember = async (userId, committeeId) => {
+    if (!selectedOrg) return
+    
+    if (!confirm('Are you sure you want to remove this committee member?')) return
+    
+    try {
+      await removeCommitteeMember(selectedOrg.code, userId, committeeId)
+      showToast('Committee member removed', 'success')
+      
+      // Refresh committee members
+      const members = await getCommitteeMembers(selectedOrg.code)
+      setCommitteeMembers(members)
+    } catch (error) {
+      console.error('Error removing committee member:', error)
+      showToast(error.message || 'Failed to remove committee member', 'error')
+    }
+  }
+
+  // Handle adding year rep
+  const handleAddYearRep = async () => {
+    if (!selectedUser || !selectedOrg || !selectedYearRep) return
+    
+    setSubmitting(true)
+    try {
+      await tagYearRep(
+        selectedOrg.code, 
+        selectedUser.uid, 
+        selectedYearRep,
+        {
+          displayName: selectedUser.displayName,
+          email: selectedUser.email
+        },
+        user.uid
+      )
+      
+      const yearRep = YEAR_REP_POSITIONS.find(y => y.id === selectedYearRep)
+      showToast(`${selectedUser.displayName} tagged as ${yearRep?.title}`, 'success')
+      
+      // Refresh year reps
+      const reps = await getYearReps(selectedOrg.code)
+      setYearReps(reps)
+      
+      const availableYearReps = await getAvailableYearRepPositions(selectedOrg.code)
+      setAvailableYearRepPositions(availableYearReps)
+      
+      setShowYearRepModal(false)
+      setSelectedUser(null)
+      setSelectedYearRep('')
+      setSearchTerm('')
+    } catch (error) {
+      console.error('Error adding year rep:', error)
+      showToast(error.message || 'Failed to add year representative', 'error')
+    } finally {
+      setSubmitting(false)
+    }
+  }
+
+  // Handle removing year rep
+  const handleRemoveYearRep = async (userId) => {
+    if (!selectedOrg) return
+    
+    if (!confirm('Are you sure you want to remove this year representative?')) return
+    
+    try {
+      await removeYearRep(selectedOrg.code, userId)
+      showToast('Year representative removed', 'success')
+      
+      // Refresh year reps
+      const reps = await getYearReps(selectedOrg.code)
+      setYearReps(reps)
+      
+      const availableYearReps = await getAvailableYearRepPositions(selectedOrg.code)
+      setAvailableYearRepPositions(availableYearReps)
+    } catch (error) {
+      console.error('Error removing year rep:', error)
+      showToast(error.message || 'Failed to remove year representative', 'error')
     }
   }
 
@@ -893,6 +1054,136 @@ export default function OrganizationsPage() {
                   </div>
                 )}
               </div>
+
+              {/* Committees Section */}
+              <div className="p-6 border-t border-gray-200">
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="font-semibold text-gray-900 flex items-center gap-2">
+                    <UserGroupIcon className="w-5 h-5 text-orange-600" />
+                    Committees
+                    <span className="text-sm text-gray-500 font-normal">
+                      ({Object.values(committeeMembers).flat().length} members)
+                    </span>
+                  </h3>
+                  {manageableCommitteeIds.length > 0 && (
+                    <button
+                      onClick={() => setShowCommitteeModal(true)}
+                      className="px-3 py-1.5 bg-orange-600 text-white text-sm rounded-lg hover:bg-orange-700 transition-colors"
+                    >
+                      + Add Committee Member
+                    </button>
+                  )}
+                </div>
+
+                <div className="space-y-4">
+                  {COMMITTEE_POSITIONS.map(committee => {
+                    const members = committeeMembers[committee.id] || []
+                    const parentOfficer = orgOfficers?.officers?.find(o => o.positionId === committee.parentOfficerId)
+                    
+                    return (
+                      <div key={committee.id} className="border border-gray-200 rounded-lg overflow-hidden">
+                        <div className="px-4 py-2 bg-orange-50 border-b border-orange-100 flex items-center justify-between">
+                          <div>
+                            <p className="font-medium text-gray-900 text-sm">{committee.title}</p>
+                            <p className="text-xs text-gray-500">
+                              Under: {parentOfficer?.displayName || committee.parentOfficerTitle}
+                            </p>
+                          </div>
+                          <span className="text-xs text-orange-600 font-medium">
+                            {members.length}/{committee.maxMembers}
+                          </span>
+                        </div>
+                        <div className="p-3">
+                          {members.length > 0 ? (
+                            <div className="flex flex-wrap gap-2">
+                              {members.map(member => (
+                                <div 
+                                  key={member.userId}
+                                  className="flex items-center gap-2 px-3 py-1.5 bg-orange-50 border border-orange-200 rounded-full"
+                                >
+                                  <span className="text-sm text-gray-900">{member.displayName}</span>
+                                  {manageableCommitteeIds.includes(committee.id) && (
+                                    <button
+                                      onClick={() => handleRemoveCommitteeMember(member.userId, committee.id)}
+                                      className="text-red-500 hover:text-red-600"
+                                    >
+                                      <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                      </svg>
+                                    </button>
+                                  )}
+                                </div>
+                              ))}
+                            </div>
+                          ) : (
+                            <p className="text-sm text-gray-400 italic">No members yet</p>
+                          )}
+                        </div>
+                      </div>
+                    )
+                  })}
+                </div>
+              </div>
+
+              {/* Year Representatives Section */}
+              <div className="p-6 border-t border-gray-200">
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="font-semibold text-gray-900 flex items-center gap-2">
+                    <UserIcon className="w-5 h-5 text-teal-600" />
+                    Year Representatives
+                    <span className="text-sm text-gray-500 font-normal">
+                      ({yearReps.length}/{YEAR_REP_POSITIONS.length} positions filled)
+                    </span>
+                  </h3>
+                  {canManageYearReps && availableYearRepPositions.length > 0 && (
+                    <button
+                      onClick={() => setShowYearRepModal(true)}
+                      className="px-3 py-1.5 bg-teal-600 text-white text-sm rounded-lg hover:bg-teal-700 transition-colors"
+                    >
+                      + Tag Year Rep
+                    </button>
+                  )}
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                  {YEAR_REP_POSITIONS.map(position => {
+                    const rep = yearReps.find(r => r.yearRepId === position.id)
+                    
+                    return (
+                      <div 
+                        key={position.id}
+                        className={`p-3 rounded-lg border ${
+                          rep ? 'bg-teal-50 border-teal-200' : 'bg-gray-50 border-gray-200 border-dashed'
+                        }`}
+                      >
+                        <div className="flex items-center justify-between">
+                          <div className="flex-1 min-w-0">
+                            <p className="text-xs font-medium text-gray-500 uppercase">{position.title}</p>
+                            {rep ? (
+                              <p className="font-medium text-gray-900 truncate">{rep.displayName}</p>
+                            ) : (
+                              <p className="text-gray-400 italic text-sm">Vacant</p>
+                            )}
+                          </div>
+                          {rep && canManageYearReps && rep.userId !== user?.uid && (
+                            <button
+                              onClick={() => handleRemoveYearRep(rep.userId)}
+                              className="text-red-500 hover:text-red-600 ml-2"
+                            >
+                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                              </svg>
+                            </button>
+                          )}
+                          {rep && rep.userId === user?.uid && (
+                            <span className="text-xs text-teal-600 font-medium ml-2">You</span>
+                          )}
+                        </div>
+                      </div>
+                    )
+                  })}
+                </div>
+              </div>
             </div>
           ) : (
             <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-12 text-center">
@@ -909,10 +1200,17 @@ export default function OrganizationsPage() {
       {/* Add Adviser Modal */}
       {showAdviserModal && (
         <ModalOverlay onClose={() => setShowAdviserModal(false)}>
-          <div className="bg-white rounded-xl shadow-xl max-w-md w-full mx-4">
-            <div className="p-6 border-b border-gray-200">
-              <h3 className="text-lg font-semibold text-gray-900">Add Adviser to {selectedOrg?.name}</h3>
-              <p className="text-sm text-gray-500 mt-1">Select a faculty member to tag as adviser</p>
+          <div className="bg-white rounded-xl shadow-xl max-w-md w-full mx-4 overflow-hidden">
+            <div className="bg-green-600 text-white px-6 py-4 flex items-center justify-between">
+              <div>
+                <h3 className="text-lg font-bold">Add Adviser to {selectedOrg?.name}</h3>
+                <p className="text-sm text-white/80 mt-0.5">Select a faculty member to tag as adviser</p>
+              </div>
+              <button onClick={() => setShowAdviserModal(false)} className="p-2 hover:bg-white/20 rounded-lg transition-colors">
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
             </div>
             
             <div className="p-6">
@@ -988,10 +1286,17 @@ export default function OrganizationsPage() {
       {/* Add Officer Modal */}
       {showOfficerModal && (
         <ModalOverlay onClose={() => setShowOfficerModal(false)}>
-          <div className="bg-white rounded-xl shadow-xl max-w-md w-full mx-4">
-            <div className="p-6 border-b border-gray-200">
-              <h3 className="text-lg font-semibold text-gray-900">Tag Officer for {selectedOrg?.name}</h3>
-              <p className="text-sm text-gray-500 mt-1">Select a student and position</p>
+          <div className="bg-white rounded-xl shadow-xl max-w-md w-full mx-4 overflow-hidden">
+            <div className="bg-green-600 text-white px-6 py-4 flex items-center justify-between">
+              <div>
+                <h3 className="text-lg font-bold">Tag Officer for {selectedOrg?.name}</h3>
+                <p className="text-sm text-white/80 mt-0.5">Select a student and position</p>
+              </div>
+              <button onClick={() => setShowOfficerModal(false)} className="p-2 hover:bg-white/20 rounded-lg transition-colors">
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
             </div>
             
             <div className="p-6 space-y-4">
@@ -1095,9 +1400,16 @@ export default function OrganizationsPage() {
       {showCreateOrgModal && (
         <ModalOverlay onClose={() => !submitting && setShowCreateOrgModal(false)}>
           <div className="bg-white rounded-2xl max-w-lg w-full max-h-[90vh] overflow-hidden flex flex-col">
-            <div className="p-6 border-b border-gray-200">
-              <h3 className="text-xl font-bold text-gray-900">Create New Organization</h3>
-              <p className="text-gray-500 text-sm mt-1">Add a new student organization to the system</p>
+            <div className="bg-green-600 text-white px-6 py-4 flex items-center justify-between">
+              <div>
+                <h3 className="text-xl font-bold">Create New Organization</h3>
+                <p className="text-white/80 text-sm mt-0.5">Add a new student organization to the system</p>
+              </div>
+              <button onClick={() => !submitting && setShowCreateOrgModal(false)} className="p-2 hover:bg-white/20 rounded-lg transition-colors" disabled={submitting}>
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
             </div>
             
             <div className="p-6 space-y-4 overflow-y-auto flex-1">
@@ -1276,6 +1588,233 @@ export default function OrganizationsPage() {
                 className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
               >
                 {submitting ? (uploadingOrgPhoto ? 'Uploading Photo...' : 'Creating...') : 'Create Organization'}
+              </button>
+            </div>
+          </div>
+        </ModalOverlay>
+      )}
+
+      {/* Add Committee Member Modal */}
+      {showCommitteeModal && (
+        <ModalOverlay onClose={() => setShowCommitteeModal(false)}>
+          <div className="bg-white rounded-xl shadow-xl max-w-md w-full mx-4 overflow-hidden">
+            <div className="bg-green-600 text-white px-6 py-4 flex items-center justify-between">
+              <div>
+                <h3 className="text-lg font-bold">Add Committee Member</h3>
+                <p className="text-sm text-white/80 mt-0.5">{selectedOrg?.name}</p>
+              </div>
+              <button onClick={() => setShowCommitteeModal(false)} className="p-2 hover:bg-white/20 rounded-lg transition-colors">
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+            
+            <div className="p-6 space-y-4">
+              {/* Committee Selection */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Committee</label>
+                <select
+                  value={selectedCommittee}
+                  onChange={(e) => setSelectedCommittee(e.target.value)}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
+                >
+                  <option value="">Select committee...</option>
+                  {COMMITTEE_POSITIONS.filter(c => {
+                    // Only show committees the user can manage
+                    if (!manageableCommitteeIds.includes(c.id)) return false
+                    const members = committeeMembers[c.id] || []
+                    return members.length < c.maxMembers
+                  }).map(committee => {
+                    const parentOfficer = orgOfficers?.officers?.find(o => o.positionId === committee.parentOfficerId)
+                    const members = committeeMembers[committee.id] || []
+                    return (
+                      <option key={committee.id} value={committee.id}>
+                        {committee.title} ({members.length}/{committee.maxMembers}) - Under {parentOfficer?.displayName || committee.parentOfficerTitle}
+                      </option>
+                    )
+                  })}
+                </select>
+              </div>
+              
+              {/* Selected committee info */}
+              {selectedCommittee && (
+                <div className="p-3 bg-orange-50 border border-orange-200 rounded-lg">
+                  <p className="text-xs text-orange-800">
+                    <span className="font-semibold">Parent Officer: </span>
+                    {(() => {
+                      const committee = COMMITTEE_POSITIONS.find(c => c.id === selectedCommittee)
+                      const parentOfficer = orgOfficers?.officers?.find(o => o.positionId === committee?.parentOfficerId)
+                      return parentOfficer?.displayName || committee?.parentOfficerTitle
+                    })()}
+                  </p>
+                </div>
+              )}
+              
+              {/* Student Search */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Student</label>
+                <input
+                  type="text"
+                  placeholder="Search by name, email, or student ID..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
+                />
+              </div>
+              
+              <div className="max-h-48 overflow-y-auto space-y-2">
+                {filteredStudents.slice(0, 20).map(student => (
+                  <button
+                    key={student.uid}
+                    onClick={() => setSelectedUser(student)}
+                    className={`w-full p-3 text-left rounded-lg border transition-colors ${
+                      selectedUser?.uid === student.uid 
+                        ? 'border-orange-500 bg-orange-50' 
+                        : 'border-gray-200 hover:bg-gray-50'
+                    }`}
+                  >
+                    <p className="font-medium text-gray-900">{student.displayName}</p>
+                    <div className="flex items-center gap-2 text-sm text-gray-500">
+                      <span>{student.studentId || 'No ID'}</span>
+                      <span>•</span>
+                      <span>{student.course || 'No course'}</span>
+                    </div>
+                  </button>
+                ))}
+                {filteredStudents.length > 20 && (
+                  <p className="text-center text-sm text-gray-500 py-2">
+                    Showing 20 of {filteredStudents.length} results. Refine your search.
+                  </p>
+                )}
+                {filteredStudents.length === 0 && (
+                  <p className="text-center text-gray-500 py-4">
+                    {searchTerm ? 'No students found matching your search' : 'Search for a student...'}
+                  </p>
+                )}
+              </div>
+            </div>
+            
+            <div className="p-6 border-t border-gray-200 flex justify-end gap-3">
+              <button
+                onClick={() => {
+                  setShowCommitteeModal(false)
+                  setSelectedUser(null)
+                  setSelectedCommittee('')
+                  setSearchTerm('')
+                }}
+                className="px-4 py-2 text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleAddCommitteeMember}
+                disabled={!selectedUser || !selectedCommittee || submitting}
+                className="px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              >
+                {submitting ? 'Adding...' : 'Add Member'}
+              </button>
+            </div>
+          </div>
+        </ModalOverlay>
+      )}
+
+      {/* Add Year Representative Modal */}
+      {showYearRepModal && (
+        <ModalOverlay onClose={() => setShowYearRepModal(false)}>
+          <div className="bg-white rounded-xl shadow-xl max-w-md w-full mx-4 overflow-hidden">
+            <div className="bg-green-600 text-white px-6 py-4 flex items-center justify-between">
+              <div>
+                <h3 className="text-lg font-bold">Tag Year Representative</h3>
+                <p className="text-sm text-white/80 mt-0.5">{selectedOrg?.name}</p>
+              </div>
+              <button onClick={() => setShowYearRepModal(false)} className="p-2 hover:bg-white/20 rounded-lg transition-colors">
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+            
+            <div className="p-6 space-y-4">
+              {/* Year Rep Position Selection */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Year Level</label>
+                <select
+                  value={selectedYearRep}
+                  onChange={(e) => setSelectedYearRep(e.target.value)}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
+                >
+                  <option value="">Select year level...</option>
+                  {availableYearRepPositions.map(position => (
+                    <option key={position.id} value={position.id}>
+                      {position.title}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              
+              {/* Student Search */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Student</label>
+                <input
+                  type="text"
+                  placeholder="Search by name, email, or student ID..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
+                />
+              </div>
+              
+              <div className="max-h-48 overflow-y-auto space-y-2">
+                {filteredStudents.slice(0, 20).map(student => (
+                  <button
+                    key={student.uid}
+                    onClick={() => setSelectedUser(student)}
+                    className={`w-full p-3 text-left rounded-lg border transition-colors ${
+                      selectedUser?.uid === student.uid 
+                        ? 'border-teal-500 bg-teal-50' 
+                        : 'border-gray-200 hover:bg-gray-50'
+                    }`}
+                  >
+                    <p className="font-medium text-gray-900">{student.displayName}</p>
+                    <div className="flex items-center gap-2 text-sm text-gray-500">
+                      <span>{student.studentId || 'No ID'}</span>
+                      <span>•</span>
+                      <span>{student.course || 'No course'}</span>
+                    </div>
+                  </button>
+                ))}
+                {filteredStudents.length > 20 && (
+                  <p className="text-center text-sm text-gray-500 py-2">
+                    Showing 20 of {filteredStudents.length} results. Refine your search.
+                  </p>
+                )}
+                {filteredStudents.length === 0 && (
+                  <p className="text-center text-gray-500 py-4">
+                    {searchTerm ? 'No students found matching your search' : 'Search for a student...'}
+                  </p>
+                )}
+              </div>
+            </div>
+            
+            <div className="p-6 border-t border-gray-200 flex justify-end gap-3">
+              <button
+                onClick={() => {
+                  setShowYearRepModal(false)
+                  setSelectedUser(null)
+                  setSelectedYearRep('')
+                  setSearchTerm('')
+                }}
+                className="px-4 py-2 text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleAddYearRep}
+                disabled={!selectedUser || !selectedYearRep || submitting}
+                className="px-4 py-2 bg-teal-600 text-white rounded-lg hover:bg-teal-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              >
+                {submitting ? 'Tagging...' : 'Tag Year Rep'}
               </button>
             </div>
           </div>

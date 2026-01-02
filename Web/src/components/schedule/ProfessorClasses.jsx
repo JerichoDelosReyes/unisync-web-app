@@ -271,11 +271,18 @@ const ProfessorClasses = () => {
           setError('')
         }}>
           <div className="bg-white rounded-2xl shadow-xl w-full max-w-md mx-4 overflow-hidden">
-            <div className="px-6 py-4 border-b border-gray-100">
-              <h3 className="text-lg font-semibold text-gray-900">Add New Class</h3>
-              <p className="text-sm text-gray-500 mt-1">
-                Enter the 9-digit schedule code from the student registration form
-              </p>
+            <div className="bg-green-600 text-white px-6 py-4 flex items-center justify-between">
+              <div>
+                <h3 className="text-lg font-bold">Add New Class</h3>
+                <p className="text-sm text-white/80 mt-0.5">
+                  Enter the 9-digit schedule code from the student registration form
+                </p>
+              </div>
+              <button onClick={() => { setShowAddModal(false); setScheduleCode(''); setError(''); }} className="p-2 hover:bg-white/20 rounded-lg transition-colors">
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
             </div>
 
             <form onSubmit={handleAddClass} className="p-6 space-y-4">

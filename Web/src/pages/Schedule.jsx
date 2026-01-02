@@ -858,20 +858,21 @@ const UploadModal = ({ isOpen, onClose, onUpload, isProcessing }) => {
 
   return (
     <ModalOverlay onClose={isProcessing ? null : onClose} closeOnBackdropClick={!isProcessing}>
-      <div className="bg-white rounded-xl max-w-lg w-full p-6" onClick={(e) => e.stopPropagation()}>
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-xl font-bold text-gray-900">Upload Registration Form</h2>
+      <div className="bg-white rounded-xl max-w-lg w-full overflow-hidden" onClick={(e) => e.stopPropagation()}>
+        <div className="bg-green-600 text-white px-6 py-4 flex items-center justify-between">
+          <h2 className="text-xl font-bold">Upload Registration Form</h2>
           <button
             onClick={onClose}
-            className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+            className="p-2 hover:bg-white/20 rounded-lg transition-colors"
             disabled={isProcessing}
           >
-            <svg className="w-5 h-5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
             </svg>
           </button>
         </div>
 
+        <div className="p-6">
         <p className="text-gray-600 text-sm mb-4">
           Upload your CvSU registration form (PDF) to automatically extract your class schedule.
         </p>
@@ -917,6 +918,7 @@ const UploadModal = ({ isOpen, onClose, onUpload, isProcessing }) => {
             <p className="text-gray-400 text-xs mt-4">Supported format: PDF</p>
           </div>
         )}
+        </div>
       </div>
     </ModalOverlay>
   )
@@ -975,24 +977,24 @@ const ScheduleDetailModal = ({
   return (
     <ModalOverlay onClose={onClose}>
       <div 
-        className="bg-white rounded-xl max-w-md w-full p-6 shadow-xl max-h-[90vh] overflow-y-auto"
+        className="bg-white rounded-xl max-w-md w-full shadow-xl max-h-[90vh] overflow-hidden flex flex-col"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
-        <div className="flex items-start justify-between mb-4">
+        <div className="bg-green-600 text-white px-6 py-4 flex items-start justify-between flex-shrink-0">
           <div className="flex-1">
-            <h2 className="text-xl font-bold text-gray-900">{schedule.subject}</h2>
+            <h2 className="text-xl font-bold">{schedule.subject}</h2>
             <div className="flex items-center gap-2 mt-2 flex-wrap">
-              <span className="inline-block px-3 py-1 bg-primary/10 text-primary rounded-full text-sm font-medium">
+              <span className="inline-block px-3 py-1 bg-white/20 text-white rounded-full text-sm font-medium">
                 {displaySection}
               </span>
               {isIrregular && schedule.classSection && schedule.classSection !== schedule.section && (
-                <span className="inline-block px-2 py-0.5 bg-purple-100 text-purple-700 rounded-full text-xs">
+                <span className="inline-block px-2 py-0.5 bg-white/30 text-white rounded-full text-xs">
                   Class Section
                 </span>
               )}
               {schedule.scheduleCode && (
-                <span className="inline-flex items-center gap-1 px-3 py-1 bg-yellow-100 text-yellow-800 rounded-full text-sm font-mono">
+                <span className="inline-flex items-center gap-1 px-3 py-1 bg-white/20 text-white rounded-full text-sm font-mono">
                   <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 20l4-16m2 16l4-16M6 9h14M4 15h14" />
                   </svg>
@@ -1003,14 +1005,16 @@ const ScheduleDetailModal = ({
           </div>
           <button
             onClick={onClose}
-            className="p-2 hover:bg-gray-100 rounded-lg transition-colors -mr-2 -mt-2"
+            className="p-2 hover:bg-white/20 rounded-lg transition-colors -mr-2 -mt-2"
           >
-            <svg className="w-5 h-5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
             </svg>
           </button>
         </div>
 
+        {/* Content */}
+        <div className="p-6 overflow-y-auto">
         {/* Irregular Student Section Assignment */}
         {isIrregular && onUpdateClassSection && (
           <div className="mb-4 p-4 bg-purple-50 border border-purple-200 rounded-lg">
@@ -1073,8 +1077,8 @@ const ScheduleDetailModal = ({
         <div className="space-y-4">
           {/* Day */}
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
-              <svg className="w-5 h-5 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <div className="w-10 h-10 rounded-lg bg-green-100 flex items-center justify-center">
+              <svg className="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
               </svg>
             </div>
@@ -1086,8 +1090,8 @@ const ScheduleDetailModal = ({
 
           {/* Time */}
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
-              <svg className="w-5 h-5 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <div className="w-10 h-10 rounded-lg bg-green-100 flex items-center justify-center">
+              <svg className="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
             </div>
@@ -1099,8 +1103,8 @@ const ScheduleDetailModal = ({
 
           {/* Room */}
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
-              <svg className="w-5 h-5 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <div className="w-10 h-10 rounded-lg bg-green-100 flex items-center justify-center">
+              <svg className="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
               </svg>
@@ -1280,8 +1284,8 @@ const ScheduleDetailModal = ({
 
           {/* Professor - Editable */}
           <div className="flex items-start gap-3">
-            <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0">
-              <svg className="w-5 h-5 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <div className="w-10 h-10 rounded-lg bg-green-100 flex items-center justify-center flex-shrink-0">
+              <svg className="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
               </svg>
             </div>
@@ -1304,6 +1308,7 @@ const ScheduleDetailModal = ({
         >
           Close
         </button>
+        </div>
       </div>
     </ModalOverlay>
   )
