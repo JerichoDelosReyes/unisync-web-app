@@ -1,18 +1,217 @@
 import { useState, useRef, useEffect } from 'react'
+import { getOrganizationOfficers, getCommitteeMembers } from '../../services/organizationService'
+import { db } from '../../config/firebase'
+import { collection, getDocs } from 'firebase/firestore'
 
 /**
- * AI Chat Component - Enhanced with NLP capabilities
+ * AI Chat Component - Enhanced with NLP and Database Integration
  * 
  * Features:
  * - Intent Recognition with confidence scoring
- * - Entity Extraction (time, location, subject, etc.)
+ * - Entity Extraction (time, location, subject, organization, etc.)
  * - Fuzzy string matching for typo tolerance
  * - Context awareness (remembers conversation history)
  * - Sentiment detection (positive, negative, neutral)
  * - Multi-language support (English/Tagalog)
  * - Smart follow-up suggestions
- * - Typing indicators and smooth animations
+ * - REAL DATA INTEGRATION with Firestore
+ * - Privacy-safe responses (no emails, passwords, or sensitive data)
  */
+
+// ============================================
+// ORGANIZATION DATA CACHE
+// ============================================
+
+// Organization code mappings for recognition
+const ORG_ALIASES = {
+  'csc': { code: 'CSC', name: 'Computer Science Clique' },
+  'computer science clique': { code: 'CSC', name: 'Computer Science Clique' },
+  'computer science': { code: 'CSC', name: 'Computer Science Clique' },
+  'csg': { code: 'CSG', name: 'Central Student Government' },
+  'student government': { code: 'CSG', name: 'Central Student Government' },
+  'central student government': { code: 'CSG', name: 'Central Student Government' },
+  'bits': { code: 'BITS', name: 'Builders of Innovative Technologist Society' },
+  'bms': { code: 'BMS', name: 'Business Management Society' },
+  'business management': { code: 'BMS', name: 'Business Management Society' },
+  'cyle': { code: 'CYLE', name: 'Cavite Young Leaders for Entrepreneurship' },
+  'edge': { code: 'EDGE', name: "Educators' Guild for Excellence" },
+  'yopa': { code: 'YOPA', name: 'Young Office Professional Advocates' },
+  'chls': { code: 'CHLS', name: 'Circle of Hospitality and Tourism Students' },
+  'chts': { code: 'CHLS', name: 'Circle of Hospitality and Tourism Students' },
+  'smsp': { code: 'SMSP', name: 'Samahan ng mga Mag-aaral ng Sikolohiya' },
+  'sikolohiya': { code: 'SMSP', name: 'Samahan ng mga Mag-aaral ng Sikolohiya' },
+  'sinag tala': { code: 'ST', name: 'Sinag-Tala' },
+  'sinagtala': { code: 'ST', name: 'Sinag-Tala' },
+  'the flare': { code: 'TF', name: 'The Flare' },
+  'flare': { code: 'TF', name: 'The Flare' },
+  'honor society': { code: 'HS', name: 'Honor Society' },
+  'cc': { code: 'CC', name: 'Cavite Communicators' },
+  'cavite communicators': { code: 'CC', name: 'Cavite Communicators' }
+}
+
+// ============================================
+// DATABASE QUERY FUNCTIONS (Privacy-Safe)
+// ============================================
+
+/**
+ * Get specific officer by position for an organization
+ * Returns only name (privacy-safe - no email/phone)
+ */
+const getOfficerByPosition = async (orgCode, positionQuery) => {
+  try {
+    const orgData = await getOrganizationOfficers(orgCode)
+    if (!orgData || !orgData.officers) return null
+    
+    // Normalize position query
+    const normalizedQuery = positionQuery.toLowerCase().replace(/[^a-z]/g, '')
+    
+    // Map common queries to position IDs
+    const positionMap = {
+      'president': 'president',
+      'pres': 'president',
+      'vp': 'vice_president',
+      'vicepresident': 'vice_president',
+      'vpinternal': 'vp_internal',
+      'vpinternalaffairs': 'vp_internal',
+      'vpexternal': 'vp_external',
+      'vpexternalaffairs': 'vp_external',
+      'secretary': 'secretary',
+      'sec': 'secretary',
+      'secretarygeneral': 'secretary_general',
+      'secgen': 'secretary_general',
+      'treasurer': 'treasurer',
+      'treas': 'treasurer',
+      'treasurergeneral': 'treasurer_general',
+      'treasgen': 'treasurer_general',
+      'auditor': 'auditor',
+      'aud': 'auditor',
+      'pro': 'pro',
+      'publicrelations': 'pro',
+      'publicrelationsofficer': 'pro',
+      'adviser': 'adviser',
+      'advisor': 'adviser'
+    }
+    
+    const targetPositionId = positionMap[normalizedQuery]
+    if (!targetPositionId) return null
+    
+    // Find officer with matching positionId
+    const officer = orgData.officers.find(o => o.positionId === targetPositionId)
+    if (!officer) return null
+    
+    // Get org name from aliases or use code
+    const orgName = ORG_ALIASES[orgCode.toLowerCase()]?.name || orgCode
+    
+    return {
+      name: officer.displayName,
+      position: officer.positionTitle,
+      positionId: officer.positionId,
+      orgName
+    }
+  } catch (error) {
+    console.error('Error getting officer by position:', error)
+    return null
+  }
+}
+
+/**
+ * Get all officers for an organization
+ * Returns only names and positions (privacy-safe)
+ */
+const getAllOfficers = async (orgCode) => {
+  try {
+    const orgData = await getOrganizationOfficers(orgCode)
+    if (!orgData) return null
+    
+    const officers = (orgData.officers || []).map(o => ({
+      name: o.displayName,
+      position: o.positionTitle
+    }))
+    
+    const advisers = (orgData.advisers || []).map(a => ({
+      name: a.displayName,
+      position: 'Adviser'
+    }))
+    
+    return {
+      officers: [...officers, ...advisers],
+      orgName: ORG_ALIASES[orgCode.toLowerCase()]?.name || orgCode
+    }
+  } catch (error) {
+    console.error('Error getting all officers:', error)
+    return null
+  }
+}
+
+/**
+ * Get committee members (privacy-safe - names only)
+ */
+const getCommitteeInfo = async (orgCode, committeeId) => {
+  try {
+    const members = await getCommitteeMembers(orgCode)
+    if (!members) return null
+    
+    // Map committee keywords to IDs
+    const committeeMap = {
+      'internal': 'internal_affairs',
+      'internalaffairs': 'internal_affairs',
+      'external': 'external_affairs',
+      'externalaffairs': 'external_affairs',
+      'membership': 'membership_dues',
+      'membershipdues': 'membership_dues',
+      'secretariat': 'secretariat',
+      'publicity': 'publicity',
+      'multimedia': 'multimedia',
+      'finance': 'finance_sponsorship',
+      'financesponsorship': 'finance_sponsorship',
+      'audits': 'audits',
+      'documentation': 'documentation'
+    }
+    
+    const normalizedCommittee = committeeId?.toLowerCase().replace(/[^a-z]/g, '') || ''
+    const targetCommittee = committeeMap[normalizedCommittee] || normalizedCommittee
+    
+    const committeeMembers = members[targetCommittee] || []
+    
+    return {
+      orgName: ORG_ALIASES[orgCode.toLowerCase()]?.name || orgCode,
+      committee: targetCommittee.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase()),
+      members: committeeMembers.map(m => ({ name: m.displayName }))
+    }
+  } catch (error) {
+    console.error('Error getting committee info:', error)
+    return null
+  }
+}
+
+/**
+ * Get room count statistics
+ */
+const getRoomStats = async () => {
+  try {
+    const roomsRef = collection(db, 'rooms')
+    const snapshot = await getDocs(roomsRef)
+    
+    let total = 0
+    let occupied = 0
+    let vacant = 0
+    
+    snapshot.forEach(doc => {
+      const data = doc.data()
+      total++
+      if (data.currentSchedule || data.isOccupied) {
+        occupied++
+      } else {
+        vacant++
+      }
+    })
+    
+    return { total, occupied, vacant }
+  } catch (error) {
+    console.error('Error getting room stats:', error)
+    return null
+  }
+}
 
 // ============================================
 // NLP UTILITIES
@@ -90,7 +289,8 @@ const intents = {
       'view schedule', 'see schedule', 'check schedule', 'my schedule',
       'class schedule', 'classes', 'timetable', 'when is my class',
       'tingnan schedule', 'schedule ko', 'oras ng klase', 'ano klase ko',
-      'what subjects', 'ano subject', 'my classes', 'show my schedule'
+      'what subjects', 'ano subject', 'my classes', 'show my schedule',
+      'schedule', 'sched', 'how to view schedule'
     ],
     weight: 1.2
   },
@@ -113,7 +313,8 @@ const intents = {
   VIEW_ANNOUNCEMENTS: {
     patterns: [
       'announcements', 'news', 'updates', 'posts', 'balita', 'anunsyo',
-      'what\'s new', 'ano bago', 'latest news', 'campus news', 'notices'
+      'what\'s new', 'ano bago', 'latest news', 'campus news', 'notices',
+      'announcement', 'check announcements', 'view announcements'
     ],
     weight: 1.0
   },
@@ -136,7 +337,8 @@ const intents = {
     patterns: [
       'find room', 'available room', 'room finder', 'free room', 'vacant room',
       'classroom available', 'hanap silid', 'bakanteng room', 'room status',
-      'which room', 'where is room', 'building', 'room location', 'empty room'
+      'which room', 'where is room', 'building', 'room location', 'empty room',
+      'rooms', 'room', 'silid', 'classroom', 'check room'
     ],
     weight: 1.1
   },
@@ -159,7 +361,8 @@ const intents = {
     patterns: [
       'list organizations', 'all organizations', 'what organizations',
       'campus orgs', 'student orgs', 'ano mga org', 'available orgs',
-      'organizations list', 'clubs list'
+      'organizations list', 'clubs list', 'organizations', 'orgs', 'clubs',
+      'what is bits', 'what is csc', 'what is csg', 'about org', 'tell me about'
     ],
     weight: 1.0
   },
@@ -221,6 +424,46 @@ const intents = {
       'maganda', 'galing', 'nice', 'cool', 'wonderful', 'best'
     ],
     weight: 0.8
+  },
+  // New intents for organization data queries
+  ORG_OFFICER: {
+    patterns: [
+      'who is the president', 'who is president', 'sino presidente',
+      'who is the vice president', 'vice president of', 'sino vp',
+      'who is the secretary', 'secretary of', 'sino secretary',
+      'who is the treasurer', 'treasurer of', 'sino treasurer',
+      'who is the auditor', 'auditor of', 'sino auditor',
+      'who is the pio', 'pio of', 'public information officer',
+      'who is the adviser', 'adviser of', 'sino adviser', 'advisor of',
+      'who leads', 'leader of', 'head of', 'current president',
+      'current officers', 'officer ng', 'sino ang'
+    ],
+    weight: 1.5
+  },
+  ORG_OFFICERS_LIST: {
+    patterns: [
+      'list officers', 'all officers', 'officers of', 'who are the officers',
+      'sino mga officers', 'lahat ng officers', 'show officers',
+      'officers ng', 'officer list', 'team of', 'members of executive'
+    ],
+    weight: 1.4
+  },
+  ORG_COMMITTEE: {
+    patterns: [
+      'committee members', 'who is in committee', 'committee of',
+      'internal committee', 'external committee', 'documentation committee',
+      'finance committee', 'logistics committee', 'publicity committee',
+      'ways and means', 'sports committee', 'academics committee',
+      'sino sa committee', 'members ng committee'
+    ],
+    weight: 1.4
+  },
+  ROOM_STATS: {
+    patterns: [
+      'how many rooms', 'room statistics', 'room count', 'available rooms count',
+      'occupied rooms', 'ilan ang rooms', 'room status overall'
+    ],
+    weight: 1.2
   }
 }
 
@@ -232,8 +475,44 @@ const entityPatterns = {
   time: /\b(\d{1,2}:\d{2}\s*(?:am|pm)?|\d{1,2}\s*(?:am|pm)|morning|afternoon|evening|umaga|hapon|gabi)\b/gi,
   day: /\b(monday|tuesday|wednesday|thursday|friday|saturday|sunday|lunes|martes|miyerkules|huwebes|biyernes|sabado|linggo|today|tomorrow|bukas|ngayon)\b/gi,
   room: /\b(room\s*\d+|rm\s*\d+|[a-z]+\s*building|[a-z]+\s*hall|\d{3,4}[a-z]?)\b/gi,
-  organization: /\b(csg|bits|csc|bms|cyle|edge|yopa|chls|sinag.?tala|the\s*flare|honor\s*society|smsp)\b/gi,
-  subject: /\b(it\s*\d+|cs\s*\d+|math\s*\d+|eng\s*\d+|[a-z]{2,4}\s*\d{3,4})\b/gi
+  organization: /\b(csg|bits|csc|bms|cyle|edge|yopa|chls|sinag.?tala|the\s*flare|honor\s*society|smsp|computer\s*science\s*circle|computer\s*society|business\s*management\s*society|hospitality\s*league|young\s*professionals|youth\s*organization)\b/gi,
+  subject: /\b(it\s*\d+|cs\s*\d+|math\s*\d+|eng\s*\d+|[a-z]{2,4}\s*\d{3,4})\b/gi,
+  position: /\b(president|vice\s*president|vp|secretary|treasurer|auditor|pio|public\s*information\s*officer|adviser|advisor|head|leader|chairperson|chair)\b/gi
+}
+
+// Extract organization from input using ORG_ALIASES
+const extractOrganization = (input) => {
+  const lowerInput = input.toLowerCase()
+  for (const [alias, orgData] of Object.entries(ORG_ALIASES)) {
+    if (lowerInput.includes(alias)) {
+      return orgData.code // Return just the code string, not the object
+    }
+  }
+  return null
+}
+
+// Extract position from input
+const extractPosition = (input) => {
+  const lowerInput = input.toLowerCase()
+  const positionMap = {
+    'president': 'president',
+    'vice president': 'vicePresident',
+    'vp': 'vicePresident',
+    'secretary': 'secretary',
+    'treasurer': 'treasurer',
+    'auditor': 'auditor',
+    'pio': 'pio',
+    'public information officer': 'pio',
+    'adviser': 'adviser',
+    'advisor': 'adviser'
+  }
+  
+  for (const [keyword, position] of Object.entries(positionMap)) {
+    if (lowerInput.includes(keyword)) {
+      return position
+    }
+  }
+  return null
 }
 
 const extractEntities = (input) => {
@@ -293,18 +572,44 @@ const recognizeIntent = (input) => {
   const normalizedInput = input.toLowerCase().trim()
   let bestMatch = { intent: null, confidence: 0 }
   
+  // First, check for organization + position queries (these are high priority)
+  const orgCode = extractOrganization(normalizedInput)
+  const position = extractPosition(normalizedInput)
+  if (orgCode && position) {
+    return { intent: 'ORG_OFFICER', confidence: 1.0 }
+  }
+  if (orgCode && (normalizedInput.includes('officer') || normalizedInput.includes('who'))) {
+    return { intent: 'ORG_OFFICER', confidence: 0.9 }
+  }
+  
   for (const [intentName, intentData] of Object.entries(intents)) {
     for (const pattern of intentData.patterns) {
-      // Exact substring match
-      if (normalizedInput.includes(pattern.toLowerCase())) {
-        const confidence = (pattern.length / normalizedInput.length) * intentData.weight
+      const patternLower = pattern.toLowerCase()
+      
+      // Exact match (input equals pattern)
+      if (normalizedInput === patternLower) {
+        return { intent: intentName, confidence: 1.0 }
+      }
+      
+      // Pattern is contained in input
+      if (normalizedInput.includes(patternLower)) {
+        // Give higher confidence to longer pattern matches
+        const confidence = Math.min((patternLower.length / Math.max(normalizedInput.length, 1)) * intentData.weight * 1.5, 1)
         if (confidence > bestMatch.confidence) {
-          bestMatch = { intent: intentName, confidence: Math.min(confidence * 1.5, 1) }
+          bestMatch = { intent: intentName, confidence }
         }
       }
       
-      // Fuzzy match for typos
-      if (fuzzyMatch(normalizedInput, pattern, 0.75)) {
+      // Input is contained in pattern (for short queries like "rooms")
+      if (patternLower.includes(normalizedInput) && normalizedInput.length >= 3) {
+        const confidence = 0.6 * intentData.weight
+        if (confidence > bestMatch.confidence) {
+          bestMatch = { intent: intentName, confidence }
+        }
+      }
+      
+      // Fuzzy match for typos (more lenient threshold)
+      if (fuzzyMatch(normalizedInput, patternLower, 0.65)) {
         const confidence = 0.7 * intentData.weight
         if (confidence > bestMatch.confidence) {
           bestMatch = { intent: intentName, confidence }
@@ -313,8 +618,8 @@ const recognizeIntent = (input) => {
     }
   }
   
-  // If no confident match, return unknown
-  if (bestMatch.confidence < 0.3) {
+  // Lower threshold for matching
+  if (bestMatch.confidence < 0.15) {
     return { intent: 'UNKNOWN', confidence: 0 }
   }
   
@@ -344,63 +649,76 @@ const responses = {
     "My pleasure! Don't hesitate to ask more questions. 🙌"
   ],
   VIEW_SCHEDULE: [
-    "📅 **Viewing Your Schedule**\n\nYou can find your class schedule in the **Schedule** page:\n\n1. Click 'Schedule' in the sidebar\n2. Your classes appear based on your uploaded registration form\n3. View by day or week format\n\n*Tip: Make sure you've uploaded your COR (Certificate of Registration) to see your classes!*\n\n(Pumunta sa Schedule page para makita ang iyong mga klase.)"
+    "📅 Viewing Your Schedule\n\nYou can find your class schedule in the Schedule page:\n\n1. Click 'Schedule' in the sidebar\n2. Your classes appear based on your uploaded registration form\n3. View by day or week format\n\n(Pumunta sa Schedule page para makita ang iyong mga klase.)"
   ],
   UPLOAD_SCHEDULE: [
-    "📤 **Uploading Your Schedule**\n\nTo add your class schedule:\n\n1. Go to the **Schedule** page\n2. Click **'Add Registration Form'**\n3. Upload your COR (Certificate of Registration) PDF\n4. The system automatically extracts your classes!\n\n*Note: Only PDF files are accepted. Make sure your COR is clear and readable.*\n\n(I-upload ang iyong COR para ma-extract ang schedule mo.)"
+    "📤 Uploading Your Schedule\n\nTo add your class schedule:\n\n1. Go to the Schedule page\n2. Click 'Add Registration Form'\n3. Upload your COR (Certificate of Registration) PDF\n4. The system automatically extracts your classes!\n\n(I-upload ang iyong COR para ma-extract ang schedule mo.)"
   ],
   FACULTY_SCHEDULE: [
-    "👨‍🏫 **Faculty Schedule Management**\n\nAs a faculty member:\n\n1. Go to **Schedule** page\n2. Click the **'Claim Classes'** tab\n3. Enter the **schedule codes** from student CORs\n4. Once claimed, you'll see your teaching schedule and student lists!\n\n*The schedule code connects you to students enrolled in your subjects.*\n\n(Mag-claim ng schedule codes para makita ang iyong teaching schedule.)"
+    "👨‍🏫 Faculty Schedule Management\n\nAs a faculty member:\n\n1. Go to Schedule page\n2. Click the 'Claim Classes' tab\n3. Enter the schedule codes from student CORs\n4. Once claimed, you'll see your teaching schedule and student lists!\n\n(Mag-claim ng schedule codes para makita ang iyong teaching schedule.)"
   ],
   VIEW_ANNOUNCEMENTS: [
-    "📢 **Viewing Announcements**\n\nThe **Announcements** page shows:\n\n• Campus-wide updates\n• Department-specific news\n• Organization posts\n• Urgent notices (pinned at top)\n\nUse the filter tabs (All, Important, Academic, General, Organizations) to find what you need!\n\n(Pumunta sa Announcements para sa mga balita at updates.)"
+    "📢 Viewing Announcements\n\nThe Announcements page shows:\n\n• Campus-wide updates\n• Department-specific news\n• Organization posts\n• Urgent notices (pinned at top)\n\nUse the filter tabs (All, Important, Academic, General, Organizations) to find what you need!\n\n(Pumunta sa Announcements para sa mga balita at updates.)"
   ],
   CREATE_ANNOUNCEMENT: [
-    "✏️ **Creating Announcements**\n\nTo post an announcement:\n\n1. Go to **Announcements** page\n2. Click **'Create'** button\n3. Fill in:\n   • Title and content\n   • Priority level (Urgent/High/Normal/Low)\n   • Target audience (department, year level, section)\n   • Attach images or videos (optional)\n4. Submit for review!\n\n*Note: Class Representatives and above can post. Posts are reviewed before publishing.*\n\n(I-click ang Create button para gumawa ng announcement.)"
+    "✏️ Creating Announcements\n\nTo post an announcement:\n\n1. Go to Announcements page\n2. Click 'Create' button\n3. Fill in:\n   • Title and content\n   • Priority level (Urgent/High/Normal/Low)\n   • Target audience (department, year level, section)\n   • Attach images or videos (optional)\n4. Submit for review!\n\n(I-click ang Create button para gumawa ng announcement.)"
   ],
   FILTER_ANNOUNCEMENTS: [
-    "🔍 **Filtering Announcements**\n\nTo find specific posts:\n\n1. Use the **category tabs** (All, Important, Academic, General, Orgs)\n2. Click on **organization logos** to filter by org\n3. Announcements are automatically filtered based on your department and year level\n\n*Tip: Important/Urgent announcements are always shown at the top!*"
+    "🔍 Filtering Announcements\n\nTo find specific posts:\n\n1. Use the category tabs (All, Important, Academic, General, Orgs)\n2. Click on organization logos to filter by org\n3. Announcements are automatically filtered based on your department and year level"
   ],
   FIND_ROOM: [
-    "🏫 **Finding Available Rooms**\n\nTo check room availability:\n\n1. Go to **Room Status** in the sidebar\n2. Select the building (e.g., Main Building, Annex)\n3. View rooms by floor\n4. Green = Vacant, Red = Occupied\n\n*You can see which classes are using occupied rooms and when they'll be free.*\n\n(Pumunta sa Room Status para makita ang available na mga silid.)"
+    "🏫 Finding Available Rooms\n\nTo check room availability:\n\n1. Go to Room Status in the sidebar\n2. Select the building (e.g., Main Building, Annex)\n3. View rooms by floor\n4. Green = Vacant, Red = Occupied\n\n(Pumunta sa Room Status para makita ang available na mga silid.)"
   ],
   BOOK_ROOM: [
-    "📋 **Room Booking**\n\nTo reserve a room for events:\n\n1. Find an available room in **Room Status**\n2. Contact the **Admin Office** for official bookings\n3. Provide event details, date, and time\n\n*Note: Room reservations require approval from campus administration.*"
+    "📋 Room Booking\n\nTo reserve a room for events:\n\n1. Find an available room in Room Status\n2. Contact the Admin Office for official bookings\n3. Provide event details, date, and time"
   ],
   JOIN_ORG: [
-    "🤝 **Joining Organizations**\n\nTo become a member:\n\n1. Browse organization posts in **Announcements**\n2. Look for **membership drives** or **application announcements**\n3. Contact the org through their posted details\n4. Follow their application process\n\n**Active Campus Organizations:**\nCSG, BITS, CSC, BMS, CYLE, EDGE, YOPA, and more!\n\n(Tingnan ang announcements para sa membership drives.)"
+    "🤝 Joining Organizations\n\nTo become a member:\n\n1. Browse organization posts in Announcements\n2. Look for membership drives or application announcements\n3. Contact the org through their posted details\n4. Follow their application process\n\nActive Campus Organizations:\nCSG, BITS, CSC, BMS, CYLE, EDGE, YOPA, and more!\n\n(Tingnan ang announcements para sa membership drives.)"
   ],
   LIST_ORGS: [
-    "🏛️ **Campus Organizations**\n\n• **CSG** - Central Student Government\n• **BITS** - Builders of Innovative Technologist Society\n• **CSC** - Computer Science Clique\n• **BMS** - Business Management Society\n• **CYLE** - Cavite Young Leaders for Entrepreneurship\n• **EDGE** - Educators' Guild for Excellence\n• **YOPA** - Young Office Professional Advocates\n• **CHLS** - Circle of Hospitality & Tourism Students\n• **Sinag-Tala** - Literary & Arts\n• **The Flare** - Campus Publication\n• **Honor Society**\n\n*Check Announcements to see posts from each organization!*"
+    "🏛️ Campus Organizations\n\n• CSG - Central Student Government\n• BITS - Builders of Innovative Technologist Society\n• CSC - Computer Science Clique\n• BMS - Business Management Society\n• CYLE - Cavite Young Leaders for Entrepreneurship\n• EDGE - Educators' Guild for Excellence\n• YOPA - Young Office Professional Advocates\n• CHLS - Circle of Hospitality & Tourism Students\n• Sinag-Tala - Literary & Arts\n• The Flare - Campus Publication\n• Honor Society"
   ],
   EDIT_PROFILE: [
-    "⚙️ **Editing Your Profile**\n\nTo update your information:\n\n1. Click your **profile picture** in the sidebar\n2. Go to **Account Settings**\n3. Edit your:\n   • Display name\n   • Department\n   • Year level & section\n   • Profile photo\n4. Save changes!\n\n(I-click ang profile picture mo para ma-edit ang iyong information.)"
+    "⚙️ Editing Your Profile\n\nTo update your information:\n\n1. Click your profile picture in the sidebar\n2. Go to Account Settings\n3. Edit your:\n   • Display name\n   • Department\n   • Year level & section\n   • Profile photo\n4. Save changes!\n\n(I-click ang profile picture mo para ma-edit ang iyong information.)"
   ],
   VIEW_PROFILE: [
-    "👤 **Your Profile**\n\nYour profile contains:\n\n• Personal information (name, email)\n• Role (Student/Faculty/Admin)\n• Department & year level\n• Organization memberships\n• Tagged groups\n\nClick your profile picture in the sidebar to view or edit.\n\n(I-click ang profile mo sa sidebar para makita ang details.)"
+    "👤 Your Profile\n\nYour profile contains:\n\n• Personal information (name, email)\n• Role (Student/Faculty/Admin)\n• Department & year level\n• Organization memberships\n• Tagged groups\n\nClick your profile picture in the sidebar to view or edit.\n\n(I-click ang profile mo sa sidebar para makita ang details.)"
   ],
   REQUEST_FACULTY: [
-    "🎓 **Requesting Faculty Role**\n\nTo get verified as faculty:\n\n1. Go to **Dashboard**\n2. Find the **'Faculty Role Verification'** card\n3. Click **'Request Faculty Role'**\n4. Upload your **Faculty ID** for verification\n5. Wait for admin approval\n\n*Once approved, you can claim teaching schedules and access faculty features!*\n\n(Pumunta sa Dashboard at i-click ang Request Faculty Role.)"
+    "🎓 Requesting Faculty Role\n\nTo get verified as faculty:\n\n1. Go to Dashboard\n2. Find the 'Faculty Role Verification' card\n3. Click 'Request Faculty Role'\n4. Upload your Faculty ID for verification\n5. Wait for admin approval\n\n(Pumunta sa Dashboard at i-click ang Request Faculty Role.)"
   ],
   HELP: [
-    "🤖 **I'm UNISYNC AI - Your Campus Assistant!**\n\nI can help you with:\n\n📅 **Schedule** - View classes, upload COR, claim teaching schedules\n📢 **Announcements** - Browse, create, and filter posts\n🏫 **Rooms** - Find available classrooms\n🏛️ **Organizations** - Learn about campus orgs\n👤 **Profile** - Update your information\n🎓 **Faculty** - Request role verification\n\n**Just ask me in English or Tagalog!**\n\nTry: \"How do I view my schedule?\" or \"Paano gumawa ng announcement?\""
+    "🤖 I'm UNISYNC AI - Your Campus Assistant!\n\nI can help you with:\n\n📅 Schedule - View classes, upload COR, claim teaching schedules\n📢 Announcements - Browse, create, and filter posts\n🏫 Rooms - Find available classrooms\n🏛️ Organizations - Learn about campus orgs\n👤 Profile - Update your information\n🎓 Faculty - Request role verification\n\nJust ask me in English or Tagalog!\n\nTry: \"How do I view my schedule?\" or \"Paano gumawa ng announcement?\""
   ],
   CLASS_REP: [
-    "👑 **Class Representative Role**\n\nClass Representatives can:\n\n• Create announcements for their section\n• Moderate comments on posts\n• Represent their class in the system\n\n**To become a Class Rep:**\nContact your department head or student affairs office for the tagging process.\n\n(Makipag-ugnay sa department head para maging Class Representative.)"
+    "👑 Class Representative Role\n\nClass Representatives can:\n\n• Create announcements for their section\n• Moderate comments on posts\n• Represent their class in the system\n\nTo become a Class Rep:\nContact your department head or student affairs office for the tagging process.\n\n(Makipag-ugnay sa department head para maging Class Representative.)"
   ],
   MODERATION: [
-    "🛡️ **Content Moderation**\n\nFor Moderators and Admins:\n\n1. Go to **Announcement Review** page\n2. Review pending announcements\n3. Approve or reject with feedback\n4. Manage flagged content\n\n*Announcements from certain roles require approval before publishing.*"
+    "🛡️ Content Moderation\n\nFor Moderators and Admins:\n\n1. Go to Announcement Review page\n2. Review pending announcements\n3. Approve or reject with feedback\n4. Manage flagged content"
   ],
   COMPLAINT: [
-    "😟 **I'm sorry you're having issues!**\n\nHere's what you can do:\n\n1. **Refresh the page** - Sometimes this fixes temporary issues\n2. **Clear browser cache** - Old data can cause problems\n3. **Try a different browser** - Chrome or Firefox work best\n4. **Contact support** - Report persistent issues to campus IT\n\nCan you describe the specific problem you're experiencing? I'll try to help! 💪"
+    "😟 I'm sorry you're having issues!\n\nHere's what you can do:\n\n1. Refresh the page - Sometimes this fixes temporary issues\n2. Clear browser cache - Old data can cause problems\n3. Try a different browser - Chrome or Firefox work best\n4. Contact support - Report persistent issues to campus IT\n\nCan you describe the specific problem you're experiencing? I'll try to help! 💪"
   ],
   POSITIVE_FEEDBACK: [
     "Thank you so much! 😊 I'm glad I could help. Is there anything else you'd like to know about UNISYNC?",
     "That's great to hear! Salamat! Let me know if you have more questions! 🎉",
     "Awesome! I'm always here to help. Feel free to ask anything else! 💚"
   ],
+  // Dynamic responses - these are placeholders that get replaced with real data
+  ORG_OFFICER: [
+    "DYNAMIC_OFFICER_RESPONSE"
+  ],
+  ORG_OFFICERS_LIST: [
+    "DYNAMIC_OFFICERS_LIST_RESPONSE"
+  ],
+  ORG_COMMITTEE: [
+    "DYNAMIC_COMMITTEE_RESPONSE"
+  ],
+  ROOM_STATS: [
+    "DYNAMIC_ROOM_STATS_RESPONSE"
+  ],
   UNKNOWN: [
-    "I'm not quite sure I understand. 🤔 Could you rephrase that?\n\nI can help with:\n• Schedule (view, upload, claim)\n• Announcements (view, create, filter)\n• Rooms (find available)\n• Organizations (list, join)\n• Profile & Settings\n\n*Try being more specific, like \"How do I upload my schedule?\"*",
+    "I'm not quite sure I understand. 🤔 Could you rephrase that?\n\nI can help with:\n• Schedule (view, upload, claim)\n• Announcements (view, create, filter)\n• Rooms (find available)\n• Organizations (list, join)\n• Profile & Settings",
     "Hmm, I didn't catch that. 🤔\n\nTry asking about:\n📅 Schedule\n📢 Announcements\n🏫 Rooms\n🏛️ Organizations\n\n(Subukan mong magtanong tungkol sa schedule, announcements, o rooms.)"
   ]
 }
@@ -415,9 +733,14 @@ const getSuggestions = (intent) => {
     UPLOAD_SCHEDULE: ['View my schedule', 'Find available rooms', 'Help with announcements'],
     VIEW_ANNOUNCEMENTS: ['Create announcement', 'Filter by organization', 'View my schedule'],
     FIND_ROOM: ['View my schedule', 'Check announcements', 'Organization list'],
-    GREETING: ['View my schedule', 'Check announcements', 'Find available rooms'],
-    HELP: ['View schedule', 'Announcements', 'Room finder', 'Organizations'],
-    UNKNOWN: ['How to view schedule?', 'What are announcements?', 'Help me find rooms']
+    GREETING: ['View my schedule', 'Check announcements', 'Find available rooms', 'Ask about CSC officers'],
+    HELP: ['View schedule', 'Announcements', 'Room finder', 'Who is CSC president?'],
+    ORG_OFFICER: ['Officers of BITS', 'Officers of CSG', 'Room availability'],
+    ORG_OFFICERS_LIST: ['Who is the president?', 'Committee members', 'Check announcements'],
+    ORG_COMMITTEE: ['List all officers', 'View announcements', 'Find rooms'],
+    ROOM_STATS: ['Find specific room', 'View schedule', 'Check announcements'],
+    LIST_ORGS: ['Officers of CSC', 'Officers of BITS', 'Join organization'],
+    UNKNOWN: ['How to view schedule?', 'Who is CSC president?', 'Help me find rooms']
   }
   
   return suggestionMap[intent] || suggestionMap.UNKNOWN
@@ -459,7 +782,7 @@ export default function AIChat() {
     }, 100)
   }
 
-  const handleSendWithInput = (input) => {
+  const handleSendWithInput = async (input) => {
     if (!input.trim()) return
 
     // Add user message
@@ -473,9 +796,9 @@ export default function AIChat() {
     setInputValue('')
     setIsLoading(true)
 
-    // Process with NLP
-    setTimeout(() => {
-      const response = processInput(input)
+    // Process with NLP (async for database queries)
+    try {
+      const response = await processInput(input)
       const botMessage = {
         id: messages.length + 2,
         type: 'bot',
@@ -483,7 +806,6 @@ export default function AIChat() {
         suggestions: response.suggestions
       }
       setMessages(prev => [...prev, botMessage])
-      setIsLoading(false)
       
       // Update context
       setConversationContext(prev => ({
@@ -491,15 +813,26 @@ export default function AIChat() {
         entities: { ...prev.entities, ...response.entities },
         messageCount: prev.messageCount + 1
       }))
-    }, 600 + Math.random() * 400) // Variable delay for natural feel
+    } catch (error) {
+      console.error('Error processing message:', error)
+      const errorMessage = {
+        id: messages.length + 2,
+        type: 'bot',
+        text: "Sorry, I encountered an error while processing your request. Please try again! 🙁",
+        suggestions: ['Try again', 'Help', 'View schedule']
+      }
+      setMessages(prev => [...prev, errorMessage])
+    } finally {
+      setIsLoading(false)
+    }
   }
 
   const handleSendMessage = async (e) => {
     e.preventDefault()
-    handleSendWithInput(inputValue)
+    await handleSendWithInput(inputValue)
   }
 
-  const processInput = (userInput) => {
+  const processInput = async (userInput) => {
     // Intent recognition
     const { intent, confidence } = recognizeIntent(userInput)
     
@@ -509,8 +842,8 @@ export default function AIChat() {
     // Sentiment analysis
     const sentiment = analyzeSentiment(userInput)
     
-    // Get response
-    let responseText = getResponse(intent, entities, sentiment, conversationContext)
+    // Get response (async for database queries)
+    let responseText = await getResponse(intent, entities, sentiment, conversationContext, userInput)
     
     // Get suggestions
     const suggestions = getSuggestions(intent)
@@ -524,7 +857,99 @@ export default function AIChat() {
     }
   }
 
-  const getResponse = (intent, entities, sentiment, context) => {
+  const getResponse = async (intent, entities, sentiment, context, userInput) => {
+    // Handle dynamic database queries for organization intents
+    if (intent === 'ORG_OFFICER') {
+      const orgCode = extractOrganization(userInput)
+      const position = extractPosition(userInput)
+      
+      if (orgCode && position) {
+        const officer = await getOfficerByPosition(orgCode, position)
+        if (officer) {
+          return `👤 ${officer.position} of ${officer.orgName || orgCode}\n\nThe current ${officer.position} is ${officer.name}.`
+        } else {
+          const positionDisplayName = position.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())
+          return `I couldn't find the ${positionDisplayName} for ${orgCode}. The organization might not have filled this position yet.`
+        }
+      } else if (orgCode && !position) {
+        // They asked about an org but didn't specify position, list all officers
+        const officerData = await getAllOfficers(orgCode)
+        if (officerData && officerData.officers && officerData.officers.length > 0) {
+          let response = `👥 Officers of ${officerData.orgName || orgCode}\n\n`
+          officerData.officers.forEach(({ position, name }) => {
+            response += `• ${position}: ${name}\n`
+          })
+          return response
+        } else {
+          return `I couldn't find officer information for ${orgCode}. The organization data might not be available yet.`
+        }
+      } else {
+        return "I can tell you about organization officers! Please specify which organization you're asking about.\n\nFor example:\n• \"Who is the president of CSC?\"\n• \"Who are the officers of BITS?\"\n\nAvailable organizations: CSG, BITS, CSC, BMS, CYLE, EDGE, YOPA, CHLS, Sinag-Tala, The Flare, Honor Society"
+      }
+    }
+    
+    if (intent === 'ORG_OFFICERS_LIST') {
+      const orgCode = extractOrganization(userInput)
+      
+      if (orgCode) {
+        const officerData = await getAllOfficers(orgCode)
+        if (officerData && officerData.officers && officerData.officers.length > 0) {
+          let response = `👥 Officers of ${officerData.orgName || orgCode}\n\n`
+          officerData.officers.forEach(({ position, name }) => {
+            response += `• ${position}: ${name}\n`
+          })
+          return response
+        } else {
+          return `I couldn't find officer information for ${orgCode}. The organization data might not be available yet.`
+        }
+      } else {
+        return "Which organization's officers would you like to know about?\n\nAvailable organizations: CSG, BITS, CSC, BMS, CYLE, EDGE, YOPA, CHLS, Sinag-Tala, The Flare, Honor Society"
+      }
+    }
+    
+    if (intent === 'ORG_COMMITTEE') {
+      const orgCode = extractOrganization(userInput)
+      
+      if (orgCode) {
+        // Try to extract committee name from input
+        const lowerInput = userInput.toLowerCase()
+        let committeeType = null
+        const committeeKeywords = ['internal', 'external', 'documentation', 'finance', 'logistics', 'publicity', 'ways and means', 'sports', 'academics', 'membership', 'secretariat', 'multimedia', 'audits']
+        for (const keyword of committeeKeywords) {
+          if (lowerInput.includes(keyword)) {
+            committeeType = keyword
+            break
+          }
+        }
+        
+        if (!committeeType) {
+          return `Which committee of ${orgCode} would you like to know about?\n\nCommon committees include: Internal Affairs, External Affairs, Membership, Finance, Publicity, Documentation, etc.`
+        }
+        
+        const committee = await getCommitteeInfo(orgCode, committeeType)
+        if (committee && committee.members && committee.members.length > 0) {
+          let response = `📋 ${committee.committee} - ${committee.orgName || orgCode}\n\nMembers:\n`
+          committee.members.forEach(member => {
+            response += `• ${member.name}\n`
+          })
+          return response
+        } else {
+          return `I couldn't find committee information for ${orgCode}${committeeType ? ` (${committeeType} committee)` : ''}. This data might not be available yet.`
+        }
+      } else {
+        return "Which organization's committee would you like to know about?\n\nFor example: \"Who is in the Internal Committee of CSC?\""
+      }
+    }
+    
+    if (intent === 'ROOM_STATS') {
+      const stats = await getRoomStats()
+      if (stats) {
+        return `🏫 Room Statistics\n\nTotal Rooms: ${stats.total}\nVacant: ${stats.vacant} 🟢\nOccupied: ${stats.occupied} 🔴`
+      } else {
+        return "I couldn't fetch room statistics right now. Please check the Room Status page for current availability."
+      }
+    }
+    
     // Get response templates for intent
     const templates = responses[intent] || responses.UNKNOWN
     
@@ -535,25 +960,6 @@ export default function AIChat() {
     if (entities.organization && entities.organization.length > 0) {
       const org = entities.organization[0].toUpperCase()
       response = response.replace(/organizations?/gi, org)
-    }
-    
-    if (entities.day && entities.day.length > 0) {
-      response += `\n\n*I noticed you mentioned ${entities.day[0]}. Check your schedule for that day!*`
-    }
-    
-    if (entities.room && entities.room.length > 0) {
-      response += `\n\n*Looking for ${entities.room[0]}? Check the Room Status page for availability.*`
-    }
-    
-    // Add sentiment-based prefix for negative sentiment
-    if (sentiment === 'negative' && intent !== 'COMPLAINT') {
-      response = "I understand you might be frustrated. Let me help! 💪\n\n" + response
-    }
-    
-    // Handle follow-up context
-    if (context.messageCount > 2 && intent === 'UNKNOWN') {
-      response = "I'm still here to help! Let me know if you want me to explain something in more detail.\n\n" + 
-        "You can ask about:\n• Schedule\n• Announcements\n• Rooms\n• Organizations"
     }
     
     return response
