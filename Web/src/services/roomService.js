@@ -51,20 +51,24 @@ export const isVacancyActive = (vacancy) => {
 }
 
 /**
- * Check if a room is currently vacant based on its vacancy periods
- * @param {object} room - Room document with vacancyPeriods array
+ * Check if a room is currently vacant based on its occupancy periods
+ * Rooms are VACANT by default unless there's an active class schedule (occupancyPeriods)
+ * @param {object} room - Room document with occupancyPeriods array
  * @returns {boolean} - True if room is currently vacant (not occupied)
  */
 export const isRoomCurrentlyVacant = (room) => {
-  if (!room) return false
+  if (!room) return true // Default to vacant if no room data
   
-  // If room has no vacancy periods, it's occupied (default)
-  if (!room.vacancyPeriods || !Array.isArray(room.vacancyPeriods) || room.vacancyPeriods.length === 0) {
-    return false
+  // If room has no occupancy periods (no classes scheduled), it's vacant by default
+  if (!room.occupancyPeriods || !Array.isArray(room.occupancyPeriods) || room.occupancyPeriods.length === 0) {
+    return true // VACANT by default - no classes scheduled
   }
   
-  // Check if any vacancy period is currently active
-  return room.vacancyPeriods.some(vacancy => isVacancyActive(vacancy))
+  // Check if any occupancy period (class schedule) is currently active
+  const isCurrentlyOccupied = room.occupancyPeriods.some(occupancy => isVacancyActive(occupancy))
+  
+  // Return true if NOT occupied (i.e., vacant)
+  return !isCurrentlyOccupied
 }
 
 /**
@@ -261,4 +265,130 @@ export const subscribeToRooms = (callback) => {
     console.error('Error subscribing to rooms:', error)
     callback([])
   })
+}
+
+/**
+ * Add occupancy period to a room when a schedule is uploaded
+ * This marks the room as OCCUPIED during the specified time slot
+ * @param {string} roomName - The room name (e.g., "CL3", "A-201")
+ * @param {object} schedule - Schedule object with day, startTime, endTime, section, subject
+ * @param {string} userId - ID of user uploading the schedule
+ * @returns {Promise<boolean>} - Success status
+ */
+export const addRoomOccupancy = async (roomName, schedule, userId) => {
+  try {
+    if (!roomName || roomName === 'TBA' || !schedule) return false
+    
+    // Normalize room name
+    const normalizedName = roomName.toUpperCase().trim().replace(/\s+/g, '')
+    
+    // Handle combined room names like "RM.9/CL3"
+    const roomNames = normalizedName.includes('/') 
+      ? normalizedName.split('/').map(r => r.trim()).filter(r => r)
+      : [normalizedName]
+    
+    // Query for all rooms
+    const roomsRef = collection(db, 'rooms')
+    const snapshot = await getDocs(roomsRef)
+    
+    // Build a map of all rooms by normalized name
+    const roomsMap = {}
+    snapshot.forEach((docSnap) => {
+      const data = docSnap.data()
+      const storedName = data.name?.toUpperCase().trim().replace(/\s+/g, '') || ''
+      roomsMap[storedName] = { id: docSnap.id, ...data }
+    })
+    
+    // Create occupancy period from schedule
+    const occupancyPeriod = {
+      day: schedule.day,
+      startTime: schedule.startTime,
+      endTime: schedule.endTime,
+      subject: schedule.subject || null,
+      section: schedule.section || null,
+      addedBy: userId,
+      addedAt: new Date().toISOString()
+    }
+    
+    // Find and update rooms
+    for (const name of roomNames) {
+      // Try exact match first
+      let roomDoc = roomsMap[name]
+      
+      // Try flexible match if exact not found
+      if (!roomDoc) {
+        const flexName = name.replace(/[.\s]/g, '')
+        for (const [storedNormalized, data] of Object.entries(roomsMap)) {
+          const flexStored = storedNormalized.replace(/[.\s]/g, '')
+          if (flexName === flexStored) {
+            roomDoc = data
+            break
+          }
+        }
+      }
+      
+      if (roomDoc) {
+        const existingPeriods = roomDoc.occupancyPeriods || []
+        
+        // Check if this exact period already exists
+        const alreadyExists = existingPeriods.some(p => 
+          p.day === occupancyPeriod.day && 
+          p.startTime === occupancyPeriod.startTime && 
+          p.endTime === occupancyPeriod.endTime
+        )
+        
+        if (!alreadyExists) {
+          await updateDoc(doc(db, 'rooms', roomDoc.id), {
+            occupancyPeriods: arrayUnion(occupancyPeriod),
+            lastUpdated: new Date().toISOString()
+          })
+          console.log(`Added occupancy to room ${name}: ${schedule.day} ${schedule.startTime}-${schedule.endTime}`)
+        }
+      }
+    }
+    
+    return true
+  } catch (error) {
+    console.error('Error adding room occupancy:', error)
+    return false
+  }
+}
+
+/**
+ * Remove all occupancy periods for a specific user's schedules
+ * Called when a user deletes their schedule
+ * @param {string} userId - ID of user whose occupancy periods to remove
+ * @returns {Promise<boolean>} - Success status
+ */
+export const removeUserOccupancies = async (userId) => {
+  try {
+    const roomsRef = collection(db, 'rooms')
+    const snapshot = await getDocs(roomsRef)
+    
+    const updatePromises = []
+    
+    snapshot.forEach((docSnap) => {
+      const data = docSnap.data()
+      const occupancyPeriods = data.occupancyPeriods || []
+      
+      // Filter out periods added by this user
+      const filteredPeriods = occupancyPeriods.filter(p => p.addedBy !== userId)
+      
+      if (filteredPeriods.length !== occupancyPeriods.length) {
+        updatePromises.push(
+          updateDoc(doc(db, 'rooms', docSnap.id), {
+            occupancyPeriods: filteredPeriods,
+            lastUpdated: new Date().toISOString()
+          })
+        )
+      }
+    })
+    
+    await Promise.all(updatePromises)
+    console.log(`Removed occupancy periods for user ${userId}`)
+    return true
+  } catch (error) {
+    console.error('Error removing user occupancies:', error)
+    return false
+  }
 }

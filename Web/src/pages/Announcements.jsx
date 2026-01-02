@@ -611,14 +611,33 @@ export default function Announcements() {
     
     // If profanity detected, apply role-based rules
     if (profanityResult.hasProfanity) {
-      // Rule 1: ADMIN+ - Always allow (skip review queue is true)
-      if (isAdmin) {
-        // Admins can post anything
-        await submitAnnouncement(true)
+      // Rule 1: SUPER_ADMIN - Show warning popup, let them decide (same as faculty)
+      if (hasMinRole(ROLES.SUPER_ADMIN)) {
+        setContentWarningModal({
+          open: true,
+          flaggedWords: profanityResult.matches || [],
+          onConfirm: () => {
+            setContentWarningModal({ open: false, flaggedWords: [], onConfirm: null })
+            submitAnnouncement(true) // Force approve since super admin acknowledged
+          }
+        })
         return
       }
       
-      // Rule 2: FACULTY - Show warning popup, let them decide
+      // Rule 2: ADMIN - Show warning popup, let them decide
+      if (isAdmin) {
+        setContentWarningModal({
+          open: true,
+          flaggedWords: profanityResult.matches || [],
+          onConfirm: () => {
+            setContentWarningModal({ open: false, flaggedWords: [], onConfirm: null })
+            submitAnnouncement(true) // Force approve since admin acknowledged
+          }
+        })
+        return
+      }
+      
+      // Rule 3: FACULTY - Show warning popup, let them decide
       if (isFaculty) {
         setContentWarningModal({
           open: true,

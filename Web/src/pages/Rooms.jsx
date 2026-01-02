@@ -27,51 +27,51 @@ const BUILDING_OPTIONS = {
   new: { name: 'New Building', icon: '🏢' }
 }
 
-// Default rooms to seed when collection is empty (all occupied by default)
+// Default rooms to seed when collection is empty (all VACANT by default - occupied only when regform indicates a section)
 const DEFAULT_ROOMS = [
   // Old Building - Computer Labs
-  { name: 'CL1', building: 'old', floor: 'Computer Labs', occupied: true },
-  { name: 'CL2', building: 'old', floor: 'Computer Labs', occupied: true },
-  { name: 'CL3', building: 'old', floor: 'Computer Labs', occupied: true },
-  { name: 'CL4', building: 'old', floor: 'Computer Labs', occupied: true },
-  { name: 'CL5', building: 'old', floor: 'Computer Labs', occupied: true },
-  { name: 'CL6', building: 'old', floor: 'Computer Labs', occupied: true },
-  { name: 'CL7', building: 'old', floor: 'Computer Labs', occupied: true },
-  { name: 'CL8', building: 'old', floor: 'Computer Labs', occupied: true },
+  { name: 'CL1', building: 'old', floor: 'Computer Labs', occupied: false },
+  { name: 'CL2', building: 'old', floor: 'Computer Labs', occupied: false },
+  { name: 'CL3', building: 'old', floor: 'Computer Labs', occupied: false },
+  { name: 'CL4', building: 'old', floor: 'Computer Labs', occupied: false },
+  { name: 'CL5', building: 'old', floor: 'Computer Labs', occupied: false },
+  { name: 'CL6', building: 'old', floor: 'Computer Labs', occupied: false },
+  { name: 'CL7', building: 'old', floor: 'Computer Labs', occupied: false },
+  { name: 'CL8', building: 'old', floor: 'Computer Labs', occupied: false },
   // Old Building - Regular Rooms
-  { name: 'RM.1', building: 'old', floor: 'Regular Rooms', occupied: true },
-  { name: 'RM.2', building: 'old', floor: 'Regular Rooms', occupied: true },
-  { name: 'RM.3', building: 'old', floor: 'Regular Rooms', occupied: true },
-  { name: 'RM.4', building: 'old', floor: 'Regular Rooms', occupied: true },
-  { name: 'RM.5', building: 'old', floor: 'Regular Rooms', occupied: true },
-  { name: 'RM.6', building: 'old', floor: 'Regular Rooms', occupied: true },
-  { name: 'RM.7', building: 'old', floor: 'Regular Rooms', occupied: true },
-  { name: 'RM.8', building: 'old', floor: 'Regular Rooms', occupied: true },
-  { name: 'RM.9', building: 'old', floor: 'Regular Rooms', occupied: true },
+  { name: 'RM.1', building: 'old', floor: 'Regular Rooms', occupied: false },
+  { name: 'RM.2', building: 'old', floor: 'Regular Rooms', occupied: false },
+  { name: 'RM.3', building: 'old', floor: 'Regular Rooms', occupied: false },
+  { name: 'RM.4', building: 'old', floor: 'Regular Rooms', occupied: false },
+  { name: 'RM.5', building: 'old', floor: 'Regular Rooms', occupied: false },
+  { name: 'RM.6', building: 'old', floor: 'Regular Rooms', occupied: false },
+  { name: 'RM.7', building: 'old', floor: 'Regular Rooms', occupied: false },
+  { name: 'RM.8', building: 'old', floor: 'Regular Rooms', occupied: false },
+  { name: 'RM.9', building: 'old', floor: 'Regular Rooms', occupied: false },
   // New Building - 2nd Floor
-  { name: 'A-201', building: 'new', floor: '2nd Floor', occupied: true },
-  { name: 'A-202', building: 'new', floor: '2nd Floor', occupied: true },
-  { name: 'A-203', building: 'new', floor: '2nd Floor', occupied: true },
-  { name: 'A-204', building: 'new', floor: '2nd Floor', occupied: true },
-  { name: 'A-205', building: 'new', floor: '2nd Floor', occupied: true },
+  { name: 'A-201', building: 'new', floor: '2nd Floor', occupied: false },
+  { name: 'A-202', building: 'new', floor: '2nd Floor', occupied: false },
+  { name: 'A-203', building: 'new', floor: '2nd Floor', occupied: false },
+  { name: 'A-204', building: 'new', floor: '2nd Floor', occupied: false },
+  { name: 'A-205', building: 'new', floor: '2nd Floor', occupied: false },
   // New Building - 3rd Floor
-  { name: 'A-301', building: 'new', floor: '3rd Floor', occupied: true },
-  { name: 'A-302', building: 'new', floor: '3rd Floor', occupied: true },
-  { name: 'A-303', building: 'new', floor: '3rd Floor', occupied: true },
-  { name: 'A-304', building: 'new', floor: '3rd Floor', occupied: true },
-  { name: 'A-305', building: 'new', floor: '3rd Floor', occupied: true },
+  { name: 'A-301', building: 'new', floor: '3rd Floor', occupied: false },
+  { name: 'A-302', building: 'new', floor: '3rd Floor', occupied: false },
+  { name: 'A-303', building: 'new', floor: '3rd Floor', occupied: false },
+  { name: 'A-304', building: 'new', floor: '3rd Floor', occupied: false },
+  { name: 'A-305', building: 'new', floor: '3rd Floor', occupied: false },
   // New Building - 4th Floor
-  { name: 'A-401', building: 'new', floor: '4th Floor', occupied: true },
-  { name: 'A-402', building: 'new', floor: '4th Floor', occupied: true },
-  { name: 'A-403', building: 'new', floor: '4th Floor', occupied: true },
-  { name: 'A-404', building: 'new', floor: '4th Floor', occupied: true },
-  { name: 'A-405', building: 'new', floor: '4th Floor', occupied: true },
+  { name: 'A-401', building: 'new', floor: '4th Floor', occupied: false },
+  { name: 'A-402', building: 'new', floor: '4th Floor', occupied: false },
+  { name: 'A-403', building: 'new', floor: '4th Floor', occupied: false },
+  { name: 'A-404', building: 'new', floor: '4th Floor', occupied: false },
+  { name: 'A-405', building: 'new', floor: '4th Floor', occupied: false },
   // New Building - 5th Floor
-  { name: 'A-501', building: 'new', floor: '5th Floor', occupied: true },
-  { name: 'A-502', building: 'new', floor: '5th Floor', occupied: true },
-  { name: 'A-503', building: 'new', floor: '5th Floor', occupied: true },
-  { name: 'A-504', building: 'new', floor: '5th Floor', occupied: true },
-  { name: 'A-505', building: 'new', floor: '5th Floor', occupied: true },
+  { name: 'A-501', building: 'new', floor: '5th Floor', occupied: false },
+  { name: 'A-502', building: 'new', floor: '5th Floor', occupied: false },
+  { name: 'A-503', building: 'new', floor: '5th Floor', occupied: false },
+  { name: 'A-504', building: 'new', floor: '5th Floor', occupied: false },
+  { name: 'A-505', building: 'new', floor: '5th Floor', occupied: false },
 ]
 
 // Format time for display
@@ -144,11 +144,11 @@ export default function Rooms() {
     }))
   }
 
-  // Reset rooms collection (super_admin only) - removes duplicates and reseeds
+  // Reset rooms collection (super_admin only) - removes duplicates and resets to defaults
   const resetRoomsCollection = async () => {
     if (userProfile?.role !== 'super_admin') return
     
-    if (!confirm('This will DELETE all rooms and reseed with defaults (all OCCUPIED, no vacancy periods). Continue?')) {
+    if (!confirm('This will DELETE all rooms and reset them with default values (all VACANT with no scheduled classes). Continue?')) {
       return
     }
     
@@ -167,7 +167,7 @@ export default function Rooms() {
       const addPromises = DEFAULT_ROOMS.map(room => 
         addDoc(roomsRef, {
           ...room,
-          vacancyPeriods: [], // Empty array - no scheduled vacancies
+          vacancyPeriods: [], // Empty array - no scheduled classes
           createdAt: new Date().toISOString(),
           createdBy: userProfile.uid
         })
@@ -175,7 +175,7 @@ export default function Rooms() {
       await Promise.all(addPromises)
       
       console.log('Rooms reset successfully')
-      alert('Rooms reset successfully! All rooms are now OCCUPIED with no scheduled vacancies.')
+      alert('Rooms reset successfully! All rooms are now VACANT by default. Rooms will show as occupied only when class schedules are uploaded.')
     } catch (error) {
       console.error('Error resetting rooms:', error)
       alert('Error resetting rooms: ' + error.message)

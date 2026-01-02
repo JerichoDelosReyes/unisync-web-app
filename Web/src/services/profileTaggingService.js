@@ -27,7 +27,8 @@ export const TAG_TYPES = {
   ORGANIZATION: 'org',
   YEAR: 'year',
   SECTION: 'section',
-  COLLEGE: 'college'
+  COLLEGE: 'college',
+  POSITION: 'position'  // For roles like Class Representative
 }
 
 /**
@@ -432,6 +433,47 @@ export const canBeClassRep = (user, section) => {
   
   // User must have the section tag
   return userTags.includes(sectionTag)
+}
+
+/**
+ * Update user's position tags based on role change
+ * Adds position:CLASS_REP when role is class_rep
+ * Removes position tags when role is changed to student
+ * @param {string} userId - User ID
+ * @param {string} newRole - New role being assigned
+ * @param {object} userData - Optional existing user data to avoid re-fetching
+ * @returns {Promise<object>} Updated user with new tags
+ */
+export const updateRolePositionTags = async (userId, newRole, userData = null) => {
+  const user = userData || await getDocument('users', userId)
+  if (!user) {
+    throw new Error('User not found')
+  }
+  
+  let updatedTags = [...(user.tags || [])]
+  
+  // Remove any existing position:CLASS_REP tag first
+  updatedTags = updatedTags.filter(tag => tag !== buildTag(TAG_TYPES.POSITION, 'CLASS_REP'))
+  
+  // Add position tag for class rep role
+  if (newRole === 'class_rep') {
+    const classRepTag = buildTag(TAG_TYPES.POSITION, 'CLASS_REP')
+    if (!updatedTags.includes(classRepTag)) {
+      updatedTags.push(classRepTag)
+    }
+  }
+  
+  // Only update if tags actually changed
+  const tagsChanged = JSON.stringify(updatedTags.sort()) !== JSON.stringify((user.tags || []).sort())
+  
+  if (tagsChanged) {
+    await updateDocument('users', userId, {
+      tags: updatedTags,
+      updatedAt: new Date()
+    })
+  }
+  
+  return { ...user, tags: updatedTags }
 }
 
 /**

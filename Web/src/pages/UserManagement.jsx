@@ -8,6 +8,7 @@ import { ALLOWED_DOMAIN } from '../services/authService'
 import { DEPARTMENTS, DEPARTMENT_CODES, DEPT_ORG_MAPPING, STUDENT_ORGS, YEAR_LEVELS } from '../constants/targeting'
 import { createLog, LOG_CATEGORIES, LOG_ACTIONS } from '../services/logService'
 import { tagOfficer, removeOfficer, EXECUTIVE_POSITIONS } from '../services/organizationService'
+import { updateRolePositionTags } from '../services/profileTaggingService'
 
 /**
  * Get pastel tag color based on tag type
@@ -20,6 +21,7 @@ const getTagColor = (tag) => {
   if (tag.startsWith('year:')) return 'bg-green-100 text-green-800'
   if (tag.startsWith('section:')) return 'bg-pink-100 text-pink-800'
   if (tag.startsWith('college:')) return 'bg-indigo-100 text-indigo-800'
+  if (tag.startsWith('position:')) return 'bg-cyan-100 text-cyan-800'
   return 'bg-gray-100 text-gray-800'
 }
 
@@ -231,6 +233,9 @@ export default function UserManagement() {
       
       await updateDocument('users', userId, { role: newRole })
       
+      // Update position tags based on role (e.g., add position:CLASS_REP tag for class_rep)
+      const updatedUser = await updateRolePositionTags(userId, newRole, targetUser)
+      
       // Log the role change
       await createLog({
         category: LOG_CATEGORIES.USER_MANAGEMENT,
@@ -256,7 +261,7 @@ export default function UserManagement() {
       
       setUsers(prevUsers => 
         prevUsers.map(user => 
-          user.id === userId ? { ...user, role: newRole } : user
+          user.id === userId ? { ...user, role: newRole, tags: updatedUser.tags } : user
         )
       )
       

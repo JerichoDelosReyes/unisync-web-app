@@ -14,7 +14,7 @@ import {
   subscribeToScheduleCodes
 } from '../services/classSectionService'
 import { getSemesterSettings } from '../services/systemSettingsService'
-import { updateRoomStatus, subscribeToRooms, isScheduleSlotVacant, isRoomCurrentlyVacant } from '../services/roomService'
+import { updateRoomStatus, subscribeToRooms, isScheduleSlotVacant, isRoomCurrentlyVacant, addRoomOccupancy, removeUserOccupancies } from '../services/roomService'
 import FacultyScheduleView from '../components/schedule/FacultyScheduleView'
 import ModalOverlay from '../components/ui/ModalOverlay'
 
@@ -57,6 +57,59 @@ const getYearSuffix = (year) => {
   if (num === 2) return 'nd'
   if (num === 3) return 'rd'
   return 'th'
+}
+
+/**
+ * Normalize room name to a consistent format
+ * Handles variations like:
+ * - A-304, A304 → A-304 (building-room format)
+ * - RM.101, RM101, Room 101, Room101 → RM.101
+ * - CL3/RM. 7 → CL3/RM.7 (composite room names)
+ * - TBA, N/A → TBA
+ * @param {string} room - Raw room name from PDF
+ * @returns {string} Normalized room name
+ */
+const normalizeRoomName = (room) => {
+  if (!room || typeof room !== 'string') return 'TBA'
+  
+  let normalized = room.trim().toUpperCase()
+  
+  // Handle TBA/NA variations
+  if (normalized === 'TBA' || normalized === 'N/A' || normalized === 'NA' || normalized === '') {
+    return 'TBA'
+  }
+  
+  // Handle composite room names with slashes (e.g., "CL3/RM. 7")
+  if (normalized.includes('/')) {
+    const parts = normalized.split('/')
+    return parts.map(part => normalizeRoomName(part.trim())).join('/')
+  }
+  
+  // Pattern: Building letter followed by optional dash and room number (A-304, A304)
+  // Normalize to A-304 format
+  const buildingRoomPattern = /^([A-Z])[\-\s]?(\d{3,4})$/
+  const buildingMatch = normalized.match(buildingRoomPattern)
+  if (buildingMatch) {
+    return `${buildingMatch[1]}-${buildingMatch[2]}`
+  }
+  
+  // Pattern: RM./RM/Room followed by number (RM.101, RM101, Room 101, ROOM101)
+  // Normalize to RM.101 format
+  const roomPattern = /^(?:RM\.?|ROOM)\s*(\d+)$/
+  const roomMatch = normalized.match(roomPattern)
+  if (roomMatch) {
+    return `RM.${roomMatch[1]}`
+  }
+  
+  // Pattern: CL (Computer Lab) followed by number (CL3, CL 3)
+  const clPattern = /^CL\s*(\d+)$/
+  const clMatch = normalized.match(clPattern)
+  if (clMatch) {
+    return `CL${clMatch[1]}`
+  }
+  
+  // Return as-is if no pattern matched (but uppercase)
+  return normalized
 }
 
 // Helper function to convert time string to row index
@@ -128,7 +181,7 @@ const parseScheduleFromText = (text) => {
     schedules.push({
       id: schedules.length + 1,
       subject: subjectName,
-      room: room1.trim() || 'TBA',
+      room: normalizeRoomName(room1),
       professor: 'TBA',
       section: section,
       day: dayFull1,
@@ -141,7 +194,7 @@ const parseScheduleFromText = (text) => {
     schedules.push({
       id: schedules.length + 1,
       subject: subjectName,
-      room: room2.trim() || 'TBA',
+      room: normalizeRoomName(room2),
       professor: 'TBA',
       section: section,
       day: dayFull2,
@@ -222,7 +275,7 @@ const parseCvSURegistrationForm = (text) => {
       schedules.push({
         id: schedules.length + 1,
         subject: subjectName,
-        room: r1.trim() || 'TBA',
+        room: normalizeRoomName(r1),
         professor: 'TBA',
         section: section,
         day: dayAbbreviations[d1.toUpperCase()] || d1,
@@ -234,7 +287,7 @@ const parseCvSURegistrationForm = (text) => {
       schedules.push({
         id: schedules.length + 1,
         subject: subjectName,
-        room: r2.trim() || 'TBA',
+        room: normalizeRoomName(r2),
         professor: 'TBA',
         section: section,
         day: dayAbbreviations[d2.toUpperCase()] || d2,
@@ -642,7 +695,7 @@ const parseRegistrationForm = (text) => {
       id: schedules.length + 1,
       scheduleCode: currentId.id, // 9-digit schedule code for professor matchmaking
       subject: subjectName,
-      room: room1 || 'TBA',
+      room: normalizeRoomName(room1),
       professor: 'TBA', // Will be updated from class_sections
       section: studentInfo.section || 'N/A',
       day: dayAbbreviations[day1.toUpperCase()] || day1,
@@ -655,7 +708,7 @@ const parseRegistrationForm = (text) => {
       id: schedules.length + 1,
       scheduleCode: currentId.id, // Same schedule code for both entries
       subject: subjectName,
-      room: room2 || 'TBA',
+      room: normalizeRoomName(room2),
       professor: 'TBA', // Will be updated from class_sections
       section: studentInfo.section || 'N/A',
       day: dayAbbreviations[day2.toUpperCase()] || day2,
@@ -698,8 +751,8 @@ const extractScheduleManually = (text) => {
       const afterDays = text.substring(match.index + match[0].length, match.index + match[0].length + 100)
       const roomMatch = afterDays.match(/^\s*([A-Za-z0-9\-\/\.\s]+?)\s*\/\s*([A-Za-z0-9\-\/\.\s]+?)(?=\s+\d{9}|\s+[A-Z]{4}|\s+Tuition|$)/i)
       
-      const room1 = roomMatch ? roomMatch[1].trim() : 'TBA'
-      const room2 = roomMatch ? roomMatch[2].trim() : 'TBA'
+      const room1 = roomMatch ? normalizeRoomName(roomMatch[1]) : 'TBA'
+      const room2 = roomMatch ? normalizeRoomName(roomMatch[2]) : 'TBA'
       
       // Schedule 1
       schedules.push({
@@ -1744,6 +1797,24 @@ function StudentScheduleView() {
         
         await Promise.all(updatePromises)
         
+        // Mark rooms as occupied based on the schedule
+        // This updates room availability in real-time
+        const roomOccupancyPromises = extractedSchedule
+          .filter(entry => entry.room && entry.room !== 'TBA')
+          .map(entry => 
+            addRoomOccupancy(entry.room, {
+              day: entry.day,
+              startTime: entry.startTime,
+              endTime: entry.endTime,
+              subject: entry.subject,
+              section: extractedStudentInfo.section || entry.section
+            }, user.uid).catch(err => {
+              console.error(`Error marking room ${entry.room} as occupied:`, err)
+            })
+          )
+        
+        await Promise.all(roomOccupancyPromises)
+        
         // Also keep localStorage as backup
         localStorage.setItem('studentSchedule', JSON.stringify(extractedSchedule))
         localStorage.setItem('studentInfo', JSON.stringify(extractedStudentInfo))
@@ -1778,6 +1849,9 @@ function StudentScheduleView() {
             })
           )
         await Promise.all(removePromises)
+        
+        // Remove room occupancies added by this user
+        await removeUserOccupancies(user.uid)
         
         await deleteStudentSchedule(user.uid)
         setScheduleData([])
