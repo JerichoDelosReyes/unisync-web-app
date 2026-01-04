@@ -1086,7 +1086,7 @@ const ScheduleDetailModal = ({
   return (
     <ModalOverlay onClose={onClose}>
       <div 
-        className="bg-white rounded-xl max-w-md w-full shadow-xl max-h-[90vh] overflow-hidden flex flex-col"
+        className="bg-white dark:bg-gray-800 rounded-xl max-w-md w-full shadow-xl max-h-[90vh] overflow-hidden flex flex-col"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}

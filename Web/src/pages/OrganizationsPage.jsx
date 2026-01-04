@@ -735,7 +735,7 @@ export default function OrganizationsPage() {
   }
 
   return (
-    <div className="max-w-7xl mx-auto px-4 py-6">
+    <div className="space-y-6">
       {/* Toast */}
       {toast.show && (
         <Toast 
@@ -746,30 +746,32 @@ export default function OrganizationsPage() {
       )}
 
       {/* Header */}
-      <div className="mb-6 flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Student Organizations</h1>
-          <p className="text-gray-600 dark:text-gray-400 mt-1">
-            {isAdmin 
-              ? 'Manage organization advisers' 
-              : isAdviser || isPresidentWithTagging
-                ? 'Manage your organization officers'
-                : 'View your organization details'}
-          </p>
+      <div className="flex flex-col gap-4">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <div>
+            <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Student Organizations</h1>
+            <p className="text-gray-600 dark:text-gray-400 mt-1">
+              {isAdmin 
+                ? 'Manage organization advisers' 
+                : isAdviser || isPresidentWithTagging
+                  ? 'Manage your organization officers'
+                  : 'View your organization details'}
+            </p>
+          </div>
+          
+          {/* Create Organization Button (Admin only) */}
+          {isAdmin && (
+            <button
+              onClick={() => setShowCreateOrgModal(true)}
+              className="inline-flex items-center gap-2 px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors font-medium text-sm"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+              </svg>
+              Create Organization
+            </button>
+          )}
         </div>
-        
-        {/* Create Organization Button (Admin only) */}
-        {isAdmin && (
-          <button
-            onClick={() => setShowCreateOrgModal(true)}
-            className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-medium"
-          >
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-            </svg>
-            Create Organization
-          </button>
-        )}
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">

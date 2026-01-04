@@ -359,28 +359,28 @@ export default function AudienceSelector({ value = [], onChange, userProfile, an
   const isLocked = isClassRepMode
   
   return (
-    <div className="bg-gray-50 rounded-xl border border-gray-200 overflow-hidden">
+    <div className="bg-gray-50 dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden">
       {/* Header */}
       <div 
-        className="px-4 py-3 flex items-center justify-between cursor-pointer hover:bg-gray-100 transition-colors"
+        className="px-4 py-3 flex items-center justify-between cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
         onClick={() => setIsExpanded(!isExpanded)}
       >
         <div className="flex items-center gap-3">
           <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${
-            isOrgOfficerMode ? 'bg-blue-100' : 'bg-green-100'
+            isOrgOfficerMode ? 'bg-blue-100 dark:bg-blue-900/50' : 'bg-green-100 dark:bg-green-900/50'
           }`}>
-            <svg className={`w-4 h-4 ${isOrgOfficerMode ? 'text-blue-600' : 'text-green-600'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg className={`w-4 h-4 ${isOrgOfficerMode ? 'text-blue-600 dark:text-blue-400' : 'text-green-600 dark:text-green-400'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
             </svg>
           </div>
           <div>
-            <p className="text-sm font-semibold text-gray-900">Target Audience</p>
-            <p className="text-xs text-gray-500">{getSummaryText()}</p>
+            <p className="text-sm font-semibold text-gray-900 dark:text-white">Target Audience</p>
+            <p className="text-xs text-gray-500 dark:text-gray-400">{getSummaryText()}</p>
           </div>
         </div>
         {!isLocked && (
           <svg 
-            className={`w-5 h-5 text-gray-400 transition-transform ${isExpanded ? 'rotate-180' : ''}`} 
+            className={`w-5 h-5 text-gray-400 dark:text-gray-500 transition-transform ${isExpanded ? 'rotate-180' : ''}`} 
             fill="none" 
             stroke="currentColor" 
             viewBox="0 0 24 24"
@@ -392,15 +392,15 @@ export default function AudienceSelector({ value = [], onChange, userProfile, an
       
       {/* Expanded Content */}
       {isExpanded && (
-        <div className="px-4 py-4 border-t border-gray-200 space-y-4">
+        <div className="px-4 py-4 border-t border-gray-200 dark:border-gray-700 space-y-4">
           {/* Organization Officer Mode Notice */}
           {isOrgOfficerMode && selectedOrg && (
-            <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg">
+            <div className="p-3 bg-blue-50 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-800 rounded-lg">
               <div className="flex items-center gap-2 mb-2">
-                <BuildingLibraryIcon className="w-5 h-5 text-blue-600" />
-                <span className="text-sm font-semibold text-blue-900">Announcing as {selectedOrg.position}</span>
+                <BuildingLibraryIcon className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+                <span className="text-sm font-semibold text-blue-900 dark:text-blue-200">Announcing as {selectedOrg.position}</span>
               </div>
-              <p className="text-xs text-blue-700 mb-3">
+              <p className="text-xs text-blue-700 dark:text-blue-300 mb-3">
                 {selectedOrg.code === 'CSG' 
                   ? 'As a CSG officer, your announcements can reach ALL students campus-wide.'
                   : `Choose to announce to ${selectedOrg.code} organization members or reach all students campus-wide.`
@@ -408,8 +408,8 @@ export default function AudienceSelector({ value = [], onChange, userProfile, an
               </p>
               
               {/* Audience Scope Toggle for Org Officers */}
-              <div className="mt-3 pt-3 border-t border-blue-200">
-                <p className="text-xs font-semibold text-blue-800 mb-2">Announcement Scope:</p>
+              <div className="mt-3 pt-3 border-t border-blue-200 dark:border-blue-700">
+                <p className="text-xs font-semibold text-blue-800 dark:text-blue-300 mb-2">Announcement Scope:</p>
                 <div className="flex gap-2 mb-3">
                   <button
                     type="button"
@@ -424,7 +424,7 @@ export default function AudienceSelector({ value = [], onChange, userProfile, an
                     className={`flex-1 px-3 py-2 text-xs font-semibold rounded-lg transition-all flex items-center justify-center gap-1 ${
                       !selections.campusWide
                         ? 'bg-blue-600 text-white'
-                        : 'bg-white border border-blue-200 text-blue-700 hover:bg-blue-50'
+                        : 'bg-white dark:bg-gray-700 border border-blue-200 dark:border-blue-700 text-blue-700 dark:text-blue-300 hover:bg-blue-50 dark:hover:bg-gray-600'
                     }`}
                   >
                     <BuildingLibraryIcon className="w-4 h-4" /> {selectedOrg.code} Members
@@ -442,7 +442,7 @@ export default function AudienceSelector({ value = [], onChange, userProfile, an
                     className={`flex-1 px-3 py-2 text-xs font-semibold rounded-lg transition-all flex items-center justify-center gap-1 ${
                       selections.campusWide
                         ? 'bg-green-600 text-white'
-                        : 'bg-white border border-blue-200 text-blue-700 hover:bg-blue-50'
+                        : 'bg-white dark:bg-gray-700 border border-blue-200 dark:border-blue-700 text-blue-700 dark:text-blue-300 hover:bg-blue-50 dark:hover:bg-gray-600'
                     }`}
                   >
                     <MegaphoneIcon className="w-4 h-4" /> Campus-Wide
@@ -451,8 +451,8 @@ export default function AudienceSelector({ value = [], onChange, userProfile, an
               </div>
               
               {/* Year Level Filter for Org Officers */}
-              <div className="mt-3 pt-3 border-t border-blue-200">
-                <p className="text-xs font-semibold text-blue-800 mb-2">Filter by Year Level (optional):</p>
+              <div className="mt-3 pt-3 border-t border-blue-200 dark:border-blue-700">
+                <p className="text-xs font-semibold text-blue-800 dark:text-blue-300 mb-2">Filter by Year Level (optional):</p>
                 <div className="flex flex-wrap gap-2">
                   {YEAR_LEVELS.map(year => (
                     <button
@@ -462,7 +462,7 @@ export default function AudienceSelector({ value = [], onChange, userProfile, an
                       className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-all ${
                         selections.yearLevels.includes(year.value)
                           ? 'bg-blue-600 text-white'
-                          : 'bg-white border border-blue-200 text-blue-700 hover:bg-blue-50'
+                          : 'bg-white dark:bg-gray-700 border border-blue-200 dark:border-blue-700 text-blue-700 dark:text-blue-300 hover:bg-blue-50 dark:hover:bg-gray-600'
                       }`}
                     >
                       {year.label}
@@ -472,13 +472,13 @@ export default function AudienceSelector({ value = [], onChange, userProfile, an
                     <button
                       type="button"
                       onClick={() => setSelections(prev => ({ ...prev, yearLevels: [] }))}
-                      className="px-3 py-1.5 text-xs font-semibold text-red-600 hover:bg-red-50 rounded-lg transition-all"
+                      className="px-3 py-1.5 text-xs font-semibold text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/30 rounded-lg transition-all"
                     >
                       Clear
                     </button>
                   )}
                 </div>
-                <p className="text-xs text-blue-600 mt-2 flex items-center gap-1">
+                <p className="text-xs text-blue-600 dark:text-blue-400 mt-2 flex items-center gap-1">
                   <MegaphoneIcon className="w-3.5 h-3.5" />
                   {selections.yearLevels.length === 0 
                     ? 'Announcing to all year levels'
@@ -491,11 +491,11 @@ export default function AudienceSelector({ value = [], onChange, userProfile, an
           
           {/* Class Representative Notice - Only show section */}
           {isClassRepMode && (
-            <div className="p-3 bg-green-50 border border-green-200 rounded-lg">
+            <div className="p-3 bg-green-50 dark:bg-green-900/30 border border-green-200 dark:border-green-800 rounded-lg">
               <div className="flex items-center gap-2 mb-1">
-                <span className="text-xs font-semibold text-green-800 flex items-center gap-1"><LockClosedIcon className="w-3.5 h-3.5" /> Class Representative Mode</span>
+                <span className="text-xs font-semibold text-green-800 dark:text-green-300 flex items-center gap-1"><LockClosedIcon className="w-3.5 h-3.5" /> Class Representative Mode</span>
               </div>
-              <p className="text-xs text-green-700 mb-2">
+              <p className="text-xs text-green-700 dark:text-green-400 mb-2">
                 Your announcements will only be visible to students in your section.
               </p>
               <div className="flex items-center gap-2">
@@ -508,12 +508,12 @@ export default function AudienceSelector({ value = [], onChange, userProfile, an
           
           {/* Faculty Restriction Notice */}
           {isFaculty && (
-            <div className="p-3 bg-amber-50 border border-amber-200 rounded-lg">
+            <div className="p-3 bg-amber-50 dark:bg-amber-900/30 border border-amber-200 dark:border-amber-800 rounded-lg">
               <div className="flex items-center gap-2 mb-1">
-                <ExclamationTriangleIcon className="w-5 h-5 text-amber-600" />
-                <span className="text-xs font-semibold text-amber-800">Faculty Targeting Restrictions</span>
+                <ExclamationTriangleIcon className="w-5 h-5 text-amber-600 dark:text-amber-400" />
+                <span className="text-xs font-semibold text-amber-800 dark:text-amber-300">Faculty Targeting Restrictions</span>
               </div>
-              <p className="text-xs text-amber-700">
+              <p className="text-xs text-amber-700 dark:text-amber-400">
                 Faculty members can only target their assigned department, department organizations, year levels, and specific sections. Campus-wide announcements are not available.
               </p>
             </div>
@@ -528,7 +528,7 @@ export default function AudienceSelector({ value = [], onChange, userProfile, an
                 className={`flex-1 px-3 py-2 text-xs font-semibold rounded-lg transition-all flex items-center justify-center gap-1 ${
                   selections.targetType === 'all'
                     ? 'bg-green-600 text-white'
-                    : 'bg-white border border-gray-200 text-gray-700 hover:bg-gray-50'
+                    : 'bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-600'
                 }`}
               >
                 <MegaphoneIcon className="w-4 h-4" /> Campus-Wide
@@ -539,7 +539,7 @@ export default function AudienceSelector({ value = [], onChange, userProfile, an
                 className={`flex-1 px-3 py-2 text-xs font-semibold rounded-lg transition-all flex items-center justify-center gap-1 ${
                   selections.targetType === 'custom'
                     ? 'bg-green-600 text-white'
-                    : 'bg-white border border-gray-200 text-gray-700 hover:bg-gray-50'
+                    : 'bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-600'
                 }`}
               >
                 <AdjustmentsHorizontalIcon className="w-4 h-4" /> Specific Audience
@@ -552,14 +552,14 @@ export default function AudienceSelector({ value = [], onChange, userProfile, an
             <div className="space-y-4">
               {/* Faculty Department Notice (Locked) */}
               {isFaculty && facultyDepartment && (
-                <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                <div className="p-3 bg-blue-50 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-800 rounded-lg">
                   <div className="flex items-center gap-2 mb-1">
-                    <span className="text-xs font-semibold text-blue-800 flex items-center gap-1"><LockClosedIcon className="w-3.5 h-3.5" /> Your Department:</span>
+                    <span className="text-xs font-semibold text-blue-800 dark:text-blue-300 flex items-center gap-1"><LockClosedIcon className="w-3.5 h-3.5" /> Your Department:</span>
                     <span className="px-2 py-0.5 text-xs font-bold bg-blue-600 text-white rounded">
                       {DEPARTMENT_CODES[facultyDepartment]}
                     </span>
                   </div>
-                  <p className="text-xs text-blue-700">
+                  <p className="text-xs text-blue-700 dark:text-blue-400">
                     {facultyDepartment}
                   </p>
                 </div>
@@ -568,7 +568,7 @@ export default function AudienceSelector({ value = [], onChange, userProfile, an
               {/* Department Selection (for Admin only) */}
               {isAdmin && (
                 <div>
-                  <label className="block text-xs font-semibold text-gray-700 mb-2">
+                  <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-2">
                     Target Departments
                   </label>
                   <div className="flex flex-wrap gap-2">
@@ -580,7 +580,7 @@ export default function AudienceSelector({ value = [], onChange, userProfile, an
                         className={`px-2.5 py-1.5 text-xs font-semibold rounded-lg transition-all ${
                           selections.departments.includes(dept)
                             ? 'bg-blue-600 text-white shadow-md'
-                            : 'bg-white border border-gray-200 text-gray-700 hover:bg-gray-50'
+                            : 'bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-600'
                         }`}
                         title={dept}
                       >
@@ -588,7 +588,7 @@ export default function AudienceSelector({ value = [], onChange, userProfile, an
                       </button>
                     ))}
                   </div>
-                  <p className="text-xs text-gray-500 mt-1">
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
                     Select specific departments or leave empty for all
                   </p>
                 </div>
@@ -596,7 +596,7 @@ export default function AudienceSelector({ value = [], onChange, userProfile, an
               
               {/* Year Level Selection */}
               <div>
-                <label className="block text-xs font-semibold text-gray-700 mb-2">
+                <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-2">
                   Year Level
                 </label>
                 <div className="flex flex-wrap gap-2">
@@ -608,7 +608,7 @@ export default function AudienceSelector({ value = [], onChange, userProfile, an
                       className={`px-3 py-2 text-xs font-semibold rounded-lg transition-all ${
                         selections.yearLevels.includes(year.value)
                           ? 'bg-purple-600 text-white shadow-md'
-                          : 'bg-white border border-gray-200 text-gray-700 hover:bg-gray-50'
+                          : 'bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-600'
                       }`}
                     >
                       {year.label}
@@ -619,7 +619,7 @@ export default function AudienceSelector({ value = [], onChange, userProfile, an
               
               {/* Specific Section Input */}
               <div>
-                <label className="block text-xs font-semibold text-gray-700 mb-2">
+                <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-2">
                   {isClassRep ? 'Your Section (Locked)' : 'Specific Section (Optional)'}
                 </label>
                 <input
@@ -627,12 +627,12 @@ export default function AudienceSelector({ value = [], onChange, userProfile, an
                   value={selections.section}
                   onChange={handleSectionChange}
                   placeholder="e.g., 3-E, 3-1, 4-A"
-                  className={`w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent ${isClassRep ? 'bg-gray-100 cursor-not-allowed' : ''}`}
+                  className={`w-full px-3 py-2 text-sm border border-gray-200 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 ${isClassRep ? 'bg-gray-100 dark:bg-gray-600 cursor-not-allowed' : ''}`}
                   maxLength={10}
                   disabled={isClassRep}
                   readOnly={isClassRep}
                 />
-                <p className="text-xs text-gray-500 mt-1">
+                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
                   {isClassRep 
                     ? 'As a Class Representative, your announcements are automatically targeted to your section.'
                     : 'Leave empty to target all sections in selected year levels'
@@ -643,10 +643,10 @@ export default function AudienceSelector({ value = [], onChange, userProfile, an
               {/* Student Organizations (for targeting org members) */}
               {!isOrgOfficerMode && availableOrgs.length > 0 && (
                 <div>
-                  <label className="block text-xs font-semibold text-gray-700 mb-2">
+                  <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-2">
                     Student Organizations
                     {isFaculty && facultyDepartment && (
-                      <span className="ml-2 text-gray-400 font-normal">
+                      <span className="ml-2 text-gray-400 dark:text-gray-500 font-normal">
                         (Linked to {DEPARTMENT_CODES[facultyDepartment]})
                       </span>
                     )}
@@ -659,7 +659,7 @@ export default function AudienceSelector({ value = [], onChange, userProfile, an
                       
                       return (
                         <div key={categoryKey}>
-                          <p className="text-xs text-gray-500 mb-1.5">{category.label}</p>
+                          <p className="text-xs text-gray-500 dark:text-gray-400 mb-1.5">{category.label}</p>
                           <div className="flex flex-wrap gap-1.5">
                             {orgsInCategory.map((org) => (
                               <button
@@ -670,7 +670,7 @@ export default function AudienceSelector({ value = [], onChange, userProfile, an
                                 className={`px-2 py-1 text-xs font-semibold rounded-md transition-all ${
                                   selections.orgs.includes(org.code)
                                     ? 'bg-orange-600 text-white shadow-sm'
-                                    : 'bg-white border border-gray-200 text-gray-600 hover:bg-gray-50 hover:border-gray-300'
+                                    : 'bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-600 hover:border-gray-300 dark:hover:border-gray-500'
                                 }`}
                               >
                                 {org.code}
@@ -687,14 +687,14 @@ export default function AudienceSelector({ value = [], onChange, userProfile, an
               {/* Locked Org Display */}
               {isOrgOfficerMode && defaultTargeting.locked && selections.orgs.length > 0 && (
                 <div>
-                  <label className="block text-xs font-semibold text-gray-700 mb-2">
+                  <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-2">
                     Target Organization
                   </label>
                   <div className="flex flex-wrap gap-2">
                     {selections.orgs.map((org) => (
                       <span
                         key={org}
-                        className="px-3 py-2 text-xs font-semibold bg-orange-100 text-orange-700 rounded-lg flex items-center gap-1"
+                        className="px-3 py-2 text-xs font-semibold bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-400 rounded-lg flex items-center gap-1"
                       >
                         <LockClosedIcon className="w-3.5 h-3.5" /> {org}
                       </span>
@@ -707,9 +707,9 @@ export default function AudienceSelector({ value = [], onChange, userProfile, an
           
           {/* Targeting Summary */}
           {(selections.targetType === 'custom' || defaultTargeting.locked || (isOrgOfficerMode && selections.campusWide)) && (
-            <div className="p-3 bg-green-50 border border-green-200 rounded-lg">
-              <p className="text-xs font-semibold text-green-800 mb-1 flex items-center gap-1"><ClipboardDocumentListIcon className="w-3.5 h-3.5" /> Targeting Summary:</p>
-              <p className="text-xs text-green-700">
+            <div className="p-3 bg-green-50 dark:bg-green-900/30 border border-green-200 dark:border-green-800 rounded-lg">
+              <p className="text-xs font-semibold text-green-800 dark:text-green-300 mb-1 flex items-center gap-1"><ClipboardDocumentListIcon className="w-3.5 h-3.5" /> Targeting Summary:</p>
+              <p className="text-xs text-green-700 dark:text-green-400">
                 {isOrgOfficerMode && selections.campusWide 
                   ? `Campus-Wide Announcement${selections.yearLevels.length > 0 ? ` (${selections.yearLevels.map(y => `Year ${y}`).join(', ')})` : ''}`
                   : getTargetingSummary(selections)

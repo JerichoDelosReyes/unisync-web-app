@@ -110,8 +110,8 @@ const ProfessorClasses = () => {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h2 className="text-xl font-semibold text-gray-900">My Classes</h2>
-          <p className="text-sm text-gray-500 mt-1">
+          <h2 className="text-xl font-semibold text-gray-900 dark:text-white">My Classes</h2>
+          <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
             Claim schedule codes to link your classes with students
           </p>
         </div>
@@ -121,7 +121,7 @@ const ProfessorClasses = () => {
             <select
               value={sectionFilter}
               onChange={(e) => setSectionFilter(e.target.value)}
-              className="px-3 py-2 bg-white border border-gray-300 rounded-lg text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary cursor-pointer appearance-none pr-8 bg-no-repeat bg-[length:16px] bg-[right_8px_center]"
+              className="px-3 py-2 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg text-sm text-gray-700 dark:text-gray-300 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary cursor-pointer appearance-none pr-8 bg-no-repeat bg-[length:16px] bg-[right_8px_center]"
               style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%236b7280'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'%3E%3C/path%3E%3C/svg%3E")` }}
             >
               <option value="all">All Sections ({classes.length})</option>
@@ -146,24 +146,24 @@ const ProfessorClasses = () => {
 
       {/* Messages */}
       {error && (
-        <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg">
+        <div className="bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-400 px-4 py-3 rounded-lg">
           {error}
         </div>
       )}
       {success && (
-        <div className="bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded-lg">
+        <div className="bg-green-50 dark:bg-green-900/30 border border-green-200 dark:border-green-800 text-green-700 dark:text-green-400 px-4 py-3 rounded-lg">
           {success}
         </div>
       )}
 
       {/* Classes List */}
       {classes.length === 0 ? (
-        <div className="text-center py-12 bg-gray-50 rounded-xl">
-          <svg className="w-16 h-16 mx-auto text-gray-300 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <div className="text-center py-12 bg-gray-50 dark:bg-gray-800 rounded-xl">
+          <svg className="w-16 h-16 mx-auto text-gray-300 dark:text-gray-600 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
           </svg>
-          <h3 className="text-lg font-medium text-gray-900 mb-2">No Classes Yet</h3>
-          <p className="text-gray-500 mb-4">
+          <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">No Classes Yet</h3>
+          <p className="text-gray-500 dark:text-gray-400 mb-4">
             Click "Add Class" to claim a schedule code and link it to your profile.
           </p>
           <button
@@ -174,12 +174,12 @@ const ProfessorClasses = () => {
           </button>
         </div>
       ) : filteredClasses.length === 0 ? (
-        <div className="text-center py-12 bg-gray-50 rounded-xl">
-          <svg className="w-16 h-16 mx-auto text-gray-300 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <div className="text-center py-12 bg-gray-50 dark:bg-gray-800 rounded-xl">
+          <svg className="w-16 h-16 mx-auto text-gray-300 dark:text-gray-600 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
           </svg>
-          <h3 className="text-lg font-medium text-gray-900 mb-2">No Classes for "{sectionFilter}"</h3>
-          <p className="text-gray-500 mb-4">
+          <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">No Classes for "{sectionFilter}"</h3>
+          <p className="text-gray-500 dark:text-gray-400 mb-4">
             No classes match the selected section filter.
           </p>
           <button
@@ -194,20 +194,20 @@ const ProfessorClasses = () => {
           {filteredClasses.map((classItem) => (
             <div
               key={classItem.id}
-              className="bg-white border border-gray-200 rounded-xl p-5 hover:shadow-md transition-shadow"
+              className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-5 hover:shadow-md transition-shadow"
             >
               <div className="flex items-start justify-between mb-3">
                 <div className="flex-1">
-                  <span className="inline-block px-2 py-1 bg-primary/10 text-primary text-xs font-medium rounded-lg mb-2">
+                  <span className="inline-block px-2 py-1 bg-primary/10 dark:bg-primary/20 text-primary text-xs font-medium rounded-lg mb-2">
                     {classItem.id}
                   </span>
-                  <h3 className="font-semibold text-gray-900">
+                  <h3 className="font-semibold text-gray-900 dark:text-white">
                     {classItem.subject || 'Subject TBA'}
                   </h3>
                 </div>
                 <button
                   onClick={() => handleRemoveClass(classItem.id)}
-                  className="text-gray-400 hover:text-red-500 transition-colors"
+                  className="text-gray-400 dark:text-gray-500 hover:text-red-500 dark:hover:text-red-400 transition-colors"
                   title="Unclaim this class"
                 >
                   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -220,7 +220,7 @@ const ProfessorClasses = () => {
                 {/* Display all time slots if available */}
                 {classItem.timeSlots && classItem.timeSlots.length > 0 ? (
                   classItem.timeSlots.map((slot, idx) => (
-                    <div key={idx} className="flex items-center gap-2 text-gray-600">
+                    <div key={idx} className="flex items-center gap-2 text-gray-600 dark:text-gray-400">
                       <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                       </svg>
@@ -229,7 +229,7 @@ const ProfessorClasses = () => {
                   ))
                 ) : classItem.day && classItem.startTime ? (
                   // Legacy single slot display
-                  <div className="flex items-center gap-2 text-gray-600">
+                  <div className="flex items-center gap-2 text-gray-600 dark:text-gray-400">
                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                     </svg>
@@ -241,7 +241,7 @@ const ProfessorClasses = () => {
                 {classItem.timeSlots && classItem.timeSlots.length > 0 ? (
                   // Get unique rooms from all time slots
                   [...new Set(classItem.timeSlots.map(slot => slot.room).filter(Boolean))].map((room, idx) => (
-                    <div key={idx} className="flex items-center gap-2 text-gray-600">
+                    <div key={idx} className="flex items-center gap-2 text-gray-600 dark:text-gray-400">
                       <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
@@ -250,7 +250,7 @@ const ProfessorClasses = () => {
                     </div>
                   ))
                 ) : classItem.room ? (
-                  <div className="flex items-center gap-2 text-gray-600">
+                  <div className="flex items-center gap-2 text-gray-600 dark:text-gray-400">
                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
@@ -260,7 +260,7 @@ const ProfessorClasses = () => {
                 ) : null}
 
                 {classItem.section && (
-                  <div className="flex items-center gap-2 text-gray-600">
+                  <div className="flex items-center gap-2 text-gray-600 dark:text-gray-400">
                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />
                     </svg>
@@ -268,7 +268,7 @@ const ProfessorClasses = () => {
                   </div>
                 )}
 
-                <div className="flex items-center gap-2 text-gray-500">
+                <div className="flex items-center gap-2 text-gray-500 dark:text-gray-500">
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.25 2.25 0 11-4.5 0 2.25 2.25 0 014.5 0z" />
                   </svg>
@@ -277,7 +277,7 @@ const ProfessorClasses = () => {
               </div>
 
               {!classItem.subject && (
-                <div className="mt-3 px-3 py-2 bg-yellow-50 text-yellow-700 text-xs rounded-lg">
+                <div className="mt-3 px-3 py-2 bg-yellow-50 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-400 text-xs rounded-lg">
                   ⏳ Waiting for student enrollment...
                 </div>
               )}

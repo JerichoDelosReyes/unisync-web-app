@@ -1101,7 +1101,7 @@ export default function Announcements() {
   }
 
   return (
-    <div className="min-h-screen">
+    <div className="space-y-6">
       {/* Toast */}
       {toast.show && (
         <div className={`fixed top-4 right-4 z-[10000] px-4 py-3 rounded-xl shadow-2xl transition-all duration-300 ${
@@ -1113,41 +1113,30 @@ export default function Announcements() {
         </div>
       )}
 
-      {/* Hero Section */}
-      <div className="py-6 sm:py-8">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6">
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-            <div className="max-w-2xl">
-              <div className="inline-flex items-center gap-2 px-3 sm:px-4 py-1.5 sm:py-2 rounded-full bg-gray-100 dark:bg-gray-800 mb-4 sm:mb-6">
-                <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
-                <span className="text-xs sm:text-sm font-medium text-gray-800 dark:text-gray-200">Campus News & Updates</span>
-              </div>
-              <h1 className="text-3xl sm:text-5xl font-bold mb-2 sm:mb-3 leading-tight text-gray-900 dark:text-white">Announcements</h1>
-              <p className="text-base sm:text-xl text-gray-600 dark:text-gray-400 leading-relaxed">
-                Important campus updates, events, and announcements
-              </p>
-            </div>
-            
-            {canCreate && (
-              <button
-                onClick={handleCreateClick}
-                className="group inline-flex items-center justify-center gap-2 sm:gap-3 px-4 sm:px-6 py-2.5 sm:py-3 bg-green-600 text-white rounded-xl hover:bg-green-700 transition-all duration-300 text-sm sm:text-base font-semibold shadow-lg w-full sm:w-auto"
-              >
-                <svg className="w-5 h-5 group-hover:rotate-90 transition-transform duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 4v16m8-8H4" />
-                </svg>
-                Create
-              </button>
-            )}
+      {/* Header */}
+      <div className="flex flex-col gap-4">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <div>
+            <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Announcements</h1>
+            <p className="text-gray-600 dark:text-gray-400 mt-1">Important campus updates, events, and announcements</p>
           </div>
+            
+          {canCreate && (
+            <button
+              onClick={handleCreateClick}
+              className="inline-flex items-center gap-2 px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors font-medium text-sm"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+              </svg>
+              Create
+            </button>
+          )}
         </div>
       </div>
 
-      {/* Main Content */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 py-6 sm:py-12">
-
       {/* Tabs */}
-      <div className="grid grid-cols-3 sm:grid-cols-5 gap-2 mb-6 sm:mb-8">
+      <div className="grid grid-cols-3 sm:grid-cols-5 gap-2">
         {[
           { key: 'all', label: 'All' },
           { key: 'important', label: 'Important' },
@@ -1631,7 +1620,6 @@ export default function Announcements() {
           })()}
         </div>
       )}
-      </div>
 
       {/* Create Announcement Modal */}
       {showCreateModal && (

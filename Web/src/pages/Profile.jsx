@@ -463,7 +463,7 @@ export default function Profile() {
               <>
                 {/* Employee ID */}
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                     Employee ID
                   </label>
                   {isEditing ? (
@@ -472,11 +472,11 @@ export default function Profile() {
                       name="employeeId"
                       value={formData.employeeId}
                       onChange={handleChange}
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-primary transition-colors"
+                      className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-primary transition-colors bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
                       placeholder="Enter employee ID"
                     />
                   ) : (
-                    <p className="px-4 py-2 bg-gray-50 rounded-lg text-gray-900">
+                    <p className="px-4 py-2 bg-gray-50 dark:bg-gray-700 rounded-lg text-gray-900 dark:text-white">
                       {userProfile?.employeeId || '-'}
                     </p>
                   )}
@@ -484,7 +484,7 @@ export default function Profile() {
 
                 {/* Department */}
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                     Department
                   </label>
                   {isEditing ? (
@@ -492,7 +492,7 @@ export default function Profile() {
                       name="department"
                       value={formData.department}
                       onChange={handleChange}
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-primary transition-colors"
+                      className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-primary transition-colors bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
                     >
                       <option value="">Select department</option>
                       <option value="Computer Studies">Computer Studies</option>
@@ -505,7 +505,7 @@ export default function Profile() {
                       <option value="Criminal Justice">Criminal Justice</option>
                     </select>
                   ) : (
-                    <p className="px-4 py-2 bg-gray-50 rounded-lg text-gray-900">
+                    <p className="px-4 py-2 bg-gray-50 dark:bg-gray-700 rounded-lg text-gray-900 dark:text-white">
                       {userProfile?.department || '-'}
                     </p>
                   )}
@@ -513,7 +513,7 @@ export default function Profile() {
 
                 {/* Position */}
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                     Position/Designation
                   </label>
                   {isEditing ? (
@@ -521,7 +521,7 @@ export default function Profile() {
                       name="position"
                       value={formData.position}
                       onChange={handleChange}
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-primary transition-colors"
+                      className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-primary transition-colors bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
                     >
                       <option value="">Select position</option>
                       <option value="Instructor I">Instructor I</option>
@@ -545,7 +545,7 @@ export default function Profile() {
                       <option value="University Professor">University Professor</option>
                     </select>
                   ) : (
-                    <p className="px-4 py-2 bg-gray-50 rounded-lg text-gray-900">
+                    <p className="px-4 py-2 bg-gray-50 dark:bg-gray-700 rounded-lg text-gray-900 dark:text-white">
                       {userProfile?.position || '-'}
                     </p>
                   )}
@@ -553,7 +553,7 @@ export default function Profile() {
 
                 {/* Office Location */}
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                     Office Location
                   </label>
                   {isEditing ? (
@@ -562,11 +562,11 @@ export default function Profile() {
                       name="officeLocation"
                       value={formData.officeLocation}
                       onChange={handleChange}
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-primary transition-colors"
+                      className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-primary transition-colors bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
                       placeholder="e.g., Room 201, DCS Building"
                     />
                   ) : (
-                    <p className="px-4 py-2 bg-gray-50 rounded-lg text-gray-900">
+                    <p className="px-4 py-2 bg-gray-50 dark:bg-gray-700 rounded-lg text-gray-900 dark:text-white">
                       {userProfile?.officeLocation || '-'}
                     </p>
                   )}
@@ -574,7 +574,7 @@ export default function Profile() {
 
                 {/* Specialization */}
                 <div className="md:col-span-2">
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                     Specialization/Area of Expertise
                   </label>
                   {isEditing ? (
@@ -583,11 +583,11 @@ export default function Profile() {
                       name="specialization"
                       value={formData.specialization}
                       onChange={handleChange}
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-primary transition-colors"
+                      className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-primary transition-colors bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
                       placeholder="e.g., Software Engineering, Data Science"
                     />
                   ) : (
-                    <p className="px-4 py-2 bg-gray-50 rounded-lg text-gray-900">
+                    <p className="px-4 py-2 bg-gray-50 dark:bg-gray-700 rounded-lg text-gray-900 dark:text-white">
                       {userProfile?.specialization || '-'}
                     </p>
                   )}
@@ -597,7 +597,7 @@ export default function Profile() {
               <>
                 {/* Student ID */}
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                     Student ID
                   </label>
                   {isEditing ? (
@@ -606,11 +606,11 @@ export default function Profile() {
                       name="studentId"
                       value={formData.studentId}
                       onChange={handleChange}
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-primary transition-colors"
+                      className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-primary transition-colors bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
                       placeholder="Enter student ID"
                     />
                   ) : (
-                    <p className="px-4 py-2 bg-gray-50 rounded-lg text-gray-900">
+                    <p className="px-4 py-2 bg-gray-50 dark:bg-gray-700 rounded-lg text-gray-900 dark:text-white">
                       {userProfile?.studentId || '-'}
                     </p>
                   )}
@@ -618,19 +618,19 @@ export default function Profile() {
 
                 {/* Course - Read-only, populated from registration form */}
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                     Course/Program
-                    <span className="text-gray-400 font-normal ml-1">(From Reg Form)</span>
+                    <span className="text-gray-400 dark:text-gray-500 font-normal ml-1">(From Reg Form)</span>
                   </label>
-                  <p className="px-4 py-2 bg-gray-50 rounded-lg text-gray-900">
+                  <p className="px-4 py-2 bg-gray-50 dark:bg-gray-700 rounded-lg text-gray-900 dark:text-white">
                     {userProfile?.course || (
-                      <span className="text-gray-400 italic">
+                      <span className="text-gray-400 dark:text-gray-500 italic">
                         Upload registration form in Schedule page
                       </span>
                     )}
                   </p>
                   {!userProfile?.course && (
-                    <p className="text-xs text-amber-600 mt-1 flex items-center gap-1">
+                    <p className="text-xs text-amber-600 dark:text-amber-400 mt-1 flex items-center gap-1">
                       <ExclamationTriangleIcon className="w-3.5 h-3.5" /> Go to Schedule page and upload your registration form to set your course.
                     </p>
                   )}
@@ -638,19 +638,19 @@ export default function Profile() {
 
                 {/* Year Level - Read-only, populated from registration form */}
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                     Year Level
-                    <span className="text-gray-400 font-normal ml-1">(From Reg Form)</span>
+                    <span className="text-gray-400 dark:text-gray-500 font-normal ml-1">(From Reg Form)</span>
                   </label>
-                  <p className="px-4 py-2 bg-gray-50 rounded-lg text-gray-900">
+                  <p className="px-4 py-2 bg-gray-50 dark:bg-gray-700 rounded-lg text-gray-900 dark:text-white">
                     {userProfile?.yearLevel || (
-                      <span className="text-gray-400 italic">
+                      <span className="text-gray-400 dark:text-gray-500 italic">
                         Upload registration form in Schedule page
                       </span>
                     )}
                   </p>
                   {!userProfile?.yearLevel && (
-                    <p className="text-xs text-amber-600 mt-1 flex items-center gap-1">
+                    <p className="text-xs text-amber-600 dark:text-amber-400 mt-1 flex items-center gap-1">
                       <ExclamationTriangleIcon className="w-3.5 h-3.5" /> Go to Schedule page and upload your registration form to set your year level.
                     </p>
                   )}
@@ -658,19 +658,19 @@ export default function Profile() {
 
                 {/* Section - Read-only, populated from registration form */}
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                     Section
-                    <span className="text-gray-400 font-normal ml-1">(From Reg Form)</span>
+                    <span className="text-gray-400 dark:text-gray-500 font-normal ml-1">(From Reg Form)</span>
                   </label>
-                  <p className="px-4 py-2 bg-gray-50 rounded-lg text-gray-900">
+                  <p className="px-4 py-2 bg-gray-50 dark:bg-gray-700 rounded-lg text-gray-900 dark:text-white">
                     {userProfile?.section || (
-                      <span className="text-gray-400 italic">
+                      <span className="text-gray-400 dark:text-gray-500 italic">
                         Upload registration form in Schedule page
                       </span>
                     )}
                   </p>
                   {!userProfile?.section && (
-                    <p className="text-xs text-amber-600 mt-1 flex items-center gap-1">
+                    <p className="text-xs text-amber-600 dark:text-amber-400 mt-1 flex items-center gap-1">
                       <ExclamationTriangleIcon className="w-3.5 h-3.5" /> Go to Schedule page and upload your registration form to set your section.
                     </p>
                   )}
