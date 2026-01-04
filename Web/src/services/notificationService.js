@@ -516,6 +516,51 @@ export const notifyFacultyRequestRejected = async (userId, reason = '') => {
   return await createNotification(userId, notification);
 };
 
+/**
+ * Notify admins when a new faculty request is submitted
+ * @param {Object} requestInfo - Request information
+ * @returns {Promise<Array>} Array of created notification IDs
+ */
+export const notifyAdminsNewFacultyRequest = async (requestInfo = {}) => {
+  try {
+    // Get all admin and super_admin users
+    const usersRef = collection(db, 'users');
+    const adminQuery = query(usersRef, where('role', 'in', ['admin', 'super_admin']));
+    const adminSnapshot = await getDocs(adminQuery);
+    
+    if (adminSnapshot.empty) {
+      console.log('No admins found to notify');
+      return [];
+    }
+    
+    const notification = {
+      type: NOTIFICATION_TYPES.FACULTY_REQUEST_SUBMITTED,
+      title: 'New Faculty Request',
+      message: `${requestInfo.userName || 'A student'} has submitted a request to become a faculty member${requestInfo.department ? ` for ${requestInfo.department}` : ''}.`,
+      data: {
+        requestId: requestInfo.requestId || '',
+        userId: requestInfo.userId || '',
+        userName: requestInfo.userName || '',
+        userEmail: requestInfo.userEmail || '',
+        department: requestInfo.department || ''
+      }
+    };
+    
+    // Send notification to each admin
+    const notificationPromises = adminSnapshot.docs.map(adminDoc => 
+      createNotification(adminDoc.id, notification)
+    );
+    
+    const results = await Promise.all(notificationPromises);
+    console.log(`Notified ${results.length} admins about new faculty request`);
+    return results;
+  } catch (error) {
+    console.error('Error notifying admins about faculty request:', error);
+    // Don't throw - notification failure shouldn't block the request
+    return [];
+  }
+};
+
 // ============================================
 // WELCOME NOTIFICATION
 // ============================================
@@ -559,6 +604,7 @@ export default {
   // Faculty request notifications
   notifyFacultyRequestApproved,
   notifyFacultyRequestRejected,
+  notifyAdminsNewFacultyRequest,
   // Welcome notification
   notifyWelcome
 };

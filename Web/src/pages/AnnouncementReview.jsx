@@ -26,10 +26,10 @@ import CHLSLogo from '../assets/img/CHTS-removebg-preview.png'
 import CYLELogo from '../assets/img/CYLE-removebg-preview.png'
 import CSCLogo from '../assets/img/CSC-removebg-preview.png'
 import EDGELogo from '../assets/img/EDGE-removebg-preview.png'
-import SikolohiyaLogo from '../assets/img/SIKOLOHIYA-removebg-preview (1).png'
+import SikolohiyaLogo from '../assets/img/SIKOLOHIYA-removebg-preview.png'
 import YOPALogo from '../assets/img/YOPA-removebg-preview.png'
 import SinagTalaLogo from '../assets/img/SINAGTALA-removebg-preview.png'
-import TheFlareLogo from '../assets/img/THE_FLARE-removebg-preview (1).png'
+import TheFlareLogo from '../assets/img/THE_FLARE-removebg-preview.png'
 import HonorSocLogo from '../assets/img/HONORSOC-removebg-preview.png'
 
 // Organization logo mapping

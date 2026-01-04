@@ -30,6 +30,7 @@ export const NOTIFICATION_TYPES = {
   // Faculty request-related
   FACULTY_REQUEST_APPROVED: 'faculty_request_approved',
   FACULTY_REQUEST_REJECTED: 'faculty_request_rejected',
+  FACULTY_REQUEST_SUBMITTED: 'faculty_request_submitted',
   
   // System notifications
   SYSTEM_MAINTENANCE: 'system_maintenance',

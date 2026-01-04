@@ -44,41 +44,6 @@ const MAX_LOGIN_ATTEMPTS = 5;
 const LOCKOUT_DURATION_MS = 60000; // 1 minute lockout
 const LOGIN_ATTEMPTS_KEY = 'unisync_login_attempts';
 
-// Session token key for single-device login
-const SESSION_TOKEN_KEY = 'unisync_session_token';
-
-/**
- * Generate a unique session token
- * Uses crypto API for secure random generation
- */
-const generateSessionToken = () => {
-  if (typeof crypto !== 'undefined' && crypto.randomUUID) {
-    return crypto.randomUUID();
-  }
-  // Fallback for older browsers
-  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
-    const r = Math.random() * 16 | 0;
-    const v = c === 'x' ? r : (r & 0x3 | 0x8);
-    return v.toString(16);
-  });
-};
-
-/**
- * Get device info for session tracking
- */
-const getDeviceInfo = () => {
-  const ua = navigator.userAgent;
-  let browser = 'Unknown';
-  let platform = navigator.platform || 'Unknown';
-  
-  if (ua.includes('Chrome')) browser = 'Chrome';
-  else if (ua.includes('Safari')) browser = 'Safari';
-  else if (ua.includes('Firefox')) browser = 'Firefox';
-  else if (ua.includes('Edge')) browser = 'Edge';
-  
-  return { browser, platform };
-};
-
 /**
  * Get login attempts data from localStorage
  */
@@ -228,15 +193,27 @@ export const validatePassword = (password) => {
  */
 export const registerUser = async (userData) => {
   try {
-    const { email, password, givenName, lastName } = userData;
+    const { email, password, givenName, middleName, lastName, suffix } = userData;
 
     // Create user in Firebase Auth (password is automatically encrypted)
     const userCredential = await createUserWithEmailAndPassword(auth, email, password);
     const user = userCredential.user;
 
-    // Update display name
+    // Build display name with middle initial
+    const middleInitial = middleName ? `${middleName.charAt(0).toUpperCase()}.` : '';
+    let displayName = givenName;
+    if (middleInitial) displayName += ` ${middleInitial}`;
+    displayName += ` ${lastName}`;
+    if (suffix) displayName += `, ${suffix}`;
+
+    // Store full name data as JSON in photoURL temporarily (Firebase Auth has limited custom fields)
+    // This will be parsed when creating the Firestore profile on first login
+    const nameData = JSON.stringify({ givenName, middleName: middleName || '', lastName, suffix: suffix || '' });
+
+    // Update display name and store name data
     await updateProfile(user, {
-      displayName: `${givenName} ${lastName}`
+      displayName,
+      photoURL: `namedata:${nameData}` // Prefix to identify this is name data, not a real photo URL
     });
 
     // Send email verification link
@@ -252,6 +229,9 @@ export const registerUser = async (userData) => {
         error: 'Failed to send verification email. Please try again.' 
       };
     }
+
+    // Keep user signed in so the verification modal can poll for email verification status
+    // User will be signed out after verification is complete or modal is closed
 
     // Return user data to be saved later after verification
     return {
@@ -485,11 +465,41 @@ export const loginUser = async (email, password, rememberMe = false) => {
       await new Promise(resolve => setTimeout(resolve, 1000));
       await user.getIdToken(true);
       
-      // Extract name from displayName (set during registration)
-      const displayName = user.displayName || '';
-      const nameParts = displayName.trim().split(' ');
-      const givenName = nameParts[0] || 'User';
-      const lastName = nameParts.slice(1).join(' ') || '';
+      // Try to extract full name data from photoURL (stored during registration)
+      let givenName = 'User';
+      let middleName = '';
+      let lastName = '';
+      let suffix = '';
+      let displayName = user.displayName || '';
+      
+      if (user.photoURL && user.photoURL.startsWith('namedata:')) {
+        try {
+          const nameDataJson = user.photoURL.replace('namedata:', '');
+          const nameData = JSON.parse(nameDataJson);
+          givenName = nameData.givenName || 'User';
+          middleName = nameData.middleName || '';
+          lastName = nameData.lastName || '';
+          suffix = nameData.suffix || '';
+          
+          // Build proper display name
+          const middleInitial = middleName ? `${middleName.charAt(0).toUpperCase()}.` : '';
+          displayName = givenName;
+          if (middleInitial) displayName += ` ${middleInitial}`;
+          displayName += ` ${lastName}`;
+          if (suffix) displayName += `, ${suffix}`;
+        } catch (parseError) {
+          console.warn('Failed to parse name data, falling back to displayName:', parseError);
+          // Fallback to parsing displayName
+          const nameParts = displayName.trim().split(' ');
+          givenName = nameParts[0] || 'User';
+          lastName = nameParts.slice(1).join(' ') || '';
+        }
+      } else {
+        // Fallback to parsing displayName
+        const nameParts = displayName.trim().split(' ');
+        givenName = nameParts[0] || 'User';
+        lastName = nameParts.slice(1).join(' ') || '';
+      }
       
       // Retry mechanism for token propagation
       let profileCreated = false;
@@ -499,7 +509,9 @@ export const loginUser = async (email, password, rememberMe = false) => {
             uid: user.uid,
             email: user.email.toLowerCase(),
             givenName,
+            middleName,
             lastName,
+            suffix,
             displayName: displayName || givenName,
             role: DEFAULT_ROLE,
             tags: [],
@@ -508,6 +520,13 @@ export const loginUser = async (email, password, rememberMe = false) => {
             createdAt: serverTimestamp(),
             updatedAt: serverTimestamp()
           });
+          
+          // Clear the temporary photoURL after profile is created
+          try {
+            await updateProfile(user, { photoURL: null });
+          } catch (clearError) {
+            console.warn('Failed to clear temporary photoURL:', clearError);
+          }
           
           console.log('✅ User profile created automatically');
           profileCreated = true;
@@ -531,23 +550,12 @@ export const loginUser = async (email, password, rememberMe = false) => {
 
     const userData = userDoc.data();
 
-    // Generate unique session token for single-device login
-    const sessionToken = generateSessionToken();
-    const deviceInfo = getDeviceInfo();
-
-    // Update Firestore to mark email as verified, record login, and store session token
+    // Update Firestore to mark email as verified and record login
     await updateDoc(doc(db, 'users', user.uid), {
       emailVerified: true,
       lastLoginAt: serverTimestamp(),
-      updatedAt: serverTimestamp(),
-      // Single-device session tracking
-      activeSessionToken: sessionToken,
-      activeSessionDevice: deviceInfo,
-      activeSessionStartedAt: serverTimestamp()
+      updatedAt: serverTimestamp()
     });
-
-    // Store session token in localStorage for validation
-    localStorage.setItem(SESSION_TOKEN_KEY, sessionToken);
 
     // Log successful login
     await createLog({
@@ -646,19 +654,6 @@ export const logoutUser = async () => {
     const storedUser = localStorage.getItem('unisync_current_user');
     const userData = storedUser ? JSON.parse(storedUser) : null;
     
-    // Clear session token from Firestore before signing out
-    if (currentUser) {
-      try {
-        await updateDoc(doc(db, 'users', currentUser.uid), {
-          activeSessionToken: null,
-          activeSessionDevice: null,
-          activeSessionStartedAt: null
-        });
-      } catch (sessionError) {
-        console.warn('Failed to clear session token:', sessionError);
-      }
-    }
-    
     // Log the logout before signing out
     if (currentUser) {
       await createLog({
@@ -678,7 +673,6 @@ export const logoutUser = async () => {
     
     await signOut(auth);
     localStorage.removeItem('unisync_current_user');
-    localStorage.removeItem(SESSION_TOKEN_KEY);
     return { success: true };
   } catch (error) {
     console.error('Logout error:', error);

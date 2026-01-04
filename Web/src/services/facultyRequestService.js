@@ -23,7 +23,7 @@ import {
 } from 'firebase/firestore'
 import { db } from '../config/firebase'
 import { updateDocument } from './dbService'
-import { notifyFacultyRequestApproved, notifyFacultyRequestRejected } from './notificationService'
+import { notifyFacultyRequestApproved, notifyFacultyRequestRejected, notifyAdminsNewFacultyRequest } from './notificationService'
 
 const FACULTY_REQUESTS_COLLECTION = 'faculty_role_requests'
 
@@ -72,6 +72,16 @@ export async function submitFacultyRequest(requestData) {
   }
   
   const docRef = await addDoc(collection(db, FACULTY_REQUESTS_COLLECTION), requestDoc)
+  
+  // Notify admins about the new faculty request
+  await notifyAdminsNewFacultyRequest({
+    requestId: docRef.id,
+    userId,
+    userEmail,
+    userName,
+    department
+  })
+  
   return docRef.id
 }
 

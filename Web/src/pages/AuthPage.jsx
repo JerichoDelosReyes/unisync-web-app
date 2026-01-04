@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { useAuth } from '../contexts/AuthContext.jsx'
+import { signOut } from 'firebase/auth'
+import { auth } from '../config/firebase'
 import BrandLogo from '../components/BrandLogo.jsx'
 import TextInput from '../components/forms/TextInput.jsx'
 import PasswordInput from '../components/forms/PasswordInput.jsx'
@@ -15,21 +16,18 @@ import {
   registerUser,
   loginUser,
   resendVerificationEmail,
-  completeRegistration,
   checkLoginLockout
 } from '../services/authService.js'
 
 export default function AuthPage() {
   const [activeTab, setActiveTab] = useState('signin')
   const navigate = useNavigate()
-  const { sessionInvalidated, clearSessionInvalidation } = useAuth()
   
   // Sign In State
   const [signInEmail, setSignInEmail] = useState('')
   const [signInPassword, setSignInPassword] = useState('')
   const [signInLoading, setSignInLoading] = useState(false)
   const [lockoutTime, setLockoutTime] = useState(0) // Countdown timer for lockout
-  const [sessionKickedMessage, setSessionKickedMessage] = useState(false)
   
   // Sign Up State
   const [givenName, setGivenName] = useState('')
@@ -64,14 +62,6 @@ export default function AuthPage() {
     setToast({ show: true, message, kind })
     setTimeout(() => setToast({ show: false, message: '', kind: 'info' }), 5000)
   }
-  
-  // Handle session invalidation message
-  useEffect(() => {
-    if (sessionInvalidated) {
-      setSessionKickedMessage(true)
-      clearSessionInvalidation()
-    }
-  }, [sessionInvalidated, clearSessionInvalidation])
   
   // Countdown timer effect for lockout
   useEffect(() => {
@@ -229,39 +219,22 @@ export default function AuthPage() {
     setShowVerificationModal(true)
   }
   
-  // Handle verification complete - create Firestore document
+  // Handle verification complete - user can now sign in
   const handleVerificationComplete = async () => {
     console.log('handleVerificationComplete called')
-    console.log('pendingUserData:', pendingUserData)
     
-    let success = false
-    
-    if (pendingUserData) {
-      try {
-        // Now create the Firestore document since email is verified
-        const result = await completeRegistration(pendingUserData)
-        
-        console.log('completeRegistration result:', result)
-        
-        if (result.success) {
-          success = true
-        } else {
-          console.error('completeRegistration failed:', result.error)
-          // Still close modal but show error
-          showToast(result.error || 'Account created but profile setup failed. Try signing in.', 'warning')
-        }
-      } catch (error) {
-        console.error('Error in handleVerificationComplete:', error)
-        showToast('Error creating profile. Your account is created - try signing in.', 'warning')
-      }
+    // Sign out the user so they can login fresh
+    try {
+      await signOut(auth)
+    } catch (err) {
+      console.warn('Error signing out after verification:', err)
     }
     
     // Always close the modal
     setShowVerificationModal(false)
     
-    if (success) {
-      showToast('Email verified & account created successfully! You can now sign in.', 'success')
-    }
+    // Profile will be created automatically on first login
+    showToast('Email verified! You can now sign in.', 'success')
     
     // Reset form and switch to sign in
     setGivenName('')
@@ -278,7 +251,14 @@ export default function AuthPage() {
   }
   
   // Handle verification modal close (cancel)
-  const handleVerificationModalClose = () => {
+  const handleVerificationModalClose = async () => {
+    // Sign out the user since they're not completing verification now
+    try {
+      await signOut(auth)
+    } catch (err) {
+      console.warn('Error signing out on modal close:', err)
+    }
+    
     setShowVerificationModal(false)
     setPendingVerificationEmail('')
     setPendingUserData(null)
@@ -385,28 +365,6 @@ export default function AuthPage() {
           {toast.show && (
             <div className="mb-6 animate-in slide-in-from-top-2 duration-300">
               <Toast kind={toast.kind} message={toast.message} />
-            </div>
-          )}
-          
-          {/* Session Invalidation Banner */}
-          {sessionKickedMessage && (
-            <div className="mb-6 p-4 bg-amber-50 border border-amber-100 rounded-2xl animate-in slide-in-from-top-2 duration-300">
-              <div className="flex items-start gap-3">
-                <div className="flex-shrink-0 w-8 h-8 bg-amber-100 rounded-full flex items-center justify-center">
-                  <svg className="w-4 h-4 text-amber-600" fill="currentColor" viewBox="0 0 20 20">
-                    <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
-                  </svg>
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium text-amber-900">Session ended</p>
-                  <p className="text-xs text-amber-700 mt-0.5">Logged in from another device</p>
-                </div>
-                <button onClick={() => setSessionKickedMessage(false)} className="text-amber-400 hover:text-amber-600 transition-colors">
-                  <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
-                    <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
-                  </svg>
-                </button>
-              </div>
             </div>
           )}
 

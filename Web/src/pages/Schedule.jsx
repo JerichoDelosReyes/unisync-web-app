@@ -316,7 +316,7 @@ const parseStudentName = (fullName) => {
     .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
     .join(' ')
   
-  // Check if name is in "LAST, FIRST MIDDLE" format
+  // Check if name is in "LAST, FIRST MIDDLE" format (has comma)
   if (fullName.includes(',')) {
     const [lastName, rest] = fullName.split(',').map(s => s.trim())
     let givenName = rest || ''
@@ -347,14 +347,18 @@ const parseStudentName = (fullName) => {
     }
   }
   
-  // If no comma, try to parse as "FIRST MIDDLE LAST" or "FIRST LAST"
-  const parts = fullName.trim().split(' ')
+  // No comma - name is in "FIRST MIDDLE LAST" or "FIRST MIDDLE. LAST" format
+  // Example: "SOFRONIO A. BARRIENTOS" -> firstName=SOFRONIO, middle=A, lastName=BARRIENTOS
+  const parts = fullName.trim().split(/\s+/)
+  
   if (parts.length >= 2) {
     let suffix = ''
     let middleName = ''
-    const lastPart = parts[parts.length - 1]
+    let givenName = ''
+    let lastName = ''
     
-    // Check for suffix
+    // Check for suffix at the end
+    const lastPart = parts[parts.length - 1]
     if (suffixPatterns.test(lastPart)) {
       suffix = lastPart.replace('.', '')
       suffix = suffix.charAt(0).toUpperCase() + suffix.slice(1).toLowerCase()
@@ -362,18 +366,28 @@ const parseStudentName = (fullName) => {
       parts.pop()
     }
     
-    // Check for middle initial (at the end, after first name parts)
-    if (parts.length >= 2) {
-      const potentialMiddle = parts[parts.length - 1]
-      if (middleInitialPattern.test(potentialMiddle) && potentialMiddle.length <= 2) {
-        middleName = potentialMiddle.replace('.', '').toUpperCase()
-        parts.pop()
+    if (parts.length >= 3) {
+      // Format: FIRSTNAME MIDDLE LASTNAME or FIRSTNAME M. LASTNAME
+      // First part is given name, last part is last name, middle parts are middle name/initial
+      givenName = parts[0]
+      lastName = parts[parts.length - 1]
+      
+      // Everything in between is middle name
+      const middleParts = parts.slice(1, -1)
+      if (middleParts.length > 0) {
+        // Check if it's just an initial (single letter with optional period)
+        const middleStr = middleParts.join(' ').replace('.', '')
+        if (middleStr.length === 1) {
+          middleName = middleStr.toUpperCase()
+        } else {
+          middleName = middleStr.toUpperCase()
+        }
       }
+    } else if (parts.length === 2) {
+      // Just FIRSTNAME LASTNAME
+      givenName = parts[0]
+      lastName = parts[1]
     }
-    
-    // CvSU format is "LAST FIRST MIDDLE" - first word is lastName
-    const lastName = parts.shift() || ''
-    const givenName = parts.join(' ')
     
     return {
       lastName: toTitleCase(lastName),
@@ -393,6 +407,16 @@ const parseRegistrationForm = (text) => {
   // Clean up the text - normalize spaces
   const cleanText = text.replace(/\s+/g, ' ').trim()
   console.log('Clean text:', cleanText)
+  
+  // Debug: Log portion around "Student Name" to help identify format
+  const studentNameIndex = cleanText.toLowerCase().indexOf('student name')
+  if (studentNameIndex !== -1) {
+    console.log('Text around Student Name:', cleanText.substring(studentNameIndex, studentNameIndex + 150))
+  }
+  
+  // Debug: Find all uppercase words that look like names (LASTNAME, FIRSTNAME format)
+  const potentialNames = cleanText.match(/[A-Z]{2,}(?:\s+[A-Z]+)*,\s*[A-Z]{2,}(?:\s+[A-Z\.]+)*/g)
+  console.log('Potential names found in PDF:', potentialNames)
   
   const schedules = []
   
@@ -428,16 +452,34 @@ const parseRegistrationForm = (text) => {
     }
   }
   
-  // Extract Student Name (e.g., "Student Name: DELA CRUZ, JUAN MIGUEL B.")
+  // Extract Student Name (e.g., "Student Name: SOFRONIO A. BARRIENTOS" or "Student Name: DELA CRUZ, JUAN")
+  // CvSU registration forms can have name in different formats:
+  // Format 1: FIRSTNAME MIDDLE. LASTNAME (e.g., "SOFRONIO A. BARRIENTOS")
+  // Format 2: LASTNAME, FIRSTNAME MIDDLE (e.g., "BARRIENTOS, SOFRONIO A.")
   const studentNamePatterns = [
-    /Student\s*Name\s*:?\s*([A-Z][A-Z\s\.,]+?)(?:\s+(?:Student|Course|Year|Semester|FIRST|SECOND|IRREGULAR|\d{4}|BSCS|BSIT|BSIS|BSEMC))/i,
-    /Name\s*:?\s*([A-Z][A-Z\s\.,]+?)(?:\s+(?:Student|Course|Year|Semester))/i,
+    // Pattern 1: Student Name followed by text until next field label (Course, Date, Semester, etc.)
+    /Student\s*Name\s*:?\s*([A-Z][A-Z\s\.,'-]+?)(?=\s+(?:Course|Date|Semester|Encoder|Major|Address|Section|College|Department|Year)[\s:]+)/i,
+    // Pattern 2: Student Name with comma format (LASTNAME, FIRSTNAME)
+    /Student\s*Name\s*:?\s*([A-Z][A-Z\s\.,'-]+,\s*[A-Z][A-Z\s\.,'-]*)/i,
+    // Pattern 3: Name: followed by name until next field
+    /(?:^|\s)Name\s*:?\s*([A-Z][A-Z\s\.,'-]+?)(?=\s+(?:Course|Date|Semester|Encoder|Major|Address|Section)[\s:]+)/i,
+    // Pattern 4: Fallback - any name after "Student Name" label
+    /Student\s*Name\s*:?\s*([A-Z][A-Z\s\.'-]{3,})/i,
   ]
   
   for (const pattern of studentNamePatterns) {
     const nameMatch = cleanText.match(pattern)
     if (nameMatch) {
-      studentInfo.studentName = nameMatch[1].trim()
+      // Clean up the name - remove extra spaces and trailing periods/commas
+      let extractedName = nameMatch[1].trim().replace(/[\.,]+$/, '').trim()
+      
+      // Don't accept names that are too short or don't look like names
+      if (extractedName.length < 3) continue
+      
+      // Skip if it looks like it captured the next field label
+      if (/^(Course|Date|Semester|Encoder|Major|Address|Section)$/i.test(extractedName)) continue
+      
+      studentInfo.studentName = extractedName
       console.log('Student Name found:', studentInfo.studentName)
       
       // Parse the name into components (givenName, middleName, lastName, suffix)
@@ -448,6 +490,35 @@ const parseRegistrationForm = (text) => {
       studentInfo.suffix = parsedName.suffix
       console.log('Parsed name:', parsedName)
       break
+    }
+  }
+  
+  // If no name found with patterns above, try to find name near Student Number
+  if (!studentInfo.studentName && studentInfo.studentId) {
+    // Look for name pattern before or after the student ID
+    const nameNearIdPatterns = [
+      // Name appearing before or after student ID
+      new RegExp(`([A-Z]{2,}(?:\\s+[A-Z]+)*,\\s*[A-Z]{2,}(?:\\s+[A-Z\\.]+)*)\\s*(?:Student\\s*(?:Number|No|ID))?\\s*:?\\s*${studentInfo.studentId}`, 'i'),
+      new RegExp(`${studentInfo.studentId}\\s*([A-Z]{2,}(?:\\s+[A-Z]+)*,\\s*[A-Z]{2,}(?:\\s+[A-Z\\.]+)*)`, 'i'),
+    ]
+    
+    for (const pattern of nameNearIdPatterns) {
+      const nameMatch = cleanText.match(pattern)
+      if (nameMatch) {
+        let extractedName = nameMatch[1].trim().replace(/[\.,]+$/, '').trim()
+        if (extractedName.length >= 3) {
+          studentInfo.studentName = extractedName
+          console.log('Student Name found near ID:', studentInfo.studentName)
+          
+          const parsedName = parseStudentName(studentInfo.studentName)
+          studentInfo.givenName = parsedName.givenName
+          studentInfo.middleName = parsedName.middleName
+          studentInfo.lastName = parsedName.lastName
+          studentInfo.suffix = parsedName.suffix
+          console.log('Parsed name:', parsedName)
+          break
+        }
+      }
     }
   }
   
@@ -525,29 +596,59 @@ const parseRegistrationForm = (text) => {
   }
   console.log('School Year found:', studentInfo.schoolYear)
   
-  // Extract course/program (e.g., BSCS, BSIT, BSIS, BSEMC)
-  const courseMatch = cleanText.match(/\b(Bachelor\s+of\s+Science\s+in\s+[A-Za-z\s]+|BSCS|BSIT|BSIS|BSEMC|BS\s+in\s+[A-Za-z\s]+)\b/i)
-  if (courseMatch) {
-    const course = courseMatch[1].toUpperCase()
-    // Normalize course names
-    if (course.includes('COMPUTER SCIENCE') || course === 'BSCS') {
+  // Extract course/program (e.g., BSCS, BSIT, BSIS, BSEMC, BAJOURN, etc.)
+  // First try to get from "Course:" field
+  const courseFieldMatch = cleanText.match(/Course\s*:?\s*([A-Z]{2,}(?:\s+[A-Z]+)*)/i)
+  if (courseFieldMatch) {
+    const courseCode = courseFieldMatch[1].toUpperCase().trim()
+    // Normalize common course names
+    if (courseCode.includes('COMPUTER SCIENCE') || courseCode === 'BSCS') {
       studentInfo.course = 'BS Computer Science'
-    } else if (course.includes('INFORMATION TECHNOLOGY') || course === 'BSIT') {
+    } else if (courseCode.includes('INFORMATION TECHNOLOGY') || courseCode === 'BSIT') {
       studentInfo.course = 'BS Information Technology'
-    } else if (course.includes('INFORMATION SYSTEM') || course === 'BSIS') {
+    } else if (courseCode.includes('INFORMATION SYSTEM') || courseCode === 'BSIS') {
       studentInfo.course = 'BS Information Systems'
-    } else if (course.includes('ENTERTAINMENT') || course === 'BSEMC') {
+    } else if (courseCode.includes('ENTERTAINMENT') || courseCode === 'BSEMC') {
       studentInfo.course = 'BS Entertainment & Multimedia Computing'
+    } else if (courseCode === 'BAJOURN' || courseCode.includes('JOURNALISM')) {
+      studentInfo.course = 'BA Journalism'
     } else {
-      studentInfo.course = courseMatch[1]
+      studentInfo.course = courseCode
+    }
+  }
+  
+  // Fallback to other course patterns if not found
+  if (!studentInfo.course) {
+    const courseMatch = cleanText.match(/\b(Bachelor\s+of\s+(?:Science|Arts)\s+in\s+[A-Za-z\s]+|BSCS|BSIT|BSIS|BSEMC|BAJOURN|BS\s+in\s+[A-Za-z\s]+|BA\s+in\s+[A-Za-z\s]+)\b/i)
+    if (courseMatch) {
+      const course = courseMatch[1].toUpperCase()
+      if (course.includes('COMPUTER SCIENCE') || course === 'BSCS') {
+        studentInfo.course = 'BS Computer Science'
+      } else if (course.includes('INFORMATION TECHNOLOGY') || course === 'BSIT') {
+        studentInfo.course = 'BS Information Technology'
+      } else if (course.includes('INFORMATION SYSTEM') || course === 'BSIS') {
+        studentInfo.course = 'BS Information Systems'
+      } else if (course.includes('ENTERTAINMENT') || course === 'BSEMC') {
+        studentInfo.course = 'BS Entertainment & Multimedia Computing'
+      } else if (course === 'BAJOURN' || course.includes('JOURNALISM')) {
+        studentInfo.course = 'BA Journalism'
+      } else {
+        studentInfo.course = courseMatch[1]
+      }
     }
   }
   console.log('Course found:', studentInfo.course)
   
-  // Extract section (e.g., BSCS-3E) and year level
-  // First check if student is IRREGULAR
+  // Extract section directly from "Section:" field first (e.g., "Section: BAJOURN-3A")
+  const sectionFieldMatch = cleanText.match(/Section\s*:?\s*([A-Z]{2,}[-\s]*\d[A-Z])/i)
+  if (sectionFieldMatch) {
+    studentInfo.section = sectionFieldMatch[1].toUpperCase().replace(/\s+/g, '-')
+    console.log('Section found from field:', studentInfo.section)
+  }
+  
+  // Check if student is IRREGULAR
   const irregularMatch = cleanText.match(/\bIRREGULAR\b/i)
-  if (irregularMatch) {
+  if (irregularMatch && !studentInfo.section) {
     studentInfo.section = 'IRREGULAR'
   }
   
@@ -592,22 +693,26 @@ const parseRegistrationForm = (text) => {
     }
   }
   
-  // Check for regular section pattern (e.g., BSCS-3E)
-  const sectionMatch = cleanText.match(/\b(BSIT|BSCS|BSIS|BSEMC)[-\s]*(\d)([A-Z])\b/i)
-  if (sectionMatch) {
-    const program = sectionMatch[1].toUpperCase()
-    const year = sectionMatch[2]
-    const section = sectionMatch[3].toUpperCase()
-    studentInfo.section = `${program}-${year}${section}`
-    // Override year level from section if found
-    studentInfo.yearLevel = `${year}${getYearSuffix(year)} Year`
-    
-    // If course wasn't found earlier, derive from section
-    if (!studentInfo.course) {
-      if (program === 'BSCS') studentInfo.course = 'BS Computer Science'
-      else if (program === 'BSIT') studentInfo.course = 'BS Information Technology'
-      else if (program === 'BSIS') studentInfo.course = 'BS Information Systems'
-      else if (program === 'BSEMC') studentInfo.course = 'BS Entertainment & Multimedia Computing'
+  // Check for regular section pattern (e.g., BSCS-3E, BAJOURN-3A) - fallback if not found from Section field
+  if (!studentInfo.section || studentInfo.section === 'IRREGULAR') {
+    // Generic pattern: COURSECODE-YEARSECTION (e.g., BSCS-3E, BAJOURN-3A, BSIT-2B)
+    const sectionMatch = cleanText.match(/\b([A-Z]{2,})[-\s]*(\d)([A-Z])\b/i)
+    if (sectionMatch && !studentInfo.section) {
+      const program = sectionMatch[1].toUpperCase()
+      const year = sectionMatch[2]
+      const section = sectionMatch[3].toUpperCase()
+      studentInfo.section = `${program}-${year}${section}`
+      // Override year level from section if found
+      studentInfo.yearLevel = `${year}${getYearSuffix(year)} Year`
+      
+      // If course wasn't found earlier, derive from section
+      if (!studentInfo.course) {
+        if (program === 'BSCS') studentInfo.course = 'BS Computer Science'
+        else if (program === 'BSIT') studentInfo.course = 'BS Information Technology'
+        else if (program === 'BSIS') studentInfo.course = 'BS Information Systems'
+        else if (program === 'BSEMC') studentInfo.course = 'BS Entertainment & Multimedia Computing'
+        else if (program === 'BAJOURN') studentInfo.course = 'BA Journalism'
+      }
     }
   }
   console.log('Section found:', studentInfo.section)
@@ -641,7 +746,11 @@ const parseRegistrationForm = (text) => {
     // Room names can contain slashes like "CL3/RM. 7" or "RM. 9/CL3"
     
     // First extract course code and name
-    const codeMatch = segment.match(/^([A-Z]{2,4}\s+\d{1,3}[A-Z]?)\s+(.+?)\s+(\d)\s+(\d{1,2}:\d{2})-(\d{1,2}:\d{2})/)
+    // Pattern supports:
+    // - Standard codes: JOUR 100, GNED 15, DCIT 25
+    // - COGNATE format: COGNATE 2 (word followed by single digit)
+    // - Other formats with longer course codes
+    const codeMatch = segment.match(/^([A-Z]{2,7}\s+\d{1,3}[A-Z]?)\s+(.+?)\s+(\d)\s+(\d{1,2}:\d{2})-(\d{1,2}:\d{2})/)
     
     if (!codeMatch) {
       console.log('No code match for segment:', segment)
@@ -1636,29 +1745,7 @@ function StudentScheduleView() {
         }
       }
       
-      // Validate school year - must be current year (2025-2026) or later
-      const currentYear = new Date().getFullYear()
-      const minAllowedYear = currentYear // 2025
-      
-      if (extractedStudentInfo.schoolYear) {
-        const schoolYearMatch = extractedStudentInfo.schoolYear.match(/(\d{4})-(\d{4})/)
-        if (schoolYearMatch) {
-          const startYear = parseInt(schoolYearMatch[1])
-          if (startYear < minAllowedYear) {
-            setErrorModal({
-              isOpen: true,
-              title: 'Outdated Registration Form',
-              message: `This registration form is from School Year ${extractedStudentInfo.schoolYear}.`,
-              details: `Please upload a current registration form (S.Y. ${minAllowedYear}-${minAllowedYear + 1} or later).`
-            })
-            setIsModalOpen(false)
-            setIsProcessing(false)
-            return
-          }
-        }
-      }
-      
-      // Validate against current semester settings from system configuration
+      // Validate against current semester settings from system configuration (set by super admin)
       try {
         const semesterSettings = await getSemesterSettings()
         const systemSemester = semesterSettings.currentSemester
@@ -1672,9 +1759,9 @@ function StudentScheduleView() {
           if (formSchoolYear !== settingsSchoolYear) {
             setErrorModal({
               isOpen: true,
-              title: 'School Year Mismatch',
-              message: `This registration form is for School Year ${formSchoolYear}.`,
-              details: `The current academic period is set to S.Y. ${settingsSchoolYear}. Please upload a registration form for the current school year.`
+              title: 'Outdated Registration Form',
+              message: `This registration form is from School Year ${formSchoolYear}.`,
+              details: `Please upload a current registration form (S.Y. ${settingsSchoolYear}).`
             })
             setIsModalOpen(false)
             setIsProcessing(false)
@@ -1722,9 +1809,15 @@ function StudentScheduleView() {
         
         // Auto-update user profile with extracted student information
         try {
+          // Get existing tags to preserve them
+          const existingTags = userProfile?.tags || []
+          
           const profileUpdateData = {
             updatedAt: serverTimestamp()
           }
+          
+          // Build updated tags array
+          let updatedTags = [...existingTags]
           
           // Add student info fields if they were extracted
           if (extractedStudentInfo.studentId) {
@@ -1735,10 +1828,24 @@ function StudentScheduleView() {
           }
           if (extractedStudentInfo.yearLevel) {
             profileUpdateData.yearLevel = extractedStudentInfo.yearLevel
+            // Add year tag (extract just the number)
+            const yearMatch = extractedStudentInfo.yearLevel.match(/(\d)/)
+            if (yearMatch) {
+              // Remove old year tags and add new one
+              updatedTags = updatedTags.filter(tag => !tag.startsWith('year:'))
+              updatedTags.push(`year:${yearMatch[1]}`)
+            }
           }
           if (extractedStudentInfo.section) {
             profileUpdateData.section = extractedStudentInfo.section
+            // Add section tag for announcement targeting
+            // Remove old section tags and add new one
+            updatedTags = updatedTags.filter(tag => !tag.startsWith('section:'))
+            updatedTags.push(`section:${extractedStudentInfo.section.toUpperCase()}`)
           }
+          
+          // Update tags in profile
+          profileUpdateData.tags = updatedTags
           
           // Update name from registration form if extracted
           if (extractedStudentInfo.givenName) {

@@ -143,10 +143,10 @@ export default function SystemSettings() {
         details: {
           semester: semesterSettings.currentSemester,
           schoolYear: semesterSettings.currentSchoolYear,
-          archivedCount: result.archivedCount,
-          deletedCount: result.deletedCount
+          archivedCount: result.archive?.schedulesArchived || 0,
+          deletedCount: result.reset?.schedulesDeleted || 0
         },
-        description: `Archived ${result.archivedCount} and deleted ${result.deletedCount} schedules for ${semesterSettings.currentSemester} ${semesterSettings.currentSchoolYear}`
+        description: `Archived ${result.archive?.schedulesArchived || 0} and deleted ${result.reset?.schedulesDeleted || 0} schedules for ${semesterSettings.currentSemester} ${semesterSettings.currentSchoolYear}`
       })
       
       setResetResult({ type: 'success', ...result })

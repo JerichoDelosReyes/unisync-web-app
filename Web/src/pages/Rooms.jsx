@@ -144,11 +144,11 @@ export default function Rooms() {
     }))
   }
 
-  // Reset rooms collection (super_admin only) - removes duplicates and resets to defaults
+  // Reset rooms collection (super_admin only) - clears all scheduled classes from rooms
   const resetRoomsCollection = async () => {
     if (userProfile?.role !== 'super_admin') return
     
-    if (!confirm('This will DELETE all rooms and reset them with default values (all VACANT with no scheduled classes). Continue?')) {
+    if (!confirm('This will CLEAR all scheduled classes from rooms (all rooms will become VACANT). The rooms themselves will NOT be deleted. Continue?')) {
       return
     }
     
@@ -157,28 +157,24 @@ export default function Rooms() {
       const roomsRef = collection(db, 'rooms')
       const snapshot = await getDocs(roomsRef)
       
-      // Delete all existing rooms
-      console.log('Deleting', snapshot.size, 'rooms...')
-      const deletePromises = snapshot.docs.map(docSnap => deleteDoc(doc(db, 'rooms', docSnap.id)))
-      await Promise.all(deletePromises)
-      
-      // Add default rooms with vacancyPeriods array
-      console.log('Adding default rooms...')
-      const addPromises = DEFAULT_ROOMS.map(room => 
-        addDoc(roomsRef, {
-          ...room,
-          vacancyPeriods: [], // Empty array - no scheduled classes
-          createdAt: new Date().toISOString(),
-          createdBy: userProfile.uid
+      // Clear vacancyPeriods and occupancyPeriods from all existing rooms
+      console.log('Clearing schedules from', snapshot.size, 'rooms...')
+      const updatePromises = snapshot.docs.map(docSnap => 
+        updateDoc(doc(db, 'rooms', docSnap.id), {
+          vacancyPeriods: [],
+          occupancyPeriods: [],
+          lastUpdated: new Date().toISOString()
         })
       )
-      await Promise.all(addPromises)
+      await Promise.all(updatePromises)
       
-      console.log('Rooms reset successfully')
-      alert('Rooms reset successfully! All rooms are now VACANT by default. Rooms will show as occupied only when class schedules are uploaded.')
+      console.log('Room schedules cleared successfully')
+      alert('Room schedules cleared successfully! All rooms are now VACANT. Rooms will show as occupied only when class schedules are uploaded.')
     } catch (error) {
-      console.error('Error resetting rooms:', error)
-      alert('Error resetting rooms: ' + error.message)
+      console.error('Error clearing room schedules:', error)
+      alert('Error clearing room schedules: ' + error.message)
+    } finally {
+      setLoading(false)
     }
   }
 

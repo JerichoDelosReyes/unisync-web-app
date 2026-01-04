@@ -301,11 +301,16 @@ service cloud.firestore {
       // Delete: Admin+ only (deleting rooms)
       allow delete: if isAuthenticated() && isAdminOrAbove();
       
-      // Update: Class Rep+ can update room status fields (including vacancyPeriods), Admin+ can update everything
+      // Update: 
+      // - Students can update occupancyPeriods (when uploading schedule)
+      // - Class Rep+ can update room status fields (including vacancyPeriods)
+      // - Admin+ can update everything
       allow update: if isAuthenticated() 
         && (
-          // Class Rep+ can only update status-related fields (including time-based vacancyPeriods)
-          (isClassRepOrAbove() && onlyAllowedFields(['occupied', 'vacancyPeriods', 'statusUpdatedAt', 'statusUpdatedBy']))
+          // Any authenticated user can update occupancyPeriods (for schedule uploads)
+          onlyAllowedFields(['occupancyPeriods', 'lastUpdated'])
+          // Class Rep+ can update status-related fields (including time-based vacancyPeriods)
+          || (isClassRepOrAbove() && onlyAllowedFields(['occupied', 'vacancyPeriods', 'statusUpdatedAt', 'statusUpdatedBy', 'occupancyPeriods', 'lastUpdated']))
           // Admin+ can update any field
           || isAdminOrAbove()
         );
