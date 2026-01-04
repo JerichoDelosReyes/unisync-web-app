@@ -11,6 +11,12 @@ import { useState, useEffect, useRef } from 'react'
 import { useAuth, ROLES } from '../contexts/AuthContext'
 import Toast from '../components/ui/Toast'
 import ModalOverlay from '../components/ui/ModalOverlay'
+
+// Helper to validate image preview URLs (blob: or data: URLs only)
+const isValidImagePreviewUrl = (url) => {
+  if (!url || typeof url !== 'string') return false
+  return url.startsWith('blob:') || url.startsWith('data:image/')
+}
 import {
   MegaphoneIcon,
   UserIcon,
@@ -1426,7 +1432,7 @@ export default function OrganizationsPage() {
                   onClick={() => orgPhotoInputRef.current?.click()}
                   className="w-24 h-24 rounded-full bg-gray-100 border-2 border-dashed border-gray-300 flex items-center justify-center cursor-pointer hover:border-green-400 hover:bg-green-50 transition-colors overflow-hidden"
                 >
-                  {orgPhotoPreview ? (
+                  {orgPhotoPreview && isValidImagePreviewUrl(orgPhotoPreview) ? (
                     <img src={orgPhotoPreview} alt="Preview" className="w-full h-full object-cover" />
                   ) : (
                     <svg className="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
