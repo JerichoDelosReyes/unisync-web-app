@@ -217,16 +217,39 @@ const ProfessorClasses = () => {
               </div>
 
               <div className="space-y-2 text-sm">
-                {classItem.day && classItem.startTime && (
+                {/* Display all time slots if available */}
+                {classItem.timeSlots && classItem.timeSlots.length > 0 ? (
+                  classItem.timeSlots.map((slot, idx) => (
+                    <div key={idx} className="flex items-center gap-2 text-gray-600">
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
+                      <span>{slot.day} {formatTime(slot.startTime)} - {formatTime(slot.endTime)}</span>
+                    </div>
+                  ))
+                ) : classItem.day && classItem.startTime ? (
+                  // Legacy single slot display
                   <div className="flex items-center gap-2 text-gray-600">
                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                     </svg>
                     <span>{classItem.day} {formatTime(classItem.startTime)} - {formatTime(classItem.endTime)}</span>
                   </div>
-                )}
+                ) : null}
                 
-                {classItem.room && (
+                {/* Display all rooms from time slots */}
+                {classItem.timeSlots && classItem.timeSlots.length > 0 ? (
+                  // Get unique rooms from all time slots
+                  [...new Set(classItem.timeSlots.map(slot => slot.room).filter(Boolean))].map((room, idx) => (
+                    <div key={idx} className="flex items-center gap-2 text-gray-600">
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                      </svg>
+                      <span>{room}</span>
+                    </div>
+                  ))
+                ) : classItem.room ? (
                   <div className="flex items-center gap-2 text-gray-600">
                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
@@ -234,7 +257,7 @@ const ProfessorClasses = () => {
                     </svg>
                     <span>{classItem.room}</span>
                   </div>
-                )}
+                ) : null}
 
                 {classItem.section && (
                   <div className="flex items-center gap-2 text-gray-600">

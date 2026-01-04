@@ -247,9 +247,10 @@ export const subscribeToProfessorClasses = (professorUid, callback) => {
  * Update class section with schedule details (from student upload)
  * This is called when a student uploads their registration form
  * Tracks unique students to prevent duplicate counting
+ * Supports multiple time slots per schedule code
  * 
  * @param {string} scheduleCode - The schedule code
- * @param {Object} scheduleDetails - Details from parsed registration form
+ * @param {Object} scheduleDetails - Details from parsed registration form (can include timeSlots array)
  * @param {string} studentUid - The student's user ID (for unique tracking)
  * @returns {Promise<Object>} - The updated class section
  */
@@ -259,15 +260,20 @@ export const updateClassSectionFromStudent = async (scheduleCode, scheduleDetail
     const sectionRef = doc(db, CLASS_SECTIONS_COLLECTION, cleanCode);
     const existingDoc = await getDoc(sectionRef);
 
-    const updateData = {
-      subject: scheduleDetails.subject || null,
-      room: scheduleDetails.room || null,
-      day: scheduleDetails.day || null,
-      startTime: scheduleDetails.startTime || null,
-      endTime: scheduleDetails.endTime || null,
-      section: scheduleDetails.section || null,
-      updatedAt: serverTimestamp()
-    };
+    // Handle both new format (timeSlots array) and legacy format (single slot)
+    let newTimeSlots = [];
+    if (scheduleDetails.timeSlots && Array.isArray(scheduleDetails.timeSlots)) {
+      // New format: timeSlots array passed in
+      newTimeSlots = scheduleDetails.timeSlots.filter(slot => slot.day && slot.startTime);
+    } else if (scheduleDetails.day && scheduleDetails.startTime) {
+      // Legacy format: single slot
+      newTimeSlots = [{
+        day: scheduleDetails.day,
+        startTime: scheduleDetails.startTime,
+        endTime: scheduleDetails.endTime || null,
+        room: scheduleDetails.room || null
+      }];
+    }
 
     let isNewEnrollment = false;
     let professorId = null;
@@ -278,26 +284,78 @@ export const updateClassSectionFromStudent = async (scheduleCode, scheduleDetail
       const enrolledStudents = existingData.enrolledStudents || [];
       professorId = existingData.professorId;
       
-      // Only add if student not already enrolled
+      // Get existing time slots or create from legacy single-slot data
+      let timeSlots = existingData.timeSlots || [];
+      
+      // If no timeSlots array but has legacy single-slot data, migrate it
+      if (timeSlots.length === 0 && existingData.day && existingData.startTime) {
+        timeSlots = [{
+          day: existingData.day,
+          startTime: existingData.startTime,
+          endTime: existingData.endTime,
+          room: existingData.room
+        }];
+      }
+      
+      // Add new time slots that don't already exist
+      for (const newSlot of newTimeSlots) {
+        const slotExists = timeSlots.some(slot => 
+          slot.day === newSlot.day && 
+          slot.startTime === newSlot.startTime && 
+          slot.endTime === newSlot.endTime
+        );
+        
+        if (!slotExists) {
+          timeSlots.push(newSlot);
+        }
+      }
+      
+      // Only add student if not already enrolled
       if (studentUid && !enrolledStudents.includes(studentUid)) {
         isNewEnrollment = true;
         newStudentCount = enrolledStudents.length + 1;
         await updateDoc(sectionRef, {
-          ...updateData,
+          subject: scheduleDetails.subject || existingData.subject,
+          section: scheduleDetails.section || existingData.section,
+          timeSlots: timeSlots,
+          // Keep legacy fields for backward compatibility
+          day: timeSlots[0]?.day || null,
+          startTime: timeSlots[0]?.startTime || null,
+          endTime: timeSlots[0]?.endTime || null,
+          room: timeSlots[0]?.room || null,
           enrolledStudents: arrayUnion(studentUid),
-          studentCount: newStudentCount
+          studentCount: newStudentCount,
+          updatedAt: serverTimestamp()
         });
       } else {
         // Student already enrolled, just update details without incrementing count
         newStudentCount = enrolledStudents.length;
-        await updateDoc(sectionRef, updateData);
+        await updateDoc(sectionRef, {
+          subject: scheduleDetails.subject || existingData.subject,
+          section: scheduleDetails.section || existingData.section,
+          timeSlots: timeSlots,
+          // Keep legacy fields for backward compatibility
+          day: timeSlots[0]?.day || null,
+          startTime: timeSlots[0]?.startTime || null,
+          endTime: timeSlots[0]?.endTime || null,
+          room: timeSlots[0]?.room || null,
+          updatedAt: serverTimestamp()
+        });
       }
     } else {
       // Create new document (no professor yet - TBA scenario)
       isNewEnrollment = true;
+      
       await setDoc(sectionRef, {
         scheduleCode: cleanCode,
-        ...updateData,
+        subject: scheduleDetails.subject || null,
+        section: scheduleDetails.section || null,
+        timeSlots: newTimeSlots,
+        // Keep legacy fields for backward compatibility
+        day: newTimeSlots[0]?.day || null,
+        startTime: newTimeSlots[0]?.startTime || null,
+        endTime: newTimeSlots[0]?.endTime || null,
+        room: newTimeSlots[0]?.room || null,
         professorId: null,
         professorName: null,
         professorEmail: null,
@@ -305,7 +363,8 @@ export const updateClassSectionFromStudent = async (scheduleCode, scheduleDetail
         enrolledStudents: studentUid ? [studentUid] : [],
         studentCount: studentUid ? 1 : 0,
         claimedAt: null,
-        createdAt: serverTimestamp()
+        createdAt: serverTimestamp(),
+        updatedAt: serverTimestamp()
       });
     }
 
@@ -534,6 +593,65 @@ export const deleteClassSection = async (scheduleCode) => {
   }
 };
 
+/**
+ * Reset all class sections - clears student enrollments and unclaimed sections
+ * Called during end-of-semester reset
+ * 
+ * @returns {Promise<Object>} - Result with counts
+ */
+export const resetAllClassSections = async () => {
+  try {
+    const sectionsRef = collection(db, CLASS_SECTIONS_COLLECTION);
+    const snapshot = await getDocs(sectionsRef);
+    
+    if (snapshot.empty) {
+      return {
+        success: true,
+        sectionsCleared: 0,
+        sectionsDeleted: 0,
+        message: 'No class sections to reset'
+      };
+    }
+    
+    const batch = writeBatch(db);
+    let sectionsCleared = 0;
+    let sectionsDeleted = 0;
+    
+    for (const docSnap of snapshot.docs) {
+      const data = docSnap.data();
+      const sectionRef = doc(db, CLASS_SECTIONS_COLLECTION, docSnap.id);
+      
+      // If section has a professor claimed, just clear enrollments
+      if (data.professorId) {
+        batch.update(sectionRef, {
+          enrolledStudents: [],
+          studentCount: 0,
+          updatedAt: serverTimestamp()
+        });
+        sectionsCleared++;
+      } else {
+        // If no professor claimed, delete the entire section
+        batch.delete(sectionRef);
+        sectionsDeleted++;
+      }
+    }
+    
+    await batch.commit();
+    
+    console.log(`Reset class sections: ${sectionsCleared} cleared, ${sectionsDeleted} deleted`);
+    
+    return {
+      success: true,
+      sectionsCleared,
+      sectionsDeleted,
+      message: `Cleared ${sectionsCleared} sections, deleted ${sectionsDeleted} unclaimed sections`
+    };
+  } catch (error) {
+    console.error('Error resetting class sections:', error);
+    throw error;
+  }
+};
+
 export default {
   claimScheduleCode,
   unclaimScheduleCode,
@@ -547,5 +665,6 @@ export default {
   subscribeToScheduleCodes,
   getUnclaimedClassSections,
   getAllClassSections,
-  deleteClassSection
+  deleteClassSection,
+  resetAllClassSections
 };

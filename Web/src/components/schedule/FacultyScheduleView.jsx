@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { useAuth } from '../../contexts/AuthContext'
 import { getFacultySchedule } from '../../services/scheduleService'
 import { updateRoomStatus, subscribeToRooms, isScheduleSlotVacant, isRoomCurrentlyVacant } from '../../services/roomService'
+import { subscribeToProfessorClasses } from '../../services/classSectionService'
 import ProfessorClasses from './ProfessorClasses'
 
 const days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']
@@ -166,7 +167,7 @@ const FacultyScheduleDetailModal = ({ schedule, isOpen, onClose, roomsMap = {}, 
               </div>
               <div className="flex items-center gap-2">
                 <p className="text-gray-900 font-semibold">{schedule.room}</p>
-                {room && (
+                {foundRooms.length > 0 && (
                   <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${
                     isCurrentlyVacant ? 'bg-emerald-100 text-emerald-700' : 'bg-red-100 text-red-700'
                   }`}>
@@ -429,6 +430,23 @@ export default function FacultyScheduleView() {
     }
 
     loadFacultySchedule()
+    
+    // Subscribe to real-time updates for professor's class sections
+    // This will auto-refresh when students enroll/unenroll
+    if (user) {
+      const unsubscribe = subscribeToProfessorClasses(user.uid, async () => {
+        // When class sections change, reload the faculty schedule
+        try {
+          const result = await getFacultySchedule(user.uid)
+          setScheduleData(result.schedules)
+          setStatistics(result.statistics)
+          setPendingClassesCount(result.statistics?.pendingClassesCount || 0)
+        } catch (err) {
+          console.error('Error refreshing faculty schedule:', err)
+        }
+      })
+      return () => unsubscribe()
+    }
   }, [user])
 
   // Get schedules for a specific day

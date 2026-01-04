@@ -16,6 +16,7 @@ import {
 import { getMinimumStudentsThreshold } from './systemSettingsService';
 import { notifyScheduleValidated, hasValidationNotification } from './notificationService';
 import { DEFAULT_MINIMUM_STUDENTS_FOR_VALIDATION } from '../constants/scheduleConfig';
+import { resetAllClassSections } from './classSectionService';
 
 const SCHEDULES_COLLECTION = 'schedules';
 const SCHEDULES_ARCHIVE_COLLECTION = 'schedules_archive';
@@ -308,46 +309,92 @@ export const getFacultySchedule = async (facultyUserId, options = {}) => {
     for (const docSnapshot of classSectionsSnapshot.docs) {
       const data = docSnapshot.data();
       
-      // Skip entries without schedule details (claimed but no students yet)
-      if (!data.subject || !data.day || !data.startTime) {
-        continue;
-      }
-      
-      // Create unique key for this class slot
-      const classKey = `${data.subject}-${data.day}-${data.startTime}-${data.endTime}`;
-      
       // Get student count from enrolledStudents array or studentCount field
       const studentCount = data.enrolledStudents?.length || data.studentCount || 0;
       const section = data.section || 'Unknown';
       
-      if (classMap.has(classKey)) {
-        // Aggregate with existing class entry
-        const existingClass = classMap.get(classKey);
-        existingClass.studentCount += studentCount;
-        existingClass.scheduleCodes.push(docSnapshot.id);
-        if (!existingClass.sections.includes(section)) {
-          existingClass.sections.push(section);
-        }
-        // Update room if was TBA and now we have a real room
-        if (existingClass.room === 'TBA' && data.room && data.room !== 'TBA') {
-          existingClass.room = data.room;
+      // Check if this class section has multiple time slots
+      const timeSlots = data.timeSlots || [];
+      
+      // If timeSlots array exists and has entries, use it
+      if (timeSlots.length > 0) {
+        for (const slot of timeSlots) {
+          if (!data.subject || !slot.day || !slot.startTime) continue;
+          
+          // Create unique key for this class slot
+          const classKey = `${data.subject}-${slot.day}-${slot.startTime}-${slot.endTime}`;
+          
+          if (classMap.has(classKey)) {
+            // Aggregate with existing class entry
+            const existingClass = classMap.get(classKey);
+            // Don't double-count students - they're enrolled once per schedule code
+            if (!existingClass.scheduleCodes.includes(docSnapshot.id)) {
+              existingClass.studentCount += studentCount;
+              existingClass.scheduleCodes.push(docSnapshot.id);
+            }
+            if (!existingClass.sections.includes(section)) {
+              existingClass.sections.push(section);
+            }
+            // Update room if was TBA and now we have a real room
+            if (existingClass.room === 'TBA' && slot.room && slot.room !== 'TBA') {
+              existingClass.room = slot.room;
+            }
+          } else {
+            // Create new class entry
+            classMap.set(classKey, {
+              id: classMap.size + 1,
+              subject: data.subject,
+              day: slot.day,
+              startTime: slot.startTime,
+              endTime: slot.endTime,
+              room: slot.room || 'TBA',
+              sections: [section],
+              studentCount: studentCount,
+              scheduleCodes: [docSnapshot.id],
+              classKey: classKey,
+              validated: true,
+              studentsNeeded: 0
+            });
+          }
         }
       } else {
-        // Create new class entry
-        classMap.set(classKey, {
-          id: classMap.size + 1,
-          subject: data.subject,
-          day: data.day,
-          startTime: data.startTime,
-          endTime: data.endTime,
-          room: data.room || 'TBA',
-          sections: [section],
-          studentCount: studentCount,
-          scheduleCodes: [docSnapshot.id],
-          classKey: classKey,
-          validated: true, // All claimed classes are valid
-          studentsNeeded: 0
-        });
+        // Legacy format - single time slot stored directly in document
+        if (!data.subject || !data.day || !data.startTime) {
+          continue;
+        }
+        
+        // Create unique key for this class slot
+        const classKey = `${data.subject}-${data.day}-${data.startTime}-${data.endTime}`;
+        
+        if (classMap.has(classKey)) {
+          // Aggregate with existing class entry
+          const existingClass = classMap.get(classKey);
+          existingClass.studentCount += studentCount;
+          existingClass.scheduleCodes.push(docSnapshot.id);
+          if (!existingClass.sections.includes(section)) {
+            existingClass.sections.push(section);
+          }
+          // Update room if was TBA and now we have a real room
+          if (existingClass.room === 'TBA' && data.room && data.room !== 'TBA') {
+            existingClass.room = data.room;
+          }
+        } else {
+          // Create new class entry
+          classMap.set(classKey, {
+            id: classMap.size + 1,
+            subject: data.subject,
+            day: data.day,
+            startTime: data.startTime,
+            endTime: data.endTime,
+            room: data.room || 'TBA',
+            sections: [section],
+            studentCount: studentCount,
+            scheduleCodes: [docSnapshot.id],
+            classKey: classKey,
+            validated: true, // All claimed classes are valid
+            studentsNeeded: 0
+          });
+        }
       }
     }
     
@@ -587,14 +634,19 @@ export const archiveAndResetSchedules = async (semester, schoolYear, userId) => 
     // First archive
     const archiveResult = await archiveAllSchedules(semester, schoolYear, userId);
     
-    // Then reset
+    // Then reset student schedules
     const resetResult = await resetAllSchedules(userId);
+    
+    // Also reset class sections (professor schedule view)
+    // This clears student enrollments and removes unclaimed sections
+    const classSectionsResult = await resetAllClassSections();
     
     return {
       success: true,
       archive: archiveResult,
       reset: resetResult,
-      message: `Archived ${archiveResult.schedulesArchived} and reset ${resetResult.schedulesDeleted} schedules`
+      classSections: classSectionsResult,
+      message: `Archived ${archiveResult.schedulesArchived} schedules, reset ${resetResult.schedulesDeleted} schedules, cleared ${classSectionsResult.sectionsCleared} class sections`
     };
   } catch (error) {
     console.error('Error in archive and reset:', error);

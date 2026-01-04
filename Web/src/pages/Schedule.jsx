@@ -1891,21 +1891,41 @@ function StudentScheduleView() {
         // Register each schedule entry with class_sections for Schedule Code Matchmaking
         // This allows professors to see which classes have students enrolled
         // Pass user.uid to track unique students and prevent duplicate counting
-        const updatePromises = extractedSchedule
+        
+        // Group entries by schedule code to handle multiple time slots per code
+        // This prevents race conditions when the same schedule code has multiple time slots
+        const scheduleByCode = extractedSchedule
           .filter(entry => entry.scheduleCode)
-          .map(entry => 
-            updateClassSectionFromStudent(entry.scheduleCode, {
-              subject: entry.subject,
-              room: entry.room,
+          .reduce((acc, entry) => {
+            const code = entry.scheduleCode.toString().trim()
+            if (!acc[code]) {
+              acc[code] = {
+                subject: entry.subject,
+                section: extractedStudentInfo.section || entry.section,
+                timeSlots: []
+              }
+            }
+            // Add time slot for this entry
+            acc[code].timeSlots.push({
               day: entry.day,
               startTime: entry.startTime,
               endTime: entry.endTime,
-              section: extractedStudentInfo.section || entry.section
-            }, user.uid).catch(err => {
-              console.error(`Error registering schedule code ${entry.scheduleCode}:`, err)
-              // Don't fail the entire upload if one code fails
+              room: entry.room
             })
-          )
+            return acc
+          }, {})
+        
+        // Now update each unique schedule code with all its time slots
+        const updatePromises = Object.entries(scheduleByCode).map(([code, data]) => 
+          updateClassSectionFromStudent(code, {
+            subject: data.subject,
+            section: data.section,
+            timeSlots: data.timeSlots
+          }, user.uid).catch(err => {
+            console.error(`Error registering schedule code ${code}:`, err)
+            // Don't fail the entire upload if one code fails
+          })
+        )
         
         await Promise.all(updatePromises)
         
