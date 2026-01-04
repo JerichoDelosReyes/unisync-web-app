@@ -1,5 +1,6 @@
 import { Routes, Route, Navigate } from 'react-router-dom'
 import { AuthProvider } from './contexts/AuthContext'
+import { ThemeProvider } from './contexts/ThemeContext'
 import ProtectedRoute, { FacultyRoute, AdminRoute, SuperAdminRoute } from './components/auth/ProtectedRoute'
 import PWAUpdatePrompt from './components/ui/PWAUpdatePrompt'
 
@@ -27,8 +28,9 @@ import AnnouncementReview from './pages/AnnouncementReview'
 
 export default function App() {
   return (
-    <AuthProvider>
-      <Routes>
+    <ThemeProvider>
+      <AuthProvider>
+        <Routes>
         {/* Public Routes */}
         <Route path="/" element={<AuthPage />} />
         <Route path="/auth" element={<AuthPage />} />
@@ -114,7 +116,8 @@ export default function App() {
       
       {/* PWA Update Prompt */}
       <PWAUpdatePrompt />
-    </AuthProvider>
+      </AuthProvider>
+    </ThemeProvider>
   )
 }
 

@@ -988,7 +988,7 @@ export default function AIChat() {
           <line x1="9" y1="21" x2="9" y2="23" />
           <line x1="15" y1="21" x2="15" y2="23" />
         </svg>
-        <span className="absolute bottom-16 right-0 bg-gray-900 text-white text-xs rounded-lg px-3 py-2 whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none shadow-lg">
+        <span className="absolute bottom-16 right-0 bg-gray-900 dark:bg-gray-700 text-white text-xs rounded-lg px-3 py-2 whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none shadow-lg">
           🤖 UNISYNC AI Assistant
         </span>
       </button>
@@ -996,7 +996,7 @@ export default function AIChat() {
   }
 
   return (
-    <div className="fixed bottom-6 right-6 w-80 sm:w-96 max-h-[600px] bg-white rounded-2xl shadow-2xl flex flex-col z-50 animate-in slide-in-from-bottom-5">
+    <div className="fixed bottom-6 right-6 w-80 sm:w-96 max-h-[600px] bg-white dark:bg-gray-800 rounded-2xl shadow-2xl flex flex-col z-50 animate-in slide-in-from-bottom-5">
       {/* Header */}
       <div className="bg-gradient-to-r from-green-600 to-green-500 text-white rounded-t-2xl p-4 flex items-center justify-between">
         <div className="flex items-center gap-3">
@@ -1033,7 +1033,7 @@ export default function AIChat() {
       </div>
 
       {/* Messages Container */}
-      <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-gray-50 max-h-[400px]">
+      <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-gray-50 dark:bg-gray-900 max-h-[400px]">
         {messages.map((message) => (
           <div key={message.id} className="space-y-2">
             <div className={`flex ${message.type === 'user' ? 'justify-end' : 'justify-start'}`}>
@@ -1041,7 +1041,7 @@ export default function AIChat() {
                 className={`max-w-[85%] px-4 py-3 rounded-2xl ${
                   message.type === 'user'
                     ? 'bg-green-500 text-white rounded-br-md'
-                    : 'bg-white text-gray-800 rounded-bl-md shadow-sm border border-gray-100'
+                    : 'bg-white dark:bg-gray-700 text-gray-800 dark:text-gray-100 rounded-bl-md shadow-sm border border-gray-100 dark:border-gray-600'
                 }`}
               >
                 <p className="text-sm whitespace-pre-line">{message.text}</p>
@@ -1055,7 +1055,7 @@ export default function AIChat() {
                   <button
                     key={idx}
                     onClick={() => handleSuggestionClick(suggestion)}
-                    className="text-xs px-3 py-1.5 bg-green-50 text-green-700 rounded-full hover:bg-green-100 transition-colors border border-green-200"
+                    className="text-xs px-3 py-1.5 bg-green-50 dark:bg-green-900/30 text-green-700 dark:text-green-300 rounded-full hover:bg-green-100 dark:hover:bg-green-900/50 transition-colors border border-green-200 dark:border-green-700"
                   >
                     {suggestion}
                   </button>
@@ -1067,7 +1067,7 @@ export default function AIChat() {
         
         {isLoading && (
           <div className="flex justify-start">
-            <div className="bg-white text-gray-800 px-4 py-3 rounded-2xl rounded-bl-md shadow-sm border border-gray-100">
+            <div className="bg-white dark:bg-gray-700 text-gray-800 dark:text-gray-100 px-4 py-3 rounded-2xl rounded-bl-md shadow-sm border border-gray-100 dark:border-gray-600">
               <div className="flex items-center gap-1.5">
                 <div className="w-2 h-2 bg-green-500 rounded-full animate-bounce"></div>
                 <div className="w-2 h-2 bg-green-500 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
@@ -1080,14 +1080,14 @@ export default function AIChat() {
       </div>
 
       {/* Input Area */}
-      <form onSubmit={handleSendMessage} className="border-t border-gray-200 p-4 bg-white rounded-b-2xl">
+      <form onSubmit={handleSendMessage} className="border-t border-gray-200 dark:border-gray-700 p-4 bg-white dark:bg-gray-800 rounded-b-2xl">
         <div className="flex gap-2">
           <input
             type="text"
             value={inputValue}
             onChange={(e) => setInputValue(e.target.value)}
             placeholder="Ask me anything... (English/Tagalog)"
-            className="flex-1 px-4 py-2.5 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent text-sm"
+            className="flex-1 px-4 py-2.5 border border-gray-200 dark:border-gray-600 rounded-xl bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent text-sm"
             disabled={isLoading}
           />
           <button
@@ -1101,7 +1101,7 @@ export default function AIChat() {
             </svg>
           </button>
         </div>
-        <p className="text-xs text-gray-400 mt-2 text-center">Powered by UNISYNC AI • English & Tagalog supported</p>
+        <p className="text-xs text-gray-400 dark:text-gray-500 mt-2 text-center">Powered by UNISYNC AI • English & Tagalog supported</p>
       </form>
     </div>
   )

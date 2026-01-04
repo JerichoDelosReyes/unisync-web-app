@@ -16,16 +16,46 @@
   --color-accent-active: #00a862;
 
   --color-bg: #ffffff; /* white */
-  --color-text: #000000; /* black */
-  --color-text-muted: #6b7280; /* gray */
+  --color-bg-secondary: #f9fafb; /* gray-50 */
+  --color-bg-tertiary: #f3f4f6; /* gray-100 */
+  --color-text: #111827; /* gray-900 */
+  --color-text-secondary: #374151; /* gray-700 */
+  --color-text-muted: #6b7280; /* gray-500 */
+  --color-border: #e5e7eb; /* gray-200 */
+  --color-border-light: #f3f4f6; /* gray-100 */
+}
+
+.dark {
+  --color-primary: #34d399; /* emerald-400 */
+  --color-primary-hover: #6ee7b7; /* emerald-300 */
+  --color-primary-active: #10b981; /* emerald-500 */
+
+  --color-brand: #fbbf24; /* amber-400 */
+  --color-brand-hover: #fcd34d; /* amber-300 */
+  --color-brand-active: #f59e0b; /* amber-500 */
+
+  --color-accent: #34d399; /* emerald-400 */
+  --color-accent-hover: #6ee7b7; /* emerald-300 */
+  --color-accent-active: #10b981; /* emerald-500 */
+
+  --color-bg: #111827; /* gray-900 */
+  --color-bg-secondary: #1f2937; /* gray-800 */
+  --color-bg-tertiary: #374151; /* gray-700 */
+  --color-text: #f9fafb; /* gray-50 */
+  --color-text-secondary: #e5e7eb; /* gray-200 */
+  --color-text-muted: #9ca3af; /* gray-400 */
+  --color-border: #374151; /* gray-700 */
+  --color-border-light: #1f2937; /* gray-800 */
 }
 
 html, body, #root { height: 100%; }
-body { @apply bg-bg text-text antialiased; }
+body { 
+  @apply bg-bg text-text antialiased transition-colors duration-200;
+}
 
 /* Focus ring utility */
 .focus-ring {
-  @apply outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2;
+  @apply outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 dark:focus-visible:ring-offset-gray-900;
 }
 
 /* Modal overlay - extends beyond viewport to cover safe areas */

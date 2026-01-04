@@ -967,7 +967,7 @@ const UploadModal = ({ isOpen, onClose, onUpload, isProcessing }) => {
 
   return (
     <ModalOverlay onClose={isProcessing ? null : onClose} closeOnBackdropClick={!isProcessing}>
-      <div className="bg-white rounded-xl max-w-lg w-full overflow-hidden" onClick={(e) => e.stopPropagation()}>
+      <div className="bg-white dark:bg-gray-800 rounded-xl max-w-lg w-full overflow-hidden" onClick={(e) => e.stopPropagation()}>
         <div className="bg-green-600 text-white px-6 py-4 flex items-center justify-between">
           <h2 className="text-xl font-bold">Upload Registration Form</h2>
           <button
@@ -982,20 +982,20 @@ const UploadModal = ({ isOpen, onClose, onUpload, isProcessing }) => {
         </div>
 
         <div className="p-6">
-        <p className="text-gray-600 text-sm mb-4">
+        <p className="text-gray-600 dark:text-gray-300 text-sm mb-4">
           Upload your CvSU registration form (PDF) to automatically extract your class schedule.
         </p>
 
         {isProcessing ? (
           <div className="flex flex-col items-center justify-center py-12">
             <div className="w-12 h-12 border-4 border-primary/30 border-t-primary rounded-full animate-spin mb-4"></div>
-            <p className="text-gray-600 font-medium">Processing your registration form...</p>
-            <p className="text-gray-500 text-sm mt-1">Extracting schedule data</p>
+            <p className="text-gray-600 dark:text-gray-300 font-medium">Processing your registration form...</p>
+            <p className="text-gray-500 dark:text-gray-400 text-sm mt-1">Extracting schedule data</p>
           </div>
         ) : (
           <div
             className={`border-2 border-dashed rounded-xl p-8 text-center transition-colors ${
-              dragActive ? 'border-primary bg-primary/5' : 'border-gray-300 hover:border-gray-400'
+              dragActive ? 'border-primary bg-primary/5 dark:bg-primary/10' : 'border-gray-300 dark:border-gray-600 hover:border-gray-400 dark:hover:border-gray-500'
             }`}
             onDragEnter={handleDrag}
             onDragLeave={handleDrag}
@@ -1007,10 +1007,10 @@ const UploadModal = ({ isOpen, onClose, onUpload, isProcessing }) => {
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
               </svg>
             </div>
-            <p className="text-gray-700 font-medium mb-2">
+            <p className="text-gray-700 dark:text-gray-300 font-medium mb-2">
               Drag and drop your registration form here
             </p>
-            <p className="text-gray-500 text-sm mb-4">or</p>
+            <p className="text-gray-500 dark:text-gray-400 text-sm mb-4">or</p>
             <button
               onClick={() => fileInputRef.current?.click()}
               className="px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors font-medium"
@@ -1024,7 +1024,7 @@ const UploadModal = ({ isOpen, onClose, onUpload, isProcessing }) => {
               onChange={handleFileSelect}
               className="hidden"
             />
-            <p className="text-gray-400 text-xs mt-4">Supported format: PDF</p>
+            <p className="text-gray-400 dark:text-gray-500 text-xs mt-4">Supported format: PDF</p>
           </div>
         )}
         </div>
@@ -1126,13 +1126,13 @@ const ScheduleDetailModal = ({
         <div className="p-6 overflow-y-auto">
         {/* Irregular Student Section Assignment */}
         {isIrregular && onUpdateClassSection && (
-          <div className="mb-4 p-4 bg-purple-50 border border-purple-200 rounded-lg">
+          <div className="mb-4 p-4 bg-purple-50 dark:bg-purple-900/30 border border-purple-200 dark:border-purple-700 rounded-lg">
             <div className="flex items-start gap-3">
-              <svg className="w-5 h-5 text-purple-600 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className="w-5 h-5 text-purple-600 dark:text-purple-400 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />
               </svg>
               <div className="flex-1">
-                <p className="text-sm font-medium text-purple-800 mb-2">Class Section Assignment</p>
+                <p className="text-sm font-medium text-purple-800 dark:text-purple-300 mb-2">Class Section Assignment</p>
                 {editingSection ? (
                   <div className="space-y-2">
                     <input
@@ -1140,7 +1140,7 @@ const ScheduleDetailModal = ({
                       value={classSection}
                       onChange={(e) => setClassSection(e.target.value.toUpperCase())}
                       placeholder="e.g., BSIT-3A"
-                      className="w-full px-3 py-2 border border-purple-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
+                      className="w-full px-3 py-2 border border-purple-300 dark:border-purple-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
                     />
                     <div className="flex gap-2">
                       <button
@@ -1155,7 +1155,7 @@ const ScheduleDetailModal = ({
                           setClassSection(schedule.classSection || '')
                           setEditingSection(false)
                         }}
-                        className="px-3 py-1.5 bg-gray-200 text-gray-700 text-sm rounded-lg hover:bg-gray-300"
+                        className="px-3 py-1.5 bg-gray-200 dark:bg-gray-600 text-gray-700 dark:text-gray-200 text-sm rounded-lg hover:bg-gray-300 dark:hover:bg-gray-500"
                       >
                         Cancel
                       </button>
@@ -1163,7 +1163,7 @@ const ScheduleDetailModal = ({
                   </div>
                 ) : (
                   <div className="flex items-center gap-2">
-                    <span className="text-sm text-purple-700">
+                    <span className="text-sm text-purple-700 dark:text-purple-300">
                       {schedule.classSection ? schedule.classSection : 'Not set'}
                     </span>
                     <button
@@ -1174,7 +1174,7 @@ const ScheduleDetailModal = ({
                     </button>
                   </div>
                 )}
-                <p className="text-xs text-purple-600 mt-2">
+                <p className="text-xs text-purple-600 dark:text-purple-400 mt-2">
                   As an irregular student, you can specify which section you're joining for this class.
                 </p>
               </div>
@@ -1186,41 +1186,41 @@ const ScheduleDetailModal = ({
         <div className="space-y-4">
           {/* Day */}
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-lg bg-green-100 flex items-center justify-center">
-              <svg className="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <div className="w-10 h-10 rounded-lg bg-green-100 dark:bg-green-900/30 flex items-center justify-center">
+              <svg className="w-5 h-5 text-green-600 dark:text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
               </svg>
             </div>
             <div>
-              <p className="text-sm text-gray-500">Day</p>
-              <p className="font-medium text-gray-900">{schedule.day}</p>
+              <p className="text-sm text-gray-500 dark:text-gray-400">Day</p>
+              <p className="font-medium text-gray-900 dark:text-white">{schedule.day}</p>
             </div>
           </div>
 
           {/* Time */}
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-lg bg-green-100 flex items-center justify-center">
-              <svg className="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <div className="w-10 h-10 rounded-lg bg-green-100 dark:bg-green-900/30 flex items-center justify-center">
+              <svg className="w-5 h-5 text-green-600 dark:text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
             </div>
             <div>
-              <p className="text-sm text-gray-500">Time</p>
-              <p className="font-medium text-gray-900">{schedule.startTime} - {schedule.endTime}</p>
+              <p className="text-sm text-gray-500 dark:text-gray-400">Time</p>
+              <p className="font-medium text-gray-900 dark:text-white">{schedule.startTime} - {schedule.endTime}</p>
             </div>
           </div>
 
           {/* Room */}
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-lg bg-green-100 flex items-center justify-center">
-              <svg className="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <div className="w-10 h-10 rounded-lg bg-green-100 dark:bg-green-900/30 flex items-center justify-center">
+              <svg className="w-5 h-5 text-green-600 dark:text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
               </svg>
             </div>
             <div className="flex-1">
-              <p className="text-sm text-gray-500">Room</p>
-              <p className="font-medium text-gray-900">{schedule.room}</p>
+              <p className="text-sm text-gray-500 dark:text-gray-400">Room</p>
+              <p className="font-medium text-gray-900 dark:text-white">{schedule.room}</p>
             </div>
             {/* Room status indicator - shows real-time status based on current time */}
             {schedule.room && schedule.room !== 'TBA' && (() => {
@@ -1235,7 +1235,7 @@ const ScheduleDetailModal = ({
               if (room) {
                 return (
                   <div className={`px-2 py-1 rounded-full text-xs font-medium ${
-                    isCurrentlyVacant ? 'bg-emerald-100 text-emerald-700' : 'bg-red-100 text-red-700'
+                    isCurrentlyVacant ? 'bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-300' : 'bg-red-100 dark:bg-red-900/40 text-red-700 dark:text-red-300'
                   }`}>
                     {isCurrentlyVacant ? 'Vacant Now' : 'Occupied'}
                     {isThisSlotVacant && !isCurrentlyVacant && (
@@ -1284,14 +1284,14 @@ const ScheduleDetailModal = ({
             // If NO rooms found in system, show message and don't allow toggle
             if (foundRooms.length === 0) {
               return (
-                <div className="p-4 bg-amber-50 border border-amber-200 rounded-lg">
+                <div className="p-4 bg-amber-50 dark:bg-amber-900/30 border border-amber-200 dark:border-amber-700 rounded-lg">
                   <div className="flex items-start gap-3">
-                    <svg className="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <svg className="w-5 h-5 text-amber-600 dark:text-amber-400 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
                     </svg>
                     <div className="flex-1">
-                      <p className="text-sm font-medium text-amber-800 mb-1">Room(s) Not in System</p>
-                      <p className="text-xs text-amber-700">
+                      <p className="text-sm font-medium text-amber-800 dark:text-amber-300 mb-1">Room(s) Not in System</p>
+                      <p className="text-xs text-amber-700 dark:text-amber-400">
                         Room(s) "{roomNames.join(', ')}" not registered in the system. Please contact an admin to add these rooms.
                       </p>
                     </div>
@@ -1301,13 +1301,13 @@ const ScheduleDetailModal = ({
             }
             
             return (
-              <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
+              <div className="p-4 bg-blue-50 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-700 rounded-lg">
                 <div className="flex items-start gap-3">
-                  <svg className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <svg className="w-5 h-5 text-blue-600 dark:text-blue-400 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
                   </svg>
                   <div className="flex-1">
-                    <p className="text-sm font-medium text-blue-800 mb-2">Room Status Control</p>
+                    <p className="text-sm font-medium text-blue-800 dark:text-blue-300 mb-2">Room Status Control</p>
                     
                     {/* Show which rooms will be updated */}
                     {roomNames.length > 1 && (
@@ -1338,7 +1338,7 @@ const ScheduleDetailModal = ({
                       )}
                     </div>
                     
-                    <p className="text-xs text-blue-600 mb-3">
+                    <p className="text-xs text-blue-600 dark:text-blue-400 mb-3">
                       {isThisSlotVacant 
                         ? 'Remove the vacancy marking for this time slot.'
                         : `Mark this room as vacant during ${schedule.startTime} - ${schedule.endTime} on ${schedule.day}.`}
@@ -1379,30 +1379,30 @@ const ScheduleDetailModal = ({
           {/* Schedule Code */}
           {schedule.scheduleCode && (
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-lg bg-yellow-100 flex items-center justify-center">
-                <svg className="w-5 h-5 text-yellow-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <div className="w-10 h-10 rounded-lg bg-yellow-100 dark:bg-yellow-900/30 flex items-center justify-center">
+                <svg className="w-5 h-5 text-yellow-700 dark:text-yellow-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 20l4-16m2 16l4-16M6 9h14M4 15h14" />
                 </svg>
               </div>
               <div>
-                <p className="text-sm text-gray-500">Schedule Code</p>
-                <p className="font-mono font-medium text-gray-900">{schedule.scheduleCode}</p>
+                <p className="text-sm text-gray-500 dark:text-gray-400">Schedule Code</p>
+                <p className="font-mono font-medium text-gray-900 dark:text-white">{schedule.scheduleCode}</p>
               </div>
             </div>
           )}
 
           {/* Professor - Editable */}
           <div className="flex items-start gap-3">
-            <div className="w-10 h-10 rounded-lg bg-green-100 flex items-center justify-center flex-shrink-0">
-              <svg className="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <div className="w-10 h-10 rounded-lg bg-green-100 dark:bg-green-900/30 flex items-center justify-center flex-shrink-0">
+              <svg className="w-5 h-5 text-green-600 dark:text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
               </svg>
             </div>
             <div>
-              <p className="text-sm text-gray-500">Professor</p>
-              <p className="font-medium text-gray-900">{displayProfessor}</p>
+              <p className="text-sm text-gray-500 dark:text-gray-400">Professor</p>
+              <p className="font-medium text-gray-900 dark:text-white">{displayProfessor}</p>
               {displayProfessor === 'TBA' && schedule.scheduleCode && (
-                <p className="text-xs text-gray-400 mt-1">
+                <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">
                   Waiting for faculty to claim this schedule code
                 </p>
               )}
@@ -1413,7 +1413,7 @@ const ScheduleDetailModal = ({
         {/* Close Button */}
         <button
           onClick={onClose}
-          className="w-full mt-6 px-4 py-2.5 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors font-medium"
+          className="w-full mt-6 px-4 py-2.5 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors font-medium"
         >
           Close
         </button>
@@ -1518,14 +1518,14 @@ const ScheduleCard = ({ schedule, style, onClick, classSectionProfessors = {} })
 // Empty State Component
 const EmptyState = ({ onUploadClick }) => {
   return (
-    <div className="bg-white rounded-xl border border-gray-200 p-12 text-center">
+    <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-12 text-center">
       <div className="w-20 h-20 mx-auto mb-4 rounded-full bg-primary/10 flex items-center justify-center">
         <svg className="w-10 h-10 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
         </svg>
       </div>
-      <h2 className="text-xl font-semibold text-gray-900 mb-2">No Schedule Yet</h2>
-      <p className="text-gray-500 max-w-md mx-auto mb-6">
+      <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">No Schedule Yet</h2>
+      <p className="text-gray-500 dark:text-gray-400 max-w-md mx-auto mb-6">
         Upload your registration form to automatically import your class schedule for this semester.
       </p>
       <button
@@ -2087,7 +2087,7 @@ function StudentScheduleView() {
       {isLoading && (
         <div className="flex flex-col items-center justify-center py-20">
           <div className="w-12 h-12 border-4 border-primary/30 border-t-primary rounded-full animate-spin mb-4"></div>
-          <p className="text-gray-600 font-medium">Loading your schedule...</p>
+          <p className="text-gray-600 dark:text-gray-300 font-medium">Loading your schedule...</p>
         </div>
       )}
 
@@ -2096,10 +2096,10 @@ function StudentScheduleView() {
           {/* Header */}
           <div className="flex items-start justify-between">
             <div>
-              <h1 className="text-2xl font-bold text-gray-900">Schedule</h1>
-              <p className="text-gray-600 mt-1">View your class schedule for this semester</p>
+              <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Schedule</h1>
+              <p className="text-gray-600 dark:text-gray-400 mt-1">View your class schedule for this semester</p>
               {userProfile && (
-                <p className="text-sm text-gray-500 mt-1">
+                <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
                   Logged in as: {userProfile.firstName} {userProfile.lastName}
                 </p>
               )}
@@ -2109,7 +2109,7 @@ function StudentScheduleView() {
                 <button
                   onClick={handleClearSchedule}
                   disabled={isSaving}
-                  className="px-4 py-2 text-sm font-medium text-red-600 bg-red-50 rounded-lg hover:bg-red-100 transition-colors disabled:opacity-50"
+                  className="px-4 py-2 text-sm font-medium text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/30 rounded-lg hover:bg-red-100 dark:hover:bg-red-900/50 transition-colors disabled:opacity-50"
                 >
                   {isSaving ? 'Clearing...' : 'Clear Schedule'}
                 </button>
@@ -2128,44 +2128,44 @@ function StudentScheduleView() {
 
       {/* Student Info Card */}
       {scheduleData.length > 0 && (studentInfo.semester || studentInfo.schoolYear || studentInfo.course || studentInfo.yearLevel) && (
-        <div className="bg-primary/5 border border-primary/20 rounded-xl p-5">
+        <div className="bg-primary/5 dark:bg-primary/10 border border-primary/20 dark:border-primary/30 rounded-xl p-5">
           <div className="flex items-center gap-3 mb-4">
             <div className="w-10 h-10 bg-primary/20 rounded-full flex items-center justify-center">
               <svg className="w-5 h-5 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
               </svg>
             </div>
-            <h3 className="text-lg font-semibold text-gray-800">Student Information</h3>
+            <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-100">Student Information</h3>
           </div>
           <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
             {studentInfo.semester && (
-              <div className="bg-white/60 rounded-lg p-3 border border-white/50">
-                <p className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-1">Semester</p>
-                <p className="text-sm font-semibold text-gray-800">{studentInfo.semester}</p>
+              <div className="bg-white/60 dark:bg-gray-700/60 rounded-lg p-3 border border-white/50 dark:border-gray-600/50">
+                <p className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1">Semester</p>
+                <p className="text-sm font-semibold text-gray-800 dark:text-gray-100">{studentInfo.semester}</p>
               </div>
             )}
             {studentInfo.schoolYear && (
-              <div className="bg-white/60 rounded-lg p-3 border border-white/50">
-                <p className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-1">School Year</p>
-                <p className="text-sm font-semibold text-gray-800">{studentInfo.schoolYear}</p>
+              <div className="bg-white/60 dark:bg-gray-700/60 rounded-lg p-3 border border-white/50 dark:border-gray-600/50">
+                <p className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1">School Year</p>
+                <p className="text-sm font-semibold text-gray-800 dark:text-gray-100">{studentInfo.schoolYear}</p>
               </div>
             )}
             {studentInfo.course && (
-              <div className="bg-white/60 rounded-lg p-3 border border-white/50">
-                <p className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-1">Course</p>
-                <p className="text-sm font-semibold text-gray-800">{studentInfo.course}</p>
+              <div className="bg-white/60 dark:bg-gray-700/60 rounded-lg p-3 border border-white/50 dark:border-gray-600/50">
+                <p className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1">Course</p>
+                <p className="text-sm font-semibold text-gray-800 dark:text-gray-100">{studentInfo.course}</p>
               </div>
             )}
             {studentInfo.yearLevel && (
-              <div className="bg-white/60 rounded-lg p-3 border border-white/50">
-                <p className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-1">Year Level</p>
-                <p className="text-sm font-semibold text-gray-800">{studentInfo.yearLevel}</p>
+              <div className="bg-white/60 dark:bg-gray-700/60 rounded-lg p-3 border border-white/50 dark:border-gray-600/50">
+                <p className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1">Year Level</p>
+                <p className="text-sm font-semibold text-gray-800 dark:text-gray-100">{studentInfo.yearLevel}</p>
               </div>
             )}
             {studentInfo.section && (
-              <div className="bg-white/60 rounded-lg p-3 border border-white/50">
-                <p className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-1">Section</p>
-                <p className="text-sm font-semibold text-gray-800">{studentInfo.section}</p>
+              <div className="bg-white/60 dark:bg-gray-700/60 rounded-lg p-3 border border-white/50 dark:border-gray-600/50">
+                <p className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1">Section</p>
+                <p className="text-sm font-semibold text-gray-800 dark:text-gray-100">{studentInfo.section}</p>
               </div>
             )}
           </div>
@@ -2174,11 +2174,11 @@ function StudentScheduleView() {
 
       {/* Success Message */}
       {uploadSuccess && (
-        <div className="bg-green-50 border border-green-200 rounded-lg p-4 flex items-center gap-3">
-          <svg className="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <div className="bg-green-50 dark:bg-green-900/30 border border-green-200 dark:border-green-700 rounded-lg p-4 flex items-center gap-3">
+          <svg className="w-5 h-5 text-green-600 dark:text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
           </svg>
-          <p className="text-green-800 font-medium">Schedule successfully extracted from registration form!</p>
+          <p className="text-green-800 dark:text-green-300 font-medium">Schedule successfully extracted from registration form!</p>
         </div>
       )}
 
@@ -2191,39 +2191,39 @@ function StudentScheduleView() {
             <div className="flex items-center gap-2">
               <button
                 onClick={goToPreviousWeek}
-                className="p-2 rounded-lg border border-gray-300 hover:bg-gray-50 transition-colors"
+                className="p-2 rounded-lg border border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
               >
-                <svg className="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg className="w-5 h-5 text-gray-600 dark:text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
                 </svg>
               </button>
               <button
                 onClick={goToCurrentWeek}
-                className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+                className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors"
               >
                 This Week
               </button>
               <button
                 onClick={goToNextWeek}
-                className="p-2 rounded-lg border border-gray-300 hover:bg-gray-50 transition-colors"
+                className="p-2 rounded-lg border border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
               >
-                <svg className="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg className="w-5 h-5 text-gray-600 dark:text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                 </svg>
               </button>
-              <span className="ml-2 text-sm text-gray-500">
+              <span className="ml-2 text-sm text-gray-500 dark:text-gray-400">
                 {scheduleData.length} class{scheduleData.length !== 1 ? 'es' : ''}
               </span>
             </div>
             
             {/* View Toggle */}
-            <div className="flex items-center bg-gray-100 rounded-lg p-1">
+            <div className="flex items-center bg-gray-100 dark:bg-gray-700 rounded-lg p-1">
               <button
                 onClick={() => setViewMode('grid')}
                 className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
                   viewMode === 'grid' 
-                    ? 'bg-white text-gray-900 shadow-sm' 
-                    : 'text-gray-600 hover:text-gray-900'
+                    ? 'bg-white dark:bg-gray-600 text-gray-900 dark:text-white shadow-sm' 
+                    : 'text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white'
                 }`}
               >
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -2235,8 +2235,8 @@ function StudentScheduleView() {
                 onClick={() => setViewMode('list')}
                 className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
                   viewMode === 'list' 
-                    ? 'bg-white text-gray-900 shadow-sm' 
-                    : 'text-gray-600 hover:text-gray-900'
+                    ? 'bg-white dark:bg-gray-600 text-gray-900 dark:text-white shadow-sm' 
+                    : 'text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white'
                 }`}
               >
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -2249,18 +2249,18 @@ function StudentScheduleView() {
 
           {/* List View */}
           {viewMode === 'list' && (
-            <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
-              <div className="divide-y divide-gray-100">
+            <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden">
+              <div className="divide-y divide-gray-100 dark:divide-gray-700">
                 {days.map((day) => {
                   const daySchedules = getSchedulesForDay(day)
                   if (daySchedules.length === 0) return null
                   
                   return (
                     <div key={day}>
-                      <div className="bg-gray-50 px-4 py-2 border-b border-gray-200">
-                        <h3 className="font-semibold text-gray-700">{day}</h3>
+                      <div className="bg-gray-50 dark:bg-gray-700 px-4 py-2 border-b border-gray-200 dark:border-gray-600">
+                        <h3 className="font-semibold text-gray-700 dark:text-gray-200">{day}</h3>
                       </div>
-                      <div className="divide-y divide-gray-50">
+                      <div className="divide-y divide-gray-50 dark:divide-gray-700">
                         {daySchedules
                           .sort((a, b) => a.startTime.localeCompare(b.startTime))
                           .map((schedule) => {
@@ -2273,24 +2273,24 @@ function StudentScheduleView() {
                               <div
                                 key={schedule.id}
                                 onClick={() => handleScheduleClick(schedule)}
-                                className="px-4 py-3 hover:bg-gray-50 cursor-pointer transition-colors flex items-start gap-4"
+                                className="px-4 py-3 hover:bg-gray-50 dark:hover:bg-gray-700 cursor-pointer transition-colors flex items-start gap-4"
                               >
                                 <div className="flex-shrink-0 w-20 text-center">
                                   <div className="text-sm font-semibold text-primary">{schedule.startTime}</div>
-                                  <div className="text-xs text-gray-400">to</div>
+                                  <div className="text-xs text-gray-400 dark:text-gray-500">to</div>
                                   <div className="text-sm font-semibold text-primary">{schedule.endTime}</div>
                                 </div>
                                 <div className="flex-1 min-w-0">
-                                  <h4 className="font-semibold text-gray-900">{schedule.subject}</h4>
-                                  <div className="flex flex-wrap items-center gap-x-3 gap-y-1 mt-1 text-sm text-gray-600">
+                                  <h4 className="font-semibold text-gray-900 dark:text-white">{schedule.subject}</h4>
+                                  <div className="flex flex-wrap items-center gap-x-3 gap-y-1 mt-1 text-sm text-gray-600 dark:text-gray-400">
                                     <span className="flex items-center gap-1">
-                                      <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                      <svg className="w-4 h-4 text-gray-400 dark:text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
                                       </svg>
                                       {schedule.room}
                                     </span>
                                     <span className="flex items-center gap-1">
-                                      <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                      <svg className="w-4 h-4 text-gray-400 dark:text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
                                       </svg>
                                       {professorName}
@@ -2302,7 +2302,7 @@ function StudentScheduleView() {
                                     {displaySection}
                                   </span>
                                   {schedule.scheduleCode && (
-                                    <span className="px-2 py-0.5 bg-yellow-100 text-yellow-800 rounded text-xs font-mono">
+                                    <span className="px-2 py-0.5 bg-yellow-100 dark:bg-yellow-900/40 text-yellow-800 dark:text-yellow-300 rounded text-xs font-mono">
                                       {schedule.scheduleCode}
                                     </span>
                                   )}
@@ -2320,18 +2320,18 @@ function StudentScheduleView() {
 
           {/* Grid View - Schedule Grid */}
           {viewMode === 'grid' && (
-          <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+          <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden">
             <div className="overflow-x-auto">
               <div className="min-w-[900px]">
                 {/* Header Row */}
-                <div className="grid grid-cols-[80px_repeat(6,1fr)] border-b border-gray-200">
-                  <div className="p-3 text-sm font-semibold text-gray-600 bg-gray-50 border-r border-gray-200">
+                <div className="grid grid-cols-[80px_repeat(6,1fr)] border-b border-gray-200 dark:border-gray-700">
+                  <div className="p-3 text-sm font-semibold text-gray-600 dark:text-gray-300 bg-gray-50 dark:bg-gray-700 border-r border-gray-200 dark:border-gray-700">
                     Time
                   </div>
                   {days.map((day) => (
                     <div
                       key={day}
-                      className="p-3 text-sm font-semibold text-gray-600 bg-gray-50 text-center border-r border-gray-200 last:border-r-0"
+                      className="p-3 text-sm font-semibold text-gray-600 dark:text-gray-300 bg-gray-50 dark:bg-gray-700 text-center border-r border-gray-200 dark:border-gray-700 last:border-r-0"
                     >
                       {day}
                     </div>
@@ -2341,11 +2341,11 @@ function StudentScheduleView() {
                 {/* Time Slots Grid */}
                 <div className="grid grid-cols-[80px_repeat(6,1fr)]">
                   {/* Time Column */}
-                  <div className="border-r border-gray-200 bg-gray-50">
+                  <div className="border-r border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-700">
                     {timeSlots.map((time) => (
                       <div
                         key={time}
-                        className="h-[50px] px-2 flex items-start pt-1 text-xs text-gray-500 border-b border-gray-100 font-medium"
+                        className="h-[50px] px-2 flex items-start pt-1 text-xs text-gray-500 dark:text-gray-400 border-b border-gray-100 dark:border-gray-600 font-medium"
                       >
                         {time}
                       </div>
@@ -2354,12 +2354,12 @@ function StudentScheduleView() {
 
                   {/* Day Columns */}
                   {days.map((day) => (
-                    <div key={day} className="relative border-r border-gray-200 last:border-r-0 min-w-0">
+                    <div key={day} className="relative border-r border-gray-200 dark:border-gray-700 last:border-r-0 min-w-0">
                       {/* Time slot backgrounds */}
                       {timeSlots.map((time) => (
                         <div
                           key={`${day}-${time}`}
-                          className="h-[50px] border-b border-gray-100"
+                          className="h-[50px] border-b border-gray-100 dark:border-gray-700"
                         />
                       ))}
 
@@ -2420,7 +2420,7 @@ function StudentScheduleView() {
       {/* Error Modal */}
       {errorModal.isOpen && (
         <ModalOverlay onClose={() => setErrorModal({ isOpen: false, title: '', message: '' })}>
-          <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full overflow-hidden animate-in fade-in zoom-in duration-200">
+          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-w-md w-full overflow-hidden animate-in fade-in zoom-in duration-200">
             {/* Header with error icon */}
             <div className="bg-red-500 px-6 py-8 text-center">
               <div className="w-16 h-16 bg-white/20 rounded-full flex items-center justify-center mx-auto mb-4">
@@ -2434,24 +2434,24 @@ function StudentScheduleView() {
             {/* Content */}
             <div className="px-6 py-6">
               <div className="flex items-start gap-3 mb-4">
-                <div className="w-10 h-10 bg-red-100 rounded-full flex items-center justify-center flex-shrink-0">
-                  <svg className="w-5 h-5 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <div className="w-10 h-10 bg-red-100 dark:bg-red-900/40 rounded-full flex items-center justify-center flex-shrink-0">
+                  <svg className="w-5 h-5 text-red-600 dark:text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
                   </svg>
                 </div>
                 <div>
-                  <p className="text-gray-800 font-medium">{errorModal.message}</p>
-                  <p className="text-gray-500 text-sm mt-1">{errorModal.details}</p>
+                  <p className="text-gray-800 dark:text-gray-100 font-medium">{errorModal.message}</p>
+                  <p className="text-gray-500 dark:text-gray-400 text-sm mt-1">{errorModal.details}</p>
                 </div>
               </div>
               
               {/* Info box */}
-              <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 mb-6">
+              <div className="bg-amber-50 dark:bg-amber-900/30 border border-amber-200 dark:border-amber-700 rounded-lg p-4 mb-6">
                 <div className="flex items-start gap-2">
-                  <svg className="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <svg className="w-5 h-5 text-amber-600 dark:text-amber-400 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                   </svg>
-                  <p className="text-amber-800 text-sm">
+                  <p className="text-amber-800 dark:text-amber-300 text-sm">
                     Only registration forms from the current school year are accepted to ensure your schedule is up to date.
                   </p>
                 </div>

@@ -685,8 +685,8 @@ export default function UserManagement() {
 
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">User Management</h1>
-          <p className="text-gray-600 mt-1">Manage users and assign roles.</p>
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">User Management</h1>
+          <p className="text-gray-600 dark:text-gray-400 mt-1">Manage users and assign roles.</p>
         </div>
         <div className="flex items-center gap-3">
           <button 
@@ -702,14 +702,14 @@ export default function UserManagement() {
       </div>
 
       {/* Role Assignment Info */}
-      <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+      <div className="bg-blue-50 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
         <div className="flex items-start gap-3">
-          <svg className="w-5 h-5 text-blue-600 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <svg className="w-5 h-5 text-blue-600 dark:text-blue-400 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
           </svg>
           <div>
-            <p className="text-sm font-medium text-blue-900">Your Role: {ROLE_DISPLAY_NAMES[userProfile?.role]}</p>
-            <p className="text-sm text-blue-700 mt-1">
+            <p className="text-sm font-medium text-blue-900 dark:text-blue-300">Your Role: {ROLE_DISPLAY_NAMES[userProfile?.role]}</p>
+            <p className="text-sm text-blue-700 dark:text-blue-400 mt-1">
               You can assign the following roles: {' '}
               {assignableRoles.length > 0 
                 ? assignableRoles.map(r => ROLE_DISPLAY_NAMES[r]).join(', ')
@@ -720,18 +720,18 @@ export default function UserManagement() {
       </div>
 
       {/* User Table */}
-      <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+      <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden">
         {/* Table Header */}
-        <div className="px-4 sm:px-6 py-4 border-b border-gray-200 flex flex-col sm:flex-row gap-3 sm:items-center sm:justify-between">
+        <div className="px-4 sm:px-6 py-4 border-b border-gray-200 dark:border-gray-700 flex flex-col sm:flex-row gap-3 sm:items-center sm:justify-between">
           <div className="relative flex-1 sm:flex-none">
             <input
               type="text"
               placeholder="Search users..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full sm:w-64 pl-10 pr-4 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
+              className="w-full sm:w-64 pl-10 pr-4 py-2 text-sm border border-gray-200 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500"
             />
-            <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 dark:text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
             </svg>
           </div>
@@ -739,7 +739,7 @@ export default function UserManagement() {
             <select 
               value={roleFilter}
               onChange={(e) => setRoleFilter(e.target.value)}
-              className="w-full sm:w-auto text-sm border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary/20"
+              className="w-full sm:w-auto text-sm border border-gray-200 dark:border-gray-600 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary/20 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
             >
               <option value="">All Roles</option>
               {Object.entries(ROLE_DISPLAY_NAMES).map(([key, name]) => (
@@ -753,27 +753,27 @@ export default function UserManagement() {
         {loading && (
           <div className="px-6 py-12 text-center">
             <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-            <p className="text-gray-500">Loading users...</p>
+            <p className="text-gray-500 dark:text-gray-400">Loading users...</p>
           </div>
         )}
 
         {/* Error State */}
         {error && !loading && (
           <div className="px-6 py-12 text-center">
-            <svg className="w-12 h-12 text-red-400 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg className="w-12 h-12 text-red-400 dark:text-red-500 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>
-            <p className="text-red-600">{error}</p>
+            <p className="text-red-600 dark:text-red-400">{error}</p>
           </div>
         )}
 
         {/* Empty State */}
         {!loading && !error && filteredUsers.length === 0 && (
           <div className="px-6 py-12 text-center">
-            <svg className="w-12 h-12 text-gray-300 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg className="w-12 h-12 text-gray-300 dark:text-gray-600 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
             </svg>
-            <p className="text-gray-500">
+            <p className="text-gray-500 dark:text-gray-400">
               {searchQuery || roleFilter ? 'No users found matching your criteria.' : 'No users found.'}
             </p>
           </div>
@@ -783,30 +783,30 @@ export default function UserManagement() {
         {!loading && !error && filteredUsers.length > 0 && (
           <div className="overflow-x-auto">
             <table className="w-full">
-              <thead className="bg-gray-50 border-b border-gray-200">
+              <thead className="bg-gray-50 dark:bg-gray-700 border-b border-gray-200 dark:border-gray-600">
                 <tr>
-                  <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase">User</th>
-                  <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Email</th>
-                  <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Role</th>
-                  <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Tags</th>
-                  <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Created</th>
-                  <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Status</th>
+                  <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase">User</th>
+                  <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase">Email</th>
+                  <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase">Role</th>
+                  <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase">Tags</th>
+                  <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase">Created</th>
+                  <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase">Status</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-gray-200">
+              <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
                 {currentUsers.map((user) => (
-                  <tr key={user.id} className="hover:bg-gray-50">
+                  <tr key={user.id} className="hover:bg-gray-50 dark:hover:bg-gray-700/50">
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-3">
                         <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
                           <span className="text-primary font-semibold text-xs">{getInitials(user)}</span>
                         </div>
-                        <span className="text-sm font-medium text-gray-900">
+                        <span className="text-sm font-medium text-gray-900 dark:text-white">
                           {user.givenName} {user.lastName}
                         </span>
                       </div>
                     </td>
-                    <td className="px-6 py-4 text-sm text-gray-500">{user.email}</td>
+                    <td className="px-6 py-4 text-sm text-gray-500 dark:text-gray-400">{user.email}</td>
                     <td className="px-6 py-4">
                       {canChangeUserRole(user) ? (
                         <div className="relative">
@@ -814,7 +814,7 @@ export default function UserManagement() {
                             value={user.role}
                             onChange={(e) => handleRoleChange(user.id, e.target.value)}
                             disabled={updatingUserId === user.id}
-                            className={`text-xs font-medium rounded-lg px-3 py-1.5 border border-gray-300 bg-white text-gray-700 cursor-pointer focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary appearance-none pr-8 ${updatingUserId === user.id ? 'opacity-50' : ''}`}
+                            className={`text-xs font-medium rounded-lg px-3 py-1.5 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-200 cursor-pointer focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary appearance-none pr-8 ${updatingUserId === user.id ? 'opacity-50' : ''}`}
                             style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%236b7280'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'/%3E%3C/svg%3E")`, backgroundRepeat: 'no-repeat', backgroundPosition: 'right 0.5rem center', backgroundSize: '1rem' }}
                           >
                             <option value={user.role}>{ROLE_DISPLAY_NAMES[user.role]}</option>
@@ -878,7 +878,7 @@ export default function UserManagement() {
                               setFacultyOrgs([])
                             }
                           }}
-                          className="p-1 text-gray-400 hover:text-primary hover:bg-gray-100 rounded"
+                          className="p-1 text-gray-400 dark:text-gray-500 hover:text-primary hover:bg-gray-100 dark:hover:bg-gray-700 rounded"
                           title="View tags"
                         >
                           <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -888,7 +888,7 @@ export default function UserManagement() {
                         </button>
                       </div>
                     </td>
-                    <td className="px-6 py-4 text-sm text-gray-500">
+                    <td className="px-6 py-4 text-sm text-gray-500 dark:text-gray-400">
                       {formatDate(user.createdAt)}
                     </td>
                     <td className="px-6 py-4">
@@ -906,25 +906,25 @@ export default function UserManagement() {
 
         {/* Pagination */}
         {!loading && !error && filteredUsers.length > 0 && (
-          <div className="px-6 py-4 border-t border-gray-200 flex items-center justify-between">
-            <p className="text-sm text-gray-500">
+          <div className="px-6 py-4 border-t border-gray-200 dark:border-gray-700 flex items-center justify-between">
+            <p className="text-sm text-gray-500 dark:text-gray-400">
               Showing {indexOfFirstUser + 1}-{Math.min(indexOfLastUser, filteredUsers.length)} of {filteredUsers.length} users
             </p>
             <div className="flex items-center gap-2">
               <button 
                 onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
                 disabled={currentPage === 1}
-                className="px-3 py-1.5 text-sm border border-gray-200 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="px-3 py-1.5 text-sm border border-gray-200 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed text-gray-700 dark:text-gray-300"
               >
                 Previous
               </button>
-              <span className="text-sm text-gray-600">
+              <span className="text-sm text-gray-600 dark:text-gray-400">
                 Page {currentPage} of {totalPages}
               </span>
               <button 
                 onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
                 disabled={currentPage === totalPages}
-                className="px-3 py-1.5 text-sm border border-gray-200 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="px-3 py-1.5 text-sm border border-gray-200 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed text-gray-700 dark:text-gray-300"
               >
                 Next
               </button>
@@ -962,7 +962,7 @@ export default function UserManagement() {
           />
           
           {/* Modal */}
-          <div className="relative bg-white rounded-xl shadow-xl w-full max-w-md mx-4 max-h-[90vh] overflow-hidden flex flex-col">
+          <div className="relative bg-white dark:bg-gray-800 rounded-xl shadow-xl w-full max-w-md mx-4 max-h-[90vh] overflow-hidden flex flex-col">
             {/* Header */}
             <div className="bg-green-600 text-white px-6 py-4 flex items-center justify-between flex-shrink-0">
               <div>
@@ -993,24 +993,24 @@ export default function UserManagement() {
             <div className="p-6 overflow-y-auto">
             {/* Faculty Department & Organization Section */}
             {(tagModalUser.role === ROLES.FACULTY || tagModalUser.role === 'faculty') && (
-              <div className="mb-6 p-4 bg-purple-50 border border-purple-200 rounded-xl">
+              <div className="mb-6 p-4 bg-purple-50 dark:bg-purple-900/30 border border-purple-200 dark:border-purple-800 rounded-xl">
                 <div className="flex items-center gap-2 mb-3">
-                  <svg className="w-5 h-5 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <svg className="w-5 h-5 text-purple-600 dark:text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
                   </svg>
-                  <h4 className="font-semibold text-purple-900">Faculty Department & Organizations</h4>
+                  <h4 className="font-semibold text-purple-900 dark:text-purple-300">Faculty Department & Organizations</h4>
                 </div>
                 
                 {/* Department Selection */}
                 <div className="mb-3">
-                  <label className="text-xs font-medium text-purple-700 mb-1.5 block">Department</label>
+                  <label className="text-xs font-medium text-purple-700 dark:text-purple-300 mb-1.5 block">Department</label>
                   <select
                     value={facultyDepartment}
                     onChange={(e) => {
                       setFacultyDepartment(e.target.value)
                       setFacultyOrgs([]) // Reset orgs when department changes
                     }}
-                    className="w-full px-3 py-2 text-sm border border-purple-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent bg-white"
+                    className="w-full px-3 py-2 text-sm border border-purple-200 dark:border-purple-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
                   >
                     <option value="">Select Department</option>
                     {DEPARTMENTS.map((dept) => (
@@ -1024,7 +1024,7 @@ export default function UserManagement() {
                 {/* Linked Organizations */}
                 {facultyDepartment && getAvailableOrgsForDept(facultyDepartment).length > 0 && (
                   <div className="mb-3">
-                    <label className="text-xs font-medium text-purple-700 mb-1.5 block">
+                    <label className="text-xs font-medium text-purple-700 dark:text-purple-300 mb-1.5 block">
                       Linked Organizations (for {DEPARTMENT_CODES[facultyDepartment]})
                     </label>
                     <div className="flex flex-wrap gap-2">
@@ -1036,7 +1036,7 @@ export default function UserManagement() {
                           className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-all ${
                             facultyOrgs.includes(org.code)
                               ? 'bg-purple-600 text-white shadow-sm'
-                              : 'bg-white border border-purple-200 text-purple-700 hover:bg-purple-100'
+                              : 'bg-white dark:bg-gray-700 border border-purple-200 dark:border-purple-600 text-purple-700 dark:text-purple-300 hover:bg-purple-100 dark:hover:bg-purple-900/50'
                           }`}
                         >
                           {org.code}
@@ -1048,8 +1048,8 @@ export default function UserManagement() {
                 
                 {/* Current Faculty Info Display */}
                 {tagModalUser.department && (
-                  <div className="mb-3 p-2 bg-white rounded-lg border border-purple-100">
-                    <p className="text-xs text-purple-600">
+                  <div className="mb-3 p-2 bg-white dark:bg-gray-700 rounded-lg border border-purple-100 dark:border-purple-700">
+                    <p className="text-xs text-purple-600 dark:text-purple-400">
                       <span className="font-medium">Current:</span> {tagModalUser.departmentCode || DEPARTMENT_CODES[tagModalUser.department]}
                       {tagModalUser.linkedOrganizations?.length > 0 && (
                         <span> → {tagModalUser.linkedOrganizations.join(', ')}</span>
@@ -1075,11 +1075,11 @@ export default function UserManagement() {
             
             {/* Current Tags */}
             <div className="mb-4">
-              <label className="text-sm font-medium text-gray-700 mb-2 block">Current Tags</label>
-              <p className="text-xs text-gray-500 mb-2">Tags are automatically assigned through organization tagging in the Organizations page</p>
-              <div className="flex flex-wrap gap-2 min-h-[40px] p-3 bg-gray-50 rounded-lg">
+              <label className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 block">Current Tags</label>
+              <p className="text-xs text-gray-500 dark:text-gray-400 mb-2">Tags are automatically assigned through organization tagging in the Organizations page</p>
+              <div className="flex flex-wrap gap-2 min-h-[40px] p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
                 {(tagModalUser.tags || []).length === 0 ? (
-                  <span className="text-sm text-gray-400">No tags yet</span>
+                  <span className="text-sm text-gray-400 dark:text-gray-500">No tags yet</span>
                 ) : (
                   (tagModalUser.tags || []).map((tag, idx) => (
                     <span 
@@ -1125,7 +1125,7 @@ export default function UserManagement() {
             style={{ top: 0, left: 0, right: 0, bottom: 0 }}
             onClick={resetAddUserForm}
           />
-          <div className="relative bg-white rounded-xl shadow-xl w-full max-w-md mx-4 max-h-[90vh] overflow-hidden flex flex-col">
+          <div className="relative bg-white dark:bg-gray-800 rounded-xl shadow-xl w-full max-w-md mx-4 max-h-[90vh] overflow-hidden flex flex-col">
             {/* Header */}
             <div className="bg-green-600 text-white px-6 py-4 flex items-center justify-between flex-shrink-0">
               <div className="flex items-center gap-3">
@@ -1150,7 +1150,7 @@ export default function UserManagement() {
             <div className="p-6 overflow-y-auto">
             {/* Error Message */}
             {addUserError && (
-              <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-600">
+              <div className="mb-4 p-3 bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-800 rounded-lg text-sm text-red-600 dark:text-red-400">
                 {addUserError}
               </div>
             )}
@@ -1159,66 +1159,66 @@ export default function UserManagement() {
             <form onSubmit={handleAddUser} className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="text-sm font-medium text-gray-700 mb-1 block">First Name</label>
+                  <label className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-1 block">First Name</label>
                   <input
                     type="text"
                     value={newUser.givenName}
                     onChange={(e) => setNewUser(prev => ({ ...prev, givenName: e.target.value }))}
                     placeholder="John"
-                    className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
+                    className="w-full px-3 py-2 text-sm border border-gray-200 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500"
                     required
                   />
                 </div>
                 <div>
-                  <label className="text-sm font-medium text-gray-700 mb-1 block">Last Name</label>
+                  <label className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-1 block">Last Name</label>
                   <input
                     type="text"
                     value={newUser.lastName}
                     onChange={(e) => setNewUser(prev => ({ ...prev, lastName: e.target.value }))}
                     placeholder="Doe"
-                    className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
+                    className="w-full px-3 py-2 text-sm border border-gray-200 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500"
                     required
                   />
                 </div>
               </div>
 
               <div>
-                <label className="text-sm font-medium text-gray-700 mb-1 block">Email Address</label>
+                <label className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-1 block">Email Address</label>
                 <input
                   type="email"
                   value={newUser.email}
                   onChange={(e) => setNewUser(prev => ({ ...prev, email: e.target.value }))}
                   placeholder={`user@${ALLOWED_DOMAIN}`}
-                  className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
+                  className="w-full px-3 py-2 text-sm border border-gray-200 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500"
                   required
                 />
               </div>
 
               <div>
-                <label className="text-sm font-medium text-gray-700 mb-1 block">Password</label>
+                <label className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-1 block">Password</label>
                 <input
                   type="password"
                   value={newUser.password}
                   onChange={(e) => setNewUser(prev => ({ ...prev, password: e.target.value }))}
                   placeholder="Minimum 8 characters"
-                  className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
+                  className="w-full px-3 py-2 text-sm border border-gray-200 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500"
                   required
                   minLength={8}
                 />
               </div>
 
               <div>
-                <label className="text-sm font-medium text-gray-700 mb-1 block">Role</label>
+                <label className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-1 block">Role</label>
                 <select
                   value={newUser.role}
                   onChange={(e) => setNewUser(prev => ({ ...prev, role: e.target.value }))}
-                  className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
+                  className="w-full px-3 py-2 text-sm border border-gray-200 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
                 >
                   {assignableRoles.map(role => (
                     <option key={role} value={role}>{ROLE_DISPLAY_NAMES[role]}</option>
                   ))}
                 </select>
-                <p className="text-xs text-gray-500 mt-1">You can only assign roles below your level</p>
+                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">You can only assign roles below your level</p>
               </div>
 
               {/* Actions */}
@@ -1226,7 +1226,7 @@ export default function UserManagement() {
                 <button
                   type="button"
                   onClick={resetAddUserForm}
-                  className="flex-1 px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
+                  className="flex-1 px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
                 >
                   Cancel
                 </button>

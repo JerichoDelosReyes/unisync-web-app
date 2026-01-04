@@ -518,8 +518,8 @@ export default function Rooms() {
       {/* Header */}
       <div className="flex flex-col gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Room Status</h1>
-          <p className="text-gray-600 mt-1">View room availability and schedules across buildings.</p>
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Room Status</h1>
+          <p className="text-gray-600 dark:text-gray-400 mt-1">View room availability and schedules across buildings.</p>
         </div>
         
         <div className="flex flex-col sm:flex-row sm:items-center gap-3">
@@ -566,11 +566,11 @@ export default function Rooms() {
           <div className="flex items-center gap-3 sm:gap-4 text-sm sm:ml-auto overflow-x-auto">
             <div className="flex items-center gap-1.5 sm:gap-2 flex-shrink-0">
               <div className="w-3 h-3 sm:w-4 sm:h-4 rounded-full bg-emerald-500"></div>
-              <span className="text-gray-600 whitespace-nowrap">Vacant</span>
+              <span className="text-gray-600 dark:text-gray-400 whitespace-nowrap">Vacant</span>
             </div>
             <div className="flex items-center gap-1.5 sm:gap-2 flex-shrink-0">
               <div className="w-3 h-3 sm:w-4 sm:h-4 rounded-full bg-red-500"></div>
-              <span className="text-gray-600 whitespace-nowrap">Occupied</span>
+              <span className="text-gray-600 dark:text-gray-400 whitespace-nowrap">Occupied</span>
             </div>
           </div>
         </div>
@@ -578,23 +578,23 @@ export default function Rooms() {
 
       {/* Stats Cards */}
       <div className="grid grid-cols-3 gap-2 sm:gap-4">
-        <div className="bg-white rounded-xl border border-gray-200 p-3 sm:p-4 text-center">
-          <p className="text-xl sm:text-3xl font-bold text-gray-900">{stats.total}</p>
-          <p className="text-xs sm:text-sm text-gray-500">Total Rooms</p>
+        <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-3 sm:p-4 text-center">
+          <p className="text-xl sm:text-3xl font-bold text-gray-900 dark:text-white">{stats.total}</p>
+          <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400">Total Rooms</p>
         </div>
-        <div className="bg-emerald-50 rounded-xl border border-emerald-200 p-3 sm:p-4 text-center">
-          <p className="text-xl sm:text-3xl font-bold text-emerald-600">{stats.vacant}</p>
-          <p className="text-xs sm:text-sm text-emerald-600">Vacant</p>
+        <div className="bg-emerald-50 dark:bg-emerald-900/30 rounded-xl border border-emerald-200 dark:border-emerald-800 p-3 sm:p-4 text-center">
+          <p className="text-xl sm:text-3xl font-bold text-emerald-600 dark:text-emerald-400">{stats.vacant}</p>
+          <p className="text-xs sm:text-sm text-emerald-600 dark:text-emerald-400">Vacant</p>
         </div>
-        <div className="bg-red-50 rounded-xl border border-red-200 p-3 sm:p-4 text-center">
-          <p className="text-xl sm:text-3xl font-bold text-red-600">{stats.occupied}</p>
-          <p className="text-xs sm:text-sm text-red-600">Occupied</p>
+        <div className="bg-red-50 dark:bg-red-900/30 rounded-xl border border-red-200 dark:border-red-800 p-3 sm:p-4 text-center">
+          <p className="text-xl sm:text-3xl font-bold text-red-600 dark:text-red-400">{stats.occupied}</p>
+          <p className="text-xs sm:text-sm text-red-600 dark:text-red-400">Occupied</p>
         </div>
       </div>
 
       {/* Building Tabs */}
-      <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
-        <div className="flex border-b border-gray-200">
+      <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden">
+        <div className="flex border-b border-gray-200 dark:border-gray-700">
           {Object.entries(BUILDING_OPTIONS).map(([key, building]) => (
             <button
               key={key}
@@ -602,7 +602,7 @@ export default function Rooms() {
               className={`flex-1 px-6 py-4 text-sm font-semibold transition-colors ${
                 activeBuilding === key
                   ? 'bg-primary text-white'
-                  : 'bg-gray-50 text-gray-600 hover:bg-gray-100'
+                  : 'bg-gray-50 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-600'
               }`}
             >
               {building.name}
@@ -611,9 +611,9 @@ export default function Rooms() {
         </div>
 
         {/* Filter Buttons */}
-        <div className="p-4 border-b border-gray-100 bg-gray-50">
+        <div className="p-4 border-b border-gray-100 dark:border-gray-700 bg-gray-50 dark:bg-gray-700/50">
           <div className="flex items-center gap-2">
-            <span className="text-sm text-gray-500 mr-2">Filter:</span>
+            <span className="text-sm text-gray-500 dark:text-gray-400 mr-2">Filter:</span>
             {[
               { value: 'all', label: 'All Rooms' },
               { value: 'vacant', label: 'Vacant Only' },
@@ -625,7 +625,7 @@ export default function Rooms() {
                 className={`px-3 py-1.5 text-xs font-medium rounded-full transition-colors ${
                   filter === option.value
                     ? 'bg-primary text-white'
-                    : 'bg-white text-gray-600 border border-gray-200 hover:bg-gray-100'
+                    : 'bg-white dark:bg-gray-600 text-gray-600 dark:text-gray-300 border border-gray-200 dark:border-gray-500 hover:bg-gray-100 dark:hover:bg-gray-500'
                 }`}
               >
                 {option.label}
@@ -638,13 +638,13 @@ export default function Rooms() {
         <div className="p-6">
           {currentFloors.length === 0 ? (
             <div className="text-center py-12">
-              <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-gray-100 flex items-center justify-center">
-                <svg className="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-gray-100 dark:bg-gray-700 flex items-center justify-center">
+                <svg className="w-8 h-8 text-gray-400 dark:text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
                 </svg>
               </div>
-              <h3 className="text-lg font-semibold text-gray-900">No Rooms Yet</h3>
-              <p className="text-gray-500 mt-1">
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-white">No Rooms Yet</h3>
+              <p className="text-gray-500 dark:text-gray-400 mt-1">
                 {canManageRooms ? 'Click "Add Room" to create rooms for this building.' : 'No rooms have been added to this building yet.'}
               </p>
             </div>
@@ -655,8 +655,8 @@ export default function Rooms() {
               
               return (
                 <div key={floorIdx} className={floorIdx > 0 ? 'mt-8' : ''}>
-                  <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center gap-2">
-                    <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-200 mb-4 flex items-center gap-2">
+                    <svg className="w-5 h-5 text-gray-400 dark:text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
                     </svg>
                     {floor.name}
@@ -676,8 +676,8 @@ export default function Rooms() {
                           key={room.id}
                           className={`relative rounded-xl border-2 p-4 transition-all duration-300 cursor-pointer hover:shadow-lg hover:scale-105 ${
                             isOccupied
-                              ? 'border-red-300 bg-red-50'
-                              : 'border-emerald-300 bg-emerald-50'
+                              ? 'border-red-300 dark:border-red-700 bg-red-50 dark:bg-red-900/30'
+                              : 'border-emerald-300 dark:border-emerald-700 bg-emerald-50 dark:bg-emerald-900/30'
                           }`}
                           onClick={() => openRoomSchedule(room)}
                         >

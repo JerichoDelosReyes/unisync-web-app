@@ -6,7 +6,7 @@ export default function PasswordInput({ id = 'password', label = 'Password', pla
   return (
     <div>
       {label && (
-        <label htmlFor={id} className="block text-xs font-medium text-gray-700 mb-1.5">
+        <label htmlFor={id} className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1.5">
           <span className="inline-flex items-center gap-1">
             <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20">
               <path fillRule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clipRule="evenodd" />
@@ -24,16 +24,16 @@ export default function PasswordInput({ id = 'password', label = 'Password', pla
           value={value}
           onChange={onChange}
           autoComplete="new-password"
-          className={`block w-full rounded-md shadow-sm text-sm pr-10 ${
+          className={`block w-full rounded-md shadow-sm text-sm pr-10 bg-white dark:bg-gray-800 text-gray-900 dark:text-white placeholder:text-gray-400 dark:placeholder:text-gray-500 ${
             error 
               ? 'border-red-500 focus:border-red-500 focus:ring-red-500' 
-              : 'border-gray-300 focus:border-primary focus:ring-primary'
+              : 'border-gray-300 dark:border-gray-600 focus:border-primary focus:ring-primary'
           }`}
         />
         <button 
           type="button" 
           onClick={() => setShowPassword(!showPassword)}
-          className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-600"
+          className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300"
         >
           {showPassword ? (
             <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">

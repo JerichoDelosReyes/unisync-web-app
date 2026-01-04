@@ -214,10 +214,10 @@ export default function ScheduleArchive() {
     return (
       <div className="p-6">
         <div className="animate-pulse">
-          <div className="h-8 bg-gray-200 rounded w-1/3 mb-6"></div>
+          <div className="h-8 bg-gray-200 dark:bg-gray-700 rounded w-1/3 mb-6"></div>
           <div className="space-y-4">
             {[1, 2, 3].map(i => (
-              <div key={i} className="h-24 bg-gray-200 rounded-xl"></div>
+              <div key={i} className="h-24 bg-gray-200 dark:bg-gray-700 rounded-xl"></div>
             ))}
           </div>
         </div>
@@ -230,13 +230,13 @@ export default function ScheduleArchive() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Schedule Archives</h1>
-          <p className="text-gray-600 mt-1">View and manage archived schedules from past semesters.</p>
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Schedule Archives</h1>
+          <p className="text-gray-600 dark:text-gray-400 mt-1">View and manage archived schedules from past semesters.</p>
         </div>
         {selectedArchive && (
           <button
             onClick={handleCloseDetails}
-            className="flex items-center gap-2 px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors"
+            className="flex items-center gap-2 px-4 py-2 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
           >
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
@@ -309,24 +309,24 @@ export default function ScheduleArchive() {
           </div>
 
           {/* Filters */}
-          <div className="bg-white rounded-xl border border-gray-200 p-4">
+          <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-4">
             <div className="flex flex-wrap gap-4">
               <div className="flex-1 min-w-[200px]">
-                <label className="block text-sm font-medium text-gray-700 mb-1">Search</label>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Search</label>
                 <input
                   type="text"
                   placeholder="Search by student ID, course, section..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/20"
+                  className="w-full px-3 py-2 border border-gray-200 dark:border-gray-600 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500"
                 />
               </div>
               <div className="w-48">
-                <label className="block text-sm font-medium text-gray-700 mb-1">Filter by Section</label>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Filter by Section</label>
                 <select
                   value={filterSection}
                   onChange={(e) => setFilterSection(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/20"
+                  className="w-full px-3 py-2 border border-gray-200 dark:border-gray-600 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
                 >
                   <option value="">All Sections</option>
                   {uniqueSections.map(section => (
@@ -335,11 +335,11 @@ export default function ScheduleArchive() {
                 </select>
               </div>
               <div className="w-48">
-                <label className="block text-sm font-medium text-gray-700 mb-1">Filter by Year</label>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Filter by Year</label>
                 <select
                   value={filterYearLevel}
                   onChange={(e) => setFilterYearLevel(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/20"
+                  className="w-full px-3 py-2 border border-gray-200 dark:border-gray-600 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
                 >
                   <option value="">All Years</option>
                   {uniqueYearLevels.map(year => (
@@ -352,28 +352,28 @@ export default function ScheduleArchive() {
 
           {/* Student Schedules List */}
           {isLoadingDetails ? (
-            <div className="bg-white rounded-xl border border-gray-200 p-12 text-center">
-              <svg className="w-12 h-12 mx-auto text-gray-400 animate-spin" fill="none" viewBox="0 0 24 24">
+            <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-12 text-center">
+              <svg className="w-12 h-12 mx-auto text-gray-400 dark:text-gray-500 animate-spin" fill="none" viewBox="0 0 24 24">
                 <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                 <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
               </svg>
-              <p className="text-gray-500 mt-4">Loading archive data...</p>
+              <p className="text-gray-500 dark:text-gray-400 mt-4">Loading archive data...</p>
             </div>
           ) : (
-            <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
-              <div className="px-6 py-4 border-b border-gray-200 bg-gray-50 flex items-center justify-between">
-                <h3 className="font-semibold text-gray-900">
+            <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden">
+              <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-700 flex items-center justify-between">
+                <h3 className="font-semibold text-gray-900 dark:text-white">
                   Student Schedules ({filteredSchedules.length} of {archiveDetails?.schedules?.length || 0})
                 </h3>
                 {totalPages > 1 && (
-                  <span className="text-sm text-gray-500">
+                  <span className="text-sm text-gray-500 dark:text-gray-400">
                     Page {currentPage} of {totalPages}
                   </span>
                 )}
               </div>
               
               {filteredSchedules.length === 0 ? (
-                <div className="p-12 text-center text-gray-500">
+                <div className="p-12 text-center text-gray-500 dark:text-gray-400">
                   No schedules found matching your filters.
                 </div>
               ) : (
@@ -386,15 +386,15 @@ export default function ScheduleArchive() {
                   
                   {/* Pagination Controls */}
                   {totalPages > 1 && (
-                    <div className="px-6 py-4 border-t border-gray-200 bg-gray-50 flex items-center justify-between">
-                      <p className="text-sm text-gray-500">
+                    <div className="px-6 py-4 border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-700 flex items-center justify-between">
+                      <p className="text-sm text-gray-500 dark:text-gray-400">
                         Showing {(currentPage - 1) * itemsPerPage + 1} to {Math.min(currentPage * itemsPerPage, filteredSchedules.length)} of {filteredSchedules.length} students
                       </p>
                       <div className="flex items-center gap-2">
                         <button
                           onClick={() => setCurrentPage(1)}
                           disabled={currentPage === 1}
-                          className="p-2 rounded-lg border border-gray-200 hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                          className="p-2 rounded-lg border border-gray-200 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                           title="First page"
                         >
                           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -404,7 +404,7 @@ export default function ScheduleArchive() {
                         <button
                           onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
                           disabled={currentPage === 1}
-                          className="p-2 rounded-lg border border-gray-200 hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                          className="p-2 rounded-lg border border-gray-200 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                           title="Previous page"
                         >
                           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -432,7 +432,7 @@ export default function ScheduleArchive() {
                                 className={`w-8 h-8 rounded-lg text-sm font-medium transition-colors ${
                                   currentPage === pageNum
                                     ? 'bg-primary text-white'
-                                    : 'border border-gray-200 hover:bg-gray-100'
+                                    : 'border border-gray-200 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-600 text-gray-900 dark:text-white'
                                 }`}
                               >
                                 {pageNum}
@@ -444,7 +444,7 @@ export default function ScheduleArchive() {
                         <button
                           onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
                           disabled={currentPage === totalPages}
-                          className="p-2 rounded-lg border border-gray-200 hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                          className="p-2 rounded-lg border border-gray-200 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                           title="Next page"
                         >
                           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -454,7 +454,7 @@ export default function ScheduleArchive() {
                         <button
                           onClick={() => setCurrentPage(totalPages)}
                           disabled={currentPage === totalPages}
-                          className="p-2 rounded-lg border border-gray-200 hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                          className="p-2 rounded-lg border border-gray-200 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                           title="Last page"
                         >
                           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -473,14 +473,14 @@ export default function ScheduleArchive() {
         /* Archive List View */
         <>
           {archives.length === 0 ? (
-            <div className="bg-white rounded-xl border border-gray-200 p-12 text-center">
-              <div className="w-20 h-20 mx-auto mb-4 rounded-full bg-gray-100 flex items-center justify-center">
-                <svg className="w-10 h-10 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-12 text-center">
+              <div className="w-20 h-20 mx-auto mb-4 rounded-full bg-gray-100 dark:bg-gray-700 flex items-center justify-center">
+                <svg className="w-10 h-10 text-gray-400 dark:text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4" />
                 </svg>
               </div>
-              <h2 className="text-xl font-semibold text-gray-900 mb-2">No Archives Yet</h2>
-              <p className="text-gray-500 max-w-md mx-auto">
+              <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">No Archives Yet</h2>
+              <p className="text-gray-500 dark:text-gray-400 max-w-md mx-auto">
                 Schedule archives will appear here after you perform an end-of-semester reset from System Settings.
               </p>
             </div>
@@ -489,20 +489,20 @@ export default function ScheduleArchive() {
               {archives.map((archive) => (
                 <div
                   key={archive.id}
-                  className="bg-white rounded-xl border border-gray-200 p-6 hover:shadow-lg transition-shadow"
+                  className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-6 hover:shadow-lg transition-shadow"
                 >
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-4">
-                      <div className="w-14 h-14 rounded-xl bg-indigo-100 flex items-center justify-center">
-                        <svg className="w-7 h-7 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <div className="w-14 h-14 rounded-xl bg-indigo-100 dark:bg-indigo-900/50 flex items-center justify-center">
+                        <svg className="w-7 h-7 text-indigo-600 dark:text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4" />
                         </svg>
                       </div>
                       <div>
-                        <h3 className="text-lg font-semibold text-gray-900">
+                        <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
                           {archive.semester} - {archive.schoolYear}
                         </h3>
-                        <p className="text-sm text-gray-500">
+                        <p className="text-sm text-gray-500 dark:text-gray-400">
                           {archive.totalStudents} students • Archived {archive.archivedAt?.toLocaleDateString()}
                         </p>
                       </div>
@@ -511,7 +511,7 @@ export default function ScheduleArchive() {
                     <div className="flex items-center gap-2">
                       <button
                         onClick={() => handleViewArchive(archive)}
-                        className="px-4 py-2 bg-indigo-50 text-indigo-600 rounded-lg hover:bg-indigo-100 transition-colors flex items-center gap-2 text-sm font-medium"
+                        className="px-4 py-2 bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 rounded-lg hover:bg-indigo-100 dark:hover:bg-indigo-900/50 transition-colors flex items-center gap-2 text-sm font-medium"
                       >
                         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
@@ -524,7 +524,7 @@ export default function ScheduleArchive() {
                           setArchiveToDelete(archive)
                           setShowDeleteModal(true)
                         }}
-                        className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                        className="p-2 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/30 rounded-lg transition-colors"
                         title="Delete Archive"
                       >
                         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -543,7 +543,7 @@ export default function ScheduleArchive() {
       {/* Delete Confirmation Modal */}
       {showDeleteModal && archiveToDelete && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[100] p-4">
-          <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full overflow-hidden animate-in fade-in zoom-in duration-200">
+          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-w-md w-full overflow-hidden animate-in fade-in zoom-in duration-200">
             <div className="bg-red-600 px-6 py-4">
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 rounded-full bg-white/20 flex items-center justify-center">
@@ -559,25 +559,25 @@ export default function ScheduleArchive() {
             </div>
             
             <div className="p-6">
-              <p className="text-gray-700 mb-4">
+              <p className="text-gray-700 dark:text-gray-300 mb-4">
                 Are you sure you want to permanently delete the archive for:
               </p>
-              <div className="bg-gray-50 rounded-lg p-4 mb-4">
-                <p className="font-semibold text-gray-900">{archiveToDelete.semester} - {archiveToDelete.schoolYear}</p>
-                <p className="text-sm text-gray-500">{archiveToDelete.totalStudents} student schedules</p>
+              <div className="bg-gray-50 dark:bg-gray-700 rounded-lg p-4 mb-4">
+                <p className="font-semibold text-gray-900 dark:text-white">{archiveToDelete.semester} - {archiveToDelete.schoolYear}</p>
+                <p className="text-sm text-gray-500 dark:text-gray-400">{archiveToDelete.totalStudents} student schedules</p>
               </div>
-              <p className="text-sm text-red-600">
+              <p className="text-sm text-red-600 dark:text-red-400">
                 This will permanently remove all archived schedule data for this semester.
               </p>
             </div>
             
-            <div className="px-6 py-4 bg-gray-50 border-t border-gray-100 flex gap-3">
+            <div className="px-6 py-4 bg-gray-50 dark:bg-gray-700 border-t border-gray-100 dark:border-gray-600 flex gap-3">
               <button
                 onClick={() => {
                   setShowDeleteModal(false)
                   setArchiveToDelete(null)
                 }}
-                className="flex-1 px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors font-medium"
+                className="flex-1 px-4 py-2 bg-gray-200 dark:bg-gray-600 text-gray-700 dark:text-gray-200 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-500 transition-colors font-medium"
               >
                 Cancel
               </button>
@@ -611,7 +611,7 @@ function StudentScheduleCard({ student }) {
   const [isExpanded, setIsExpanded] = useState(false)
   
   return (
-    <div className="p-4 hover:bg-gray-50 transition-colors">
+    <div className="p-4 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
       <div 
         className="flex items-center justify-between cursor-pointer"
         onClick={() => setIsExpanded(!isExpanded)}
@@ -623,18 +623,18 @@ function StudentScheduleCard({ student }) {
             </svg>
           </div>
           <div>
-            <p className="font-medium text-gray-900">{student.section || 'Unknown Section'}</p>
-            <p className="text-sm text-gray-500">
+            <p className="font-medium text-gray-900 dark:text-white">{student.section || 'Unknown Section'}</p>
+            <p className="text-sm text-gray-500 dark:text-gray-400">
               {student.course} • {student.yearLevel}
             </p>
           </div>
         </div>
         <div className="flex items-center gap-3">
-          <span className="px-2 py-1 bg-gray-100 text-gray-600 text-xs rounded-full">
+          <span className="px-2 py-1 bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400 text-xs rounded-full">
             {student.schedules?.length || 0} classes
           </span>
           <svg 
-            className={`w-5 h-5 text-gray-400 transition-transform ${isExpanded ? 'rotate-180' : ''}`} 
+            className={`w-5 h-5 text-gray-400 dark:text-gray-500 transition-transform ${isExpanded ? 'rotate-180' : ''}`} 
             fill="none" 
             stroke="currentColor" 
             viewBox="0 0 24 24"
@@ -648,17 +648,17 @@ function StudentScheduleCard({ student }) {
         <div className="mt-4 ml-13 space-y-2">
           <div className="grid gap-2">
             {student.schedules.map((schedule, idx) => (
-              <div key={idx} className="bg-gray-50 rounded-lg p-3 text-sm">
+              <div key={idx} className="bg-gray-50 dark:bg-gray-700 rounded-lg p-3 text-sm">
                 <div className="flex items-start justify-between">
                   <div>
-                    <p className="font-medium text-gray-900">{schedule.subject}</p>
-                    <p className="text-gray-500 text-xs mt-1">
+                    <p className="font-medium text-gray-900 dark:text-white">{schedule.subject}</p>
+                    <p className="text-gray-500 dark:text-gray-400 text-xs mt-1">
                       {schedule.day} • {schedule.startTime} - {schedule.endTime}
                     </p>
                   </div>
                   <div className="text-right">
-                    <p className="text-gray-600">{schedule.room || 'TBA'}</p>
-                    <p className="text-gray-500 text-xs">{schedule.professor || 'TBA'}</p>
+                    <p className="text-gray-600 dark:text-gray-300">{schedule.room || 'TBA'}</p>
+                    <p className="text-gray-500 dark:text-gray-400 text-xs">{schedule.professor || 'TBA'}</p>
                   </div>
                 </div>
               </div>

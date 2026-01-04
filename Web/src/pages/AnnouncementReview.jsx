@@ -251,14 +251,14 @@ export default function AnnouncementReview() {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
         <div className="text-center">
-          <div className="w-20 h-20 mx-auto mb-4 rounded-full bg-red-100 flex items-center justify-center">
-            <svg className="w-10 h-10 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <div className="w-20 h-20 mx-auto mb-4 rounded-full bg-red-100 dark:bg-red-900/30 flex items-center justify-center">
+            <svg className="w-10 h-10 text-red-500 dark:text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
             </svg>
           </div>
-          <h2 className="text-xl font-bold text-gray-900 mb-2">Access Denied</h2>
-          <p className="text-gray-600">You don't have permission to review announcements.</p>
-          <p className="text-sm text-gray-500 mt-2">Only Admins and Organization Presidents can access this page.</p>
+          <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-2">Access Denied</h2>
+          <p className="text-gray-600 dark:text-gray-400">You don't have permission to review announcements.</p>
+          <p className="text-sm text-gray-500 dark:text-gray-500 mt-2">Only Admins and Organization Presidents can access this page.</p>
         </div>
       </div>
     )
@@ -275,8 +275,8 @@ export default function AnnouncementReview() {
             </svg>
           </div>
           <div>
-            <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Announcement Review</h1>
-            <p className="text-gray-600 text-sm">
+            <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white">Announcement Review</h1>
+            <p className="text-gray-600 dark:text-gray-400 text-sm">
               {isAdmin ? 'Review all pending announcements' : 'Review announcements from your organization'}
             </p>
           </div>
@@ -284,13 +284,13 @@ export default function AnnouncementReview() {
         
         {/* Stats */}
         <div className="mt-4 flex items-center gap-4">
-          <div className="px-4 py-2 bg-amber-50 border border-amber-200 rounded-lg">
-            <span className="text-2xl font-bold text-amber-600">{filteredAnnouncements.length}</span>
-            <span className="text-sm text-amber-700 ml-2">Pending Review</span>
+          <div className="px-4 py-2 bg-amber-50 dark:bg-amber-900/30 border border-amber-200 dark:border-amber-800 rounded-lg">
+            <span className="text-2xl font-bold text-amber-600 dark:text-amber-400">{filteredAnnouncements.length}</span>
+            <span className="text-sm text-amber-700 dark:text-amber-300 ml-2">Pending Review</span>
           </div>
           
           {isOrgPresident() && !isAdmin && (
-            <div className="px-3 py-1.5 bg-green-50 border border-green-200 rounded-lg text-sm text-green-700">
+            <div className="px-3 py-1.5 bg-green-50 dark:bg-green-900/30 border border-green-200 dark:border-green-800 rounded-lg text-sm text-green-700 dark:text-green-400">
               <span className="font-medium">Your Orgs:</span> {getPresidentOrgCodes().join(', ')}
             </div>
           )}
@@ -301,8 +301,8 @@ export default function AnnouncementReview() {
       {loading && (
         <div className="flex items-center justify-center py-20">
           <div className="flex flex-col items-center gap-4">
-            <div className="w-12 h-12 border-4 border-green-200 border-t-green-600 rounded-full animate-spin"></div>
-            <p className="text-gray-600">Loading pending announcements...</p>
+            <div className="w-12 h-12 border-4 border-green-200 dark:border-green-800 border-t-green-600 dark:border-t-green-500 rounded-full animate-spin"></div>
+            <p className="text-gray-600 dark:text-gray-400">Loading pending announcements...</p>
           </div>
         </div>
       )}
@@ -310,13 +310,13 @@ export default function AnnouncementReview() {
       {/* Empty State */}
       {!loading && filteredAnnouncements.length === 0 && (
         <div className="text-center py-20">
-          <div className="w-24 h-24 mx-auto mb-6 rounded-full bg-green-100 flex items-center justify-center">
-            <svg className="w-12 h-12 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <div className="w-24 h-24 mx-auto mb-6 rounded-full bg-green-100 dark:bg-green-900/30 flex items-center justify-center">
+            <svg className="w-12 h-12 text-green-500 dark:text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
             </svg>
           </div>
-          <h2 className="text-xl font-bold text-gray-900 mb-2">All Caught Up!</h2>
-          <p className="text-gray-600">No announcements pending review.</p>
+          <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-2">All Caught Up!</h2>
+          <p className="text-gray-600 dark:text-gray-400">No announcements pending review.</p>
         </div>
       )}
       
@@ -326,16 +326,16 @@ export default function AnnouncementReview() {
           {filteredAnnouncements.map((announcement) => (
             <div
               key={announcement.id}
-              className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden hover:shadow-md transition-shadow"
+              className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden hover:shadow-md transition-shadow"
             >
               {/* Card Header */}
-              <div className="p-5 border-b border-gray-100">
+              <div className="p-5 border-b border-gray-100 dark:border-gray-700">
                 <div className="flex items-start justify-between gap-4">
                   <div className="flex items-start gap-3 flex-1">
                     {/* Author Avatar/Org Logo */}
                     <div className="flex-shrink-0">
                       {announcement.author?.organizationContext ? (
-                        <div className="w-12 h-12 rounded-xl bg-gray-100 flex items-center justify-center overflow-hidden">
+                        <div className="w-12 h-12 rounded-xl bg-gray-100 dark:bg-gray-700 flex items-center justify-center overflow-hidden">
                           {getOrgLogo(announcement.author.organizationContext.orgCode) ? (
                             <img 
                               src={getOrgLogo(announcement.author.organizationContext.orgCode)} 
@@ -343,7 +343,7 @@ export default function AnnouncementReview() {
                               className="w-10 h-10 object-contain"
                             />
                           ) : (
-                            <span className="text-lg font-bold text-gray-600">
+                            <span className="text-lg font-bold text-gray-600 dark:text-gray-400">
                               {announcement.author.organizationContext.orgCode?.charAt(0)}
                             </span>
                           )}
@@ -357,23 +357,23 @@ export default function AnnouncementReview() {
                     
                     {/* Author Info */}
                     <div className="flex-1 min-w-0">
-                      <h3 className="font-bold text-gray-900 text-lg truncate">{announcement.title}</h3>
+                      <h3 className="font-bold text-gray-900 dark:text-white text-lg truncate">{announcement.title}</h3>
                       <div className="flex items-center gap-2 mt-1 flex-wrap">
-                        <span className="text-sm text-gray-700">{announcement.authorName}</span>
-                        <span className="text-gray-300">•</span>
-                        <span className="text-xs px-2 py-0.5 bg-gray-100 text-gray-600 rounded-full">
+                        <span className="text-sm text-gray-700 dark:text-gray-300">{announcement.authorName}</span>
+                        <span className="text-gray-300 dark:text-gray-600">•</span>
+                        <span className="text-xs px-2 py-0.5 bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400 rounded-full">
                           {ROLE_DISPLAY_NAMES[announcement.authorRole] || announcement.authorRole}
                         </span>
                         {announcement.author?.organizationContext && (
                           <>
-                            <span className="text-gray-300">•</span>
-                            <span className="text-xs px-2 py-0.5 bg-green-100 text-green-700 rounded-full">
+                            <span className="text-gray-300 dark:text-gray-600">•</span>
+                            <span className="text-xs px-2 py-0.5 bg-green-100 dark:bg-green-900/50 text-green-700 dark:text-green-400 rounded-full">
                               {announcement.author.organizationContext.orgName}
                             </span>
                           </>
                         )}
                       </div>
-                      <p className="text-xs text-gray-500 mt-1">{formatDate(announcement.createdAt)}</p>
+                      <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">{formatDate(announcement.createdAt)}</p>
                     </div>
                   </div>
                   
@@ -385,29 +385,29 @@ export default function AnnouncementReview() {
               </div>
               
               {/* Content Preview */}
-              <div className="p-5 bg-gray-50">
-                <p className="text-gray-700 text-sm whitespace-pre-wrap line-clamp-4">
+              <div className="p-5 bg-gray-50 dark:bg-gray-700/50">
+                <p className="text-gray-700 dark:text-gray-300 text-sm whitespace-pre-wrap line-clamp-4">
                   {announcement.content}
                 </p>
                 
                 {/* Flagged Words Warning */}
                 {announcement.moderationResult?.flaggedWords?.length > 0 && (
-                  <div className="mt-4 p-3 bg-amber-50 border border-amber-200 rounded-lg">
+                  <div className="mt-4 p-3 bg-amber-50 dark:bg-amber-900/30 border border-amber-200 dark:border-amber-800 rounded-lg">
                     <div className="flex items-center gap-2 mb-2">
-                      <svg className="w-4 h-4 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <svg className="w-4 h-4 text-amber-600 dark:text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
                       </svg>
-                      <span className="text-xs font-semibold text-amber-800">Flagged Content:</span>
+                      <span className="text-xs font-semibold text-amber-800 dark:text-amber-300">Flagged Content:</span>
                     </div>
                     <div className="flex flex-wrap gap-2">
                       {announcement.moderationResult.flaggedWords.map((item, idx) => (
-                        <span key={idx} className="px-2 py-1 text-xs font-medium bg-amber-200 text-amber-900 rounded">
+                        <span key={idx} className="px-2 py-1 text-xs font-medium bg-amber-200 dark:bg-amber-800 text-amber-900 dark:text-amber-200 rounded">
                           {typeof item === 'string' ? item : item.word}
                         </span>
                       ))}
                     </div>
                     {announcement.moderationResult.approvalReason && (
-                      <p className="text-xs text-amber-700 mt-2">{announcement.moderationResult.approvalReason}</p>
+                      <p className="text-xs text-amber-700 dark:text-amber-300 mt-2">{announcement.moderationResult.approvalReason}</p>
                     )}
                   </div>
                 )}
@@ -416,12 +416,12 @@ export default function AnnouncementReview() {
                 {announcement.media?.length > 0 && (
                   <div className="mt-4 flex gap-2 overflow-x-auto">
                     {announcement.media.slice(0, 4).map((media, idx) => (
-                      <div key={idx} className="flex-shrink-0 w-20 h-20 rounded-lg overflow-hidden bg-gray-200">
+                      <div key={idx} className="flex-shrink-0 w-20 h-20 rounded-lg overflow-hidden bg-gray-200 dark:bg-gray-600">
                         {media.type === 'image' ? (
                           <img src={media.url} alt="" className="w-full h-full object-cover" />
                         ) : (
-                          <div className="w-full h-full flex items-center justify-center bg-gray-300">
-                            <svg className="w-6 h-6 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <div className="w-full h-full flex items-center justify-center bg-gray-300 dark:bg-gray-600">
+                            <svg className="w-6 h-6 text-gray-500 dark:text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                             </svg>
@@ -430,8 +430,8 @@ export default function AnnouncementReview() {
                       </div>
                     ))}
                     {announcement.media.length > 4 && (
-                      <div className="flex-shrink-0 w-20 h-20 rounded-lg bg-gray-200 flex items-center justify-center">
-                        <span className="text-sm font-bold text-gray-600">+{announcement.media.length - 4}</span>
+                      <div className="flex-shrink-0 w-20 h-20 rounded-lg bg-gray-200 dark:bg-gray-600 flex items-center justify-center">
+                        <span className="text-sm font-bold text-gray-600 dark:text-gray-300">+{announcement.media.length - 4}</span>
                       </div>
                     )}
                   </div>
@@ -439,17 +439,17 @@ export default function AnnouncementReview() {
               </div>
               
               {/* Action Buttons */}
-              <div className="p-4 bg-white border-t border-gray-100 flex items-center justify-end gap-3">
+              <div className="p-4 bg-white dark:bg-gray-800 border-t border-gray-100 dark:border-gray-700 flex items-center justify-end gap-3">
                 <button
                   onClick={() => setSelectedAnnouncement(announcement)}
-                  className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
+                  className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
                 >
                   View Full
                 </button>
                 <button
                   onClick={() => setRejectModal({ open: true, announcement })}
                   disabled={processing}
-                  className="px-4 py-2 text-sm font-bold text-red-700 bg-red-50 rounded-lg hover:bg-red-100 transition-colors disabled:opacity-50"
+                  className="px-4 py-2 text-sm font-bold text-red-700 dark:text-red-400 bg-red-50 dark:bg-red-900/30 rounded-lg hover:bg-red-100 dark:hover:bg-red-900/50 transition-colors disabled:opacity-50"
                 >
                   Reject
                 </button>
@@ -469,15 +469,15 @@ export default function AnnouncementReview() {
       {/* View Full Modal */}
       {selectedAnnouncement && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
-          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
             {/* Modal Header */}
-            <div className="sticky top-0 bg-white border-b border-gray-200 p-6 flex items-center justify-between">
-              <h2 className="text-xl font-bold text-gray-900">Announcement Details</h2>
+            <div className="sticky top-0 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 p-6 flex items-center justify-between">
+              <h2 className="text-xl font-bold text-gray-900 dark:text-white">Announcement Details</h2>
               <button
                 onClick={() => setSelectedAnnouncement(null)}
-                className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+                className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
               >
-                <svg className="w-5 h-5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg className="w-5 h-5 text-gray-500 dark:text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                 </svg>
               </button>
@@ -485,46 +485,46 @@ export default function AnnouncementReview() {
             
             {/* Modal Content */}
             <div className="p-6">
-              <h3 className="text-2xl font-bold text-gray-900 mb-2">{selectedAnnouncement.title}</h3>
+              <h3 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">{selectedAnnouncement.title}</h3>
               
               <div className="flex items-center gap-2 mb-4 flex-wrap">
-                <span className="text-sm text-gray-700">{selectedAnnouncement.authorName}</span>
-                <span className="text-gray-300">•</span>
-                <span className="text-xs px-2 py-0.5 bg-gray-100 text-gray-600 rounded-full">
+                <span className="text-sm text-gray-700 dark:text-gray-300">{selectedAnnouncement.authorName}</span>
+                <span className="text-gray-300 dark:text-gray-600">•</span>
+                <span className="text-xs px-2 py-0.5 bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400 rounded-full">
                   {ROLE_DISPLAY_NAMES[selectedAnnouncement.authorRole] || selectedAnnouncement.authorRole}
                 </span>
                 {selectedAnnouncement.author?.organizationContext && (
                   <>
-                    <span className="text-gray-300">•</span>
-                    <span className="text-xs px-2 py-0.5 bg-green-100 text-green-700 rounded-full">
+                    <span className="text-gray-300 dark:text-gray-600">•</span>
+                    <span className="text-xs px-2 py-0.5 bg-green-100 dark:bg-green-900/50 text-green-700 dark:text-green-400 rounded-full">
                       {selectedAnnouncement.author.organizationContext.orgName}
                     </span>
                   </>
                 )}
-                <span className="text-gray-300">•</span>
+                <span className="text-gray-300 dark:text-gray-600">•</span>
                 <span className={`px-2 py-0.5 text-xs font-semibold rounded-full border ${getPriorityBadge(selectedAnnouncement.priority)}`}>
                   {selectedAnnouncement.priority?.toUpperCase() || 'NORMAL'}
                 </span>
               </div>
               
-              <p className="text-xs text-gray-500 mb-6">{formatDate(selectedAnnouncement.createdAt)}</p>
+              <p className="text-xs text-gray-500 dark:text-gray-400 mb-6">{formatDate(selectedAnnouncement.createdAt)}</p>
               
-              <div className="prose prose-sm max-w-none">
-                <p className="text-gray-700 whitespace-pre-wrap">{selectedAnnouncement.content}</p>
+              <div className="prose prose-sm max-w-none dark:prose-invert">
+                <p className="text-gray-700 dark:text-gray-300 whitespace-pre-wrap">{selectedAnnouncement.content}</p>
               </div>
               
               {/* Flagged Words */}
               {selectedAnnouncement.moderationResult?.flaggedWords?.length > 0 && (
-                <div className="mt-6 p-4 bg-amber-50 border border-amber-200 rounded-xl">
+                <div className="mt-6 p-4 bg-amber-50 dark:bg-amber-900/30 border border-amber-200 dark:border-amber-800 rounded-xl">
                   <div className="flex items-center gap-2 mb-3">
-                    <svg className="w-5 h-5 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <svg className="w-5 h-5 text-amber-600 dark:text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
                     </svg>
-                    <span className="font-semibold text-amber-800">Content Flagged for Review</span>
+                    <span className="font-semibold text-amber-800 dark:text-amber-300">Content Flagged for Review</span>
                   </div>
                   <div className="flex flex-wrap gap-2">
                     {selectedAnnouncement.moderationResult.flaggedWords.map((item, idx) => (
-                      <span key={idx} className="px-3 py-1.5 text-sm font-medium bg-amber-200 text-amber-900 rounded-lg">
+                      <span key={idx} className="px-3 py-1.5 text-sm font-medium bg-amber-200 dark:bg-amber-800 text-amber-900 dark:text-amber-200 rounded-lg">
                         {typeof item === 'string' ? item : item.word}
                       </span>
                     ))}
@@ -535,10 +535,10 @@ export default function AnnouncementReview() {
               {/* Media */}
               {selectedAnnouncement.media?.length > 0 && (
                 <div className="mt-6">
-                  <h4 className="text-sm font-semibold text-gray-700 mb-3">Attached Media ({selectedAnnouncement.media.length})</h4>
+                  <h4 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">Attached Media ({selectedAnnouncement.media.length})</h4>
                   <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
                     {selectedAnnouncement.media.map((media, idx) => (
-                      <div key={idx} className="aspect-square rounded-xl overflow-hidden bg-gray-100">
+                      <div key={idx} className="aspect-square rounded-xl overflow-hidden bg-gray-100 dark:bg-gray-700">
                         {media.type === 'image' ? (
                           <img src={media.url} alt="" className="w-full h-full object-cover" />
                         ) : (
@@ -553,10 +553,10 @@ export default function AnnouncementReview() {
               {/* Target Tags */}
               {selectedAnnouncement.targetTags?.length > 0 && (
                 <div className="mt-6">
-                  <h4 className="text-sm font-semibold text-gray-700 mb-2">Target Audience</h4>
+                  <h4 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Target Audience</h4>
                   <div className="flex flex-wrap gap-2">
                     {selectedAnnouncement.targetTags.map((tag, idx) => (
-                      <span key={idx} className="px-2 py-1 text-xs bg-blue-100 text-blue-700 rounded-lg">
+                      <span key={idx} className="px-2 py-1 text-xs bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-400 rounded-lg">
                         {tag}
                       </span>
                     ))}
@@ -566,10 +566,10 @@ export default function AnnouncementReview() {
             </div>
             
             {/* Modal Footer */}
-            <div className="sticky bottom-0 bg-white border-t border-gray-200 p-6 flex items-center justify-end gap-3">
+            <div className="sticky bottom-0 bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 p-6 flex items-center justify-end gap-3">
               <button
                 onClick={() => setSelectedAnnouncement(null)}
-                className="px-5 py-2.5 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
+                className="px-5 py-2.5 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
               >
                 Close
               </button>
@@ -578,7 +578,7 @@ export default function AnnouncementReview() {
                   setRejectModal({ open: true, announcement: selectedAnnouncement })
                 }}
                 disabled={processing}
-                className="px-5 py-2.5 text-sm font-bold text-red-700 bg-red-50 rounded-lg hover:bg-red-100 transition-colors disabled:opacity-50"
+                className="px-5 py-2.5 text-sm font-bold text-red-700 dark:text-red-400 bg-red-50 dark:bg-red-900/30 rounded-lg hover:bg-red-100 dark:hover:bg-red-900/50 transition-colors disabled:opacity-50"
               >
                 Reject
               </button>
@@ -597,37 +597,37 @@ export default function AnnouncementReview() {
       {/* Reject Modal */}
       {rejectModal.open && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
-          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md p-6">
+          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl w-full max-w-md p-6">
             <div className="flex items-center gap-3 mb-6">
-              <div className="w-12 h-12 rounded-full bg-red-100 flex items-center justify-center">
-                <svg className="w-6 h-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <div className="w-12 h-12 rounded-full bg-red-100 dark:bg-red-900/30 flex items-center justify-center">
+                <svg className="w-6 h-6 text-red-600 dark:text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                 </svg>
               </div>
               <div>
-                <h3 className="text-lg font-bold text-gray-900">Reject Announcement</h3>
-                <p className="text-sm text-gray-600">This action cannot be undone</p>
+                <h3 className="text-lg font-bold text-gray-900 dark:text-white">Reject Announcement</h3>
+                <p className="text-sm text-gray-600 dark:text-gray-400">This action cannot be undone</p>
               </div>
             </div>
             
             <div className="mb-4">
-              <p className="text-sm text-gray-700 mb-2">
+              <p className="text-sm text-gray-700 dark:text-gray-300 mb-2">
                 <strong>Title:</strong> {rejectModal.announcement?.title}
               </p>
-              <p className="text-sm text-gray-700">
+              <p className="text-sm text-gray-700 dark:text-gray-300">
                 <strong>Author:</strong> {rejectModal.announcement?.authorName}
               </p>
             </div>
             
             <div className="mb-6">
-              <label className="block text-sm font-semibold text-gray-700 mb-2">
+              <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
                 Reason for Rejection (optional)
               </label>
               <textarea
                 value={rejectionReason}
                 onChange={(e) => setRejectionReason(e.target.value)}
                 placeholder="Explain why this announcement is being rejected..."
-                className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-red-500 focus:border-red-500 resize-none"
+                className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-xl focus:ring-2 focus:ring-red-500 focus:border-red-500 resize-none bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500"
                 rows={3}
               />
             </div>
@@ -638,7 +638,7 @@ export default function AnnouncementReview() {
                   setRejectModal({ open: false, announcement: null })
                   setRejectionReason('')
                 }}
-                className="flex-1 px-4 py-3 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
+                className="flex-1 px-4 py-3 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
               >
                 Cancel
               </button>

@@ -230,15 +230,15 @@ export default function Profile() {
   return (
     <div className="max-w-4xl mx-auto">
       <div className="mb-6">
-        <h1 className="text-2xl font-bold text-gray-900">My Profile</h1>
-        <p className="text-gray-600 mt-1">Manage your account information</p>
+        <h1 className="text-2xl font-bold text-gray-900 dark:text-white">My Profile</h1>
+        <p className="text-gray-600 dark:text-gray-400 mt-1">Manage your account information</p>
       </div>
 
       {/* Message */}
       {message.text && (
         <div className={`mb-6 p-4 rounded-lg ${
-          message.type === 'success' ? 'bg-green-50 text-green-700 border border-green-200' : 
-          'bg-red-50 text-red-700 border border-red-200'
+          message.type === 'success' ? 'bg-green-50 dark:bg-green-900/30 text-green-700 dark:text-green-300 border border-green-200 dark:border-green-800' : 
+          'bg-red-50 dark:bg-red-900/30 text-red-700 dark:text-red-300 border border-red-200 dark:border-red-800'
         }`}>
           <div className="flex items-center gap-2">
             {message.type === 'success' ? (
@@ -264,7 +264,7 @@ export default function Profile() {
         className="hidden"
       />
 
-      <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
         {/* Profile Header */}
         <div className="bg-primary px-6 py-8">
           <div className="flex items-center gap-4">
@@ -313,7 +313,7 @@ export default function Profile() {
         {/* Profile Form */}
         <form onSubmit={handleSubmit} className="p-6">
           <div className="flex justify-between items-center mb-6">
-            <h3 className="text-lg font-semibold text-gray-900">Personal Information</h3>
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Personal Information</h3>
             {!isEditing ? (
               <button
                 type="button"
@@ -330,7 +330,7 @@ export default function Profile() {
                 <button
                   type="button"
                   onClick={handleCancel}
-                  className="px-4 py-2 text-sm font-medium text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
+                  className="px-4 py-2 text-sm font-medium text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
                 >
                   Cancel
                 </button>
@@ -358,7 +358,7 @@ export default function Profile() {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {/* Given Name */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                 Given Name
               </label>
               {isEditing ? (
@@ -367,11 +367,11 @@ export default function Profile() {
                   name="givenName"
                   value={formData.givenName}
                   onChange={handleChange}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-primary transition-colors"
+                  className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-primary transition-colors bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
                   placeholder="Enter given name"
                 />
               ) : (
-                <p className="px-4 py-2 bg-gray-50 rounded-lg text-gray-900">
+                <p className="px-4 py-2 bg-gray-50 dark:bg-gray-700 rounded-lg text-gray-900 dark:text-white">
                   {userProfile?.givenName || '-'}
                 </p>
               )}
@@ -379,7 +379,7 @@ export default function Profile() {
 
             {/* Middle Name */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                 Middle Name
               </label>
               {isEditing ? (
@@ -388,15 +388,15 @@ export default function Profile() {
                   name="middleName"
                   value={formData.middleName}
                   onChange={handleChange}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-primary transition-colors"
+                  className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-primary transition-colors bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
                   placeholder="Enter middle name"
                   required
                 />
               ) : (
-                <p className="px-4 py-2 bg-gray-50 rounded-lg text-gray-900">
+                <p className="px-4 py-2 bg-gray-50 dark:bg-gray-700 rounded-lg text-gray-900 dark:text-white">
                   {userProfile?.middleName || '-'}
                   {userProfile?.middleName && (
-                    <span className="ml-2 text-gray-500 text-sm">
+                    <span className="ml-2 text-gray-500 dark:text-gray-400 text-sm">
                       ({userProfile.middleName.charAt(0).toUpperCase()}.)
                     </span>
                   )}
@@ -406,7 +406,7 @@ export default function Profile() {
 
             {/* Last Name */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                 Last Name
               </label>
               {isEditing ? (
@@ -415,11 +415,11 @@ export default function Profile() {
                   name="lastName"
                   value={formData.lastName}
                   onChange={handleChange}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-primary transition-colors"
+                  className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-primary transition-colors bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
                   placeholder="Enter last name"
                 />
               ) : (
-                <p className="px-4 py-2 bg-gray-50 rounded-lg text-gray-900">
+                <p className="px-4 py-2 bg-gray-50 dark:bg-gray-700 rounded-lg text-gray-900 dark:text-white">
                   {userProfile?.lastName || '-'}
                 </p>
               )}
@@ -427,9 +427,9 @@ export default function Profile() {
 
             {/* Suffix (Optional) */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                 Suffix
-                <span className="text-gray-400 font-normal ml-1">(Optional)</span>
+                <span className="text-gray-400 dark:text-gray-500 font-normal ml-1">(Optional)</span>
               </label>
               {isEditing ? (
                 <input
@@ -437,11 +437,11 @@ export default function Profile() {
                   name="suffix"
                   value={formData.suffix}
                   onChange={handleChange}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-primary transition-colors"
+                  className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-primary transition-colors bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
                   placeholder="Jr., Sr., III, etc. (Leave blank if none)"
                 />
               ) : (
-                <p className="px-4 py-2 bg-gray-50 rounded-lg text-gray-900">
+                <p className="px-4 py-2 bg-gray-50 dark:bg-gray-700 rounded-lg text-gray-900 dark:text-white">
                   {userProfile?.suffix || '-'}
                 </p>
               )}
@@ -449,12 +449,12 @@ export default function Profile() {
 
             {/* Email (Read-only) */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                 Email Address
               </label>
-              <p className="px-4 py-2 bg-gray-50 rounded-lg text-gray-500">
+              <p className="px-4 py-2 bg-gray-50 dark:bg-gray-700 rounded-lg text-gray-500 dark:text-gray-400">
                 {user?.email}
-                <span className="ml-2 text-xs text-green-600">(Verified)</span>
+                <span className="ml-2 text-xs text-green-600 dark:text-green-400">(Verified)</span>
               </p>
             </div>
 
@@ -680,22 +680,22 @@ export default function Profile() {
           </div>
 
           {/* Account Info */}
-          <div className="mt-8 pt-6 border-t border-gray-200">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">Account Information</h3>
+          <div className="mt-8 pt-6 border-t border-gray-200 dark:border-gray-700">
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Account Information</h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                   Role
                 </label>
-                <p className="px-4 py-2 bg-gray-50 rounded-lg text-gray-900">
+                <p className="px-4 py-2 bg-gray-50 dark:bg-gray-700 rounded-lg text-gray-900 dark:text-white">
                   {ROLE_DISPLAY_NAMES[userProfile?.role] || 'Student'}
                 </p>
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                   Account Created
                 </label>
-                <p className="px-4 py-2 bg-gray-50 rounded-lg text-gray-900">
+                <p className="px-4 py-2 bg-gray-50 dark:bg-gray-700 rounded-lg text-gray-900 dark:text-white">
                   {userProfile?.createdAt?.toDate?.()?.toLocaleDateString('en-US', {
                     year: 'numeric',
                     month: 'long',
@@ -708,18 +708,18 @@ export default function Profile() {
 
           {/* Organization Positions */}
           {(userProfile?.adviserOf || userProfile?.officerOf) && (
-            <div className="mt-8 pt-6 border-t border-gray-200">
-              <h3 className="text-lg font-semibold text-gray-900 mb-4">Organization Positions</h3>
+            <div className="mt-8 pt-6 border-t border-gray-200 dark:border-gray-700">
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Organization Positions</h3>
               <div className="space-y-3">
                 {/* Adviser Positions */}
                 {userProfile?.adviserOf && Object.keys(userProfile.adviserOf).length > 0 && (
                   <div>
-                    <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Adviser</p>
+                    <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2">Adviser</p>
                     <div className="flex flex-wrap gap-2">
                       {Object.entries(userProfile.adviserOf).map(([orgCode, info]) => (
                         <span 
                           key={orgCode}
-                          className="inline-flex items-center px-3 py-1.5 rounded-full text-sm font-medium bg-purple-100 text-purple-800"
+                          className="inline-flex items-center px-3 py-1.5 rounded-full text-sm font-medium bg-purple-100 dark:bg-purple-900/50 text-purple-800 dark:text-purple-300"
                         >
                           <UserIcon className="w-4 h-4 mr-1" />
                           {info.orgName} Adviser
@@ -732,15 +732,15 @@ export default function Profile() {
                 {/* Officer Positions */}
                 {userProfile?.officerOf && Object.keys(userProfile.officerOf).length > 0 && (
                   <div>
-                    <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Officer</p>
+                    <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2">Officer</p>
                     <div className="flex flex-wrap gap-2">
                       {Object.entries(userProfile.officerOf).map(([orgCode, info]) => (
                         <span 
                           key={orgCode}
                           className={`inline-flex items-center px-3 py-1.5 rounded-full text-sm font-medium ${
                             info.canTagOfficers 
-                              ? 'bg-green-100 text-green-800' 
-                              : 'bg-blue-100 text-blue-800'
+                              ? 'bg-green-100 dark:bg-green-900/50 text-green-800 dark:text-green-300' 
+                              : 'bg-blue-100 dark:bg-blue-900/50 text-blue-800 dark:text-blue-300'
                           }`}
                         >
                           <span className="mr-1">{info.canTagOfficers ? '👑' : '🏅'}</span>

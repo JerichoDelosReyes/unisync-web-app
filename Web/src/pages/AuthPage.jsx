@@ -302,7 +302,7 @@ export default function AuthPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-gray-100 flex flex-col lg:flex-row overflow-hidden">
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-gray-100 dark:from-gray-900 dark:via-gray-900 dark:to-gray-800 flex flex-col lg:flex-row overflow-hidden">
       {/* Left Panel - Minimalist Hero (hidden on mobile) */}
       <div className="hidden lg:flex lg:w-1/2 xl:w-[55%] bg-gradient-to-br from-emerald-700 via-emerald-800 to-emerald-900 text-white p-12 xl:p-16 flex-col justify-between relative overflow-hidden">
         {/* Animated Background Elements */}
@@ -388,9 +388,9 @@ export default function AuthPage() {
               <div className="w-8 h-8 bg-emerald-700 rounded-lg flex items-center justify-center">
                 <span className="text-white text-sm font-black">U</span>
               </div>
-              <span className="text-xl font-bold text-gray-900">UNISYNC</span>
+              <span className="text-xl font-bold text-gray-900 dark:text-white">UNISYNC</span>
             </div>
-            <p className="text-sm text-gray-500">CvSU Imus Campus</p>
+            <p className="text-sm text-gray-500 dark:text-gray-400">CvSU Imus Campus</p>
           </div>
           
           {/* Toast Notification */}
@@ -401,13 +401,13 @@ export default function AuthPage() {
           )}
 
           {/* Tab Switcher - Modern Pills */}
-          <div className="flex gap-1 p-1 bg-gray-100 rounded-xl mb-8">
+          <div className="flex gap-1 p-1 bg-gray-100 dark:bg-gray-800 rounded-xl mb-8">
             <button
               onClick={() => setActiveTab('signin')}
               className={`flex-1 py-2.5 text-sm font-semibold rounded-lg transition-all duration-300 ${
                 activeTab === 'signin'
-                  ? 'bg-white text-gray-900 shadow-sm'
-                  : 'text-gray-500 hover:text-gray-700'
+                  ? 'bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-sm'
+                  : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'
               }`}
             >
               Sign In
@@ -416,8 +416,8 @@ export default function AuthPage() {
               onClick={() => setActiveTab('signup')}
               className={`flex-1 py-2.5 text-sm font-semibold rounded-lg transition-all duration-300 ${
                 activeTab === 'signup'
-                  ? 'bg-white text-gray-900 shadow-sm'
-                  : 'text-gray-500 hover:text-gray-700'
+                  ? 'bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-sm'
+                  : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'
               }`}
             >
               Sign Up
@@ -428,13 +428,13 @@ export default function AuthPage() {
           {activeTab === 'signin' && (
             <form onSubmit={handleSignIn} className="space-y-6 animate-in fade-in duration-300">
               <div className="space-y-1">
-                <h2 className="text-2xl font-bold text-gray-900">Welcome back</h2>
-                <p className="text-sm text-gray-500">Enter your credentials to continue</p>
+                <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Welcome back</h2>
+                <p className="text-sm text-gray-500 dark:text-gray-400">Enter your credentials to continue</p>
               </div>
 
               {showResendVerification && (
-                <div className="p-3 bg-amber-50 border border-amber-100 rounded-xl">
-                  <p className="text-sm text-amber-800">
+                <div className="p-3 bg-amber-50 dark:bg-amber-900/30 border border-amber-100 dark:border-amber-800 rounded-xl">
+                  <p className="text-sm text-amber-800 dark:text-amber-300">
                     Didn't receive email?{' '}
                     <button type="button" onClick={handleResendVerification} className="font-semibold underline underline-offset-2 hover:no-underline">
                       Resend
@@ -445,17 +445,17 @@ export default function AuthPage() {
 
               <div className="space-y-4">
                 <div className="space-y-2">
-                  <label className="text-sm font-medium text-gray-700">Email</label>
+                  <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Email</label>
                   <input
                     type="email"
                     placeholder="yourname@cvsu.edu.ph"
                     value={signInEmail}
                     onChange={(e) => setSignInEmail(e.target.value)}
-                    className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all duration-200"
+                    className="w-full px-4 py-3 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-gray-900 dark:text-white placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all duration-200"
                   />
                 </div>
                 <div className="space-y-2">
-                  <label className="text-sm font-medium text-gray-700">Password</label>
+                  <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Password</label>
                   <PasswordInput 
                     id="signin-password"
                     value={signInPassword}
@@ -482,8 +482,8 @@ export default function AuthPage() {
                 <p className="text-center text-xs text-red-500">Too many attempts. Please wait.</p>
               )}
 
-              <p className="text-center text-xs text-gray-400 pt-2">
-                CvSU Imus Campus exclusive • <a href="mailto:jericho.delosreyes@cvsu.edu.ph" className="text-emerald-600 hover:underline">Need help?</a>
+              <p className="text-center text-xs text-gray-400 dark:text-gray-500 pt-2">
+                CvSU Imus Campus exclusive • <a href="mailto:jericho.delosreyes@cvsu.edu.ph" className="text-emerald-600 dark:text-emerald-400 hover:underline">Need help?</a>
               </p>
             </form>
           )}
@@ -492,80 +492,80 @@ export default function AuthPage() {
           {activeTab === 'signup' && (
             <form onSubmit={handleSignUp} className="space-y-5 animate-in fade-in duration-300">
               <div className="space-y-1">
-                <h2 className="text-2xl font-bold text-gray-900">Create account</h2>
-                <p className="text-sm text-gray-500">Join the CvSU community</p>
+                <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Create account</h2>
+                <p className="text-sm text-gray-500 dark:text-gray-400">Join the CvSU community</p>
               </div>
 
               <div className="space-y-4">
                 <div className="grid grid-cols-2 gap-3">
                   <div className="space-y-1.5">
-                    <label className="text-xs font-medium text-gray-600">Given Name</label>
+                    <label className="text-xs font-medium text-gray-600 dark:text-gray-400">Given Name</label>
                     <input
                       type="text"
                       placeholder="Juan Miguel"
                       value={givenName}
                       onChange={(e) => setGivenName(e.target.value)}
-                      className="w-full px-3 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all"
+                      className="w-full px-3 py-2.5 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-sm text-gray-900 dark:text-white placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all"
                     />
                   </div>
                   <div className="space-y-1.5">
-                    <label className="text-xs font-medium text-gray-600">Middle Name</label>
+                    <label className="text-xs font-medium text-gray-600 dark:text-gray-400">Middle Name</label>
                     <input
                       type="text"
                       placeholder="Santos"
                       value={middleName}
                       onChange={(e) => setMiddleName(e.target.value)}
-                      className="w-full px-3 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all"
+                      className="w-full px-3 py-2.5 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-sm text-gray-900 dark:text-white placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all"
                     />
                   </div>
                 </div>
                 
                 <div className="grid grid-cols-2 gap-3">
                   <div className="space-y-1.5">
-                    <label className="text-xs font-medium text-gray-600">Last Name</label>
+                    <label className="text-xs font-medium text-gray-600 dark:text-gray-400">Last Name</label>
                     <input
                       type="text"
                       placeholder="Dela Cruz"
                       value={lastName}
                       onChange={(e) => setLastName(e.target.value)}
-                      className="w-full px-3 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all"
+                      className="w-full px-3 py-2.5 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-sm text-gray-900 dark:text-white placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all"
                     />
                   </div>
                   <div className="space-y-1.5">
-                    <label className="text-xs font-medium text-gray-600">Suffix <span className="text-gray-400">(opt)</span></label>
+                    <label className="text-xs font-medium text-gray-600 dark:text-gray-400">Suffix <span className="text-gray-400 dark:text-gray-500">(opt)</span></label>
                     <input
                       type="text"
                       placeholder="Jr., Sr."
                       value={suffix}
                       onChange={(e) => setSuffix(e.target.value)}
-                      className="w-full px-3 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all"
+                      className="w-full px-3 py-2.5 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-sm text-gray-900 dark:text-white placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all"
                     />
                   </div>
                 </div>
 
                 <div className="space-y-1.5">
-                  <label className="text-xs font-medium text-gray-600">CvSU Email</label>
+                  <label className="text-xs font-medium text-gray-600 dark:text-gray-400">CvSU Email</label>
                   <input
                     type="email"
                     placeholder="yourname@cvsu.edu.ph"
                     value={signUpEmail}
                     onChange={(e) => setSignUpEmail(e.target.value)}
-                    className="w-full px-3 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all"
+                    className="w-full px-3 py-2.5 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-sm text-gray-900 dark:text-white placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all"
                   />
                 </div>
                 
                 <div className="space-y-1.5">
-                  <label className="text-xs font-medium text-gray-600">Password</label>
+                  <label className="text-xs font-medium text-gray-600 dark:text-gray-400">Password</label>
                   <PasswordInput 
                     id="signup-password"
                     value={signUpPassword}
                     onChange={(e) => setSignUpPassword(e.target.value)}
                   />
-                  <p className="text-[10px] text-gray-400">8+ chars with upper, lower & number</p>
+                  <p className="text-[10px] text-gray-400 dark:text-gray-500">8+ chars with upper, lower & number</p>
                 </div>
                 
                 <div className="space-y-1.5">
-                  <label className="text-xs font-medium text-gray-600">Confirm Password</label>
+                  <label className="text-xs font-medium text-gray-600 dark:text-gray-400">Confirm Password</label>
                   <PasswordInput 
                     id="confirm-password"
                     value={confirmPassword}
@@ -577,13 +577,13 @@ export default function AuthPage() {
               <button
                 type="submit"
                 disabled={signUpLoading}
-                className="w-full py-3.5 bg-emerald-700 hover:bg-emerald-800 disabled:bg-gray-300 text-white font-semibold rounded-xl transition-all duration-200 shadow-lg shadow-emerald-700/25 hover:shadow-xl hover:shadow-emerald-700/30 disabled:shadow-none"
+                className="w-full py-3.5 bg-emerald-700 hover:bg-emerald-800 disabled:bg-gray-300 dark:disabled:bg-gray-700 text-white font-semibold rounded-xl transition-all duration-200 shadow-lg shadow-emerald-700/25 hover:shadow-xl hover:shadow-emerald-700/30 disabled:shadow-none"
               >
                 {signUpLoading ? 'Creating...' : 'Create Account'}
               </button>
 
-              <p className="text-center text-xs text-gray-400">
-                CvSU Imus Campus exclusive • <a href="mailto:jericho.delosreyes@cvsu.edu.ph" className="text-emerald-600 hover:underline">Need help?</a>
+              <p className="text-center text-xs text-gray-400 dark:text-gray-500">
+                CvSU Imus Campus exclusive • <a href="mailto:jericho.delosreyes@cvsu.edu.ph" className="text-emerald-600 dark:text-emerald-400 hover:underline">Need help?</a>
               </p>
             </form>
           )}

@@ -1118,12 +1118,12 @@ export default function Announcements() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
             <div className="max-w-2xl">
-              <div className="inline-flex items-center gap-2 px-3 sm:px-4 py-1.5 sm:py-2 rounded-full bg-gray-100 mb-4 sm:mb-6">
+              <div className="inline-flex items-center gap-2 px-3 sm:px-4 py-1.5 sm:py-2 rounded-full bg-gray-100 dark:bg-gray-800 mb-4 sm:mb-6">
                 <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
-                <span className="text-xs sm:text-sm font-medium text-gray-800">Campus News & Updates</span>
+                <span className="text-xs sm:text-sm font-medium text-gray-800 dark:text-gray-200">Campus News & Updates</span>
               </div>
-              <h1 className="text-3xl sm:text-5xl font-bold mb-2 sm:mb-3 leading-tight text-gray-900">Announcements</h1>
-              <p className="text-base sm:text-xl text-gray-600 leading-relaxed">
+              <h1 className="text-3xl sm:text-5xl font-bold mb-2 sm:mb-3 leading-tight text-gray-900 dark:text-white">Announcements</h1>
+              <p className="text-base sm:text-xl text-gray-600 dark:text-gray-400 leading-relaxed">
                 Important campus updates, events, and announcements
               </p>
             </div>
@@ -1161,7 +1161,7 @@ export default function Announcements() {
             className={`px-3 sm:px-4 py-2 font-medium text-xs sm:text-sm rounded-lg transition-all text-center ${
               activeTab === tab.key
                 ? 'bg-green-600 text-white shadow-md'
-                : 'bg-white text-gray-700 border border-gray-300 hover:border-green-600 hover:text-green-600'
+                : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 border border-gray-300 dark:border-gray-600 hover:border-green-600 hover:text-green-600'
             }`}
           >
             <span className="hidden sm:inline">{tab.key === 'organizations' ? 'Organizations' : tab.label}</span>
@@ -1174,7 +1174,7 @@ export default function Announcements() {
       {loading && (
         <div className="py-12 text-center">
           <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-          <p className="text-gray-500">Loading announcements...</p>
+          <p className="text-gray-500 dark:text-gray-400">Loading announcements...</p>
         </div>
       )}
 
@@ -1205,14 +1205,14 @@ export default function Announcements() {
             
             if (filtered.length === 0) {
               return (
-                <div className="bg-gradient-to-br from-white to-gray-50 rounded-2xl border-2 border-dashed border-gray-300 p-16 text-center">
-                  <div className="w-20 h-20 rounded-full bg-blue-100 flex items-center justify-center mx-auto mb-4">
+                <div className="bg-gradient-to-br from-white to-gray-50 dark:from-gray-800 dark:to-gray-900 rounded-2xl border-2 border-dashed border-gray-300 dark:border-gray-600 p-16 text-center">
+                  <div className="w-20 h-20 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center mx-auto mb-4">
                     <svg className="w-10 h-10 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M11 5.882V19.24a1.76 1.76 0 01-3.417.592l-2.147-6.15M18 13a3 3 0 100-6M5.436 13.683A4.001 4.001 0 017 6h1.832c4.1 0 7.625-1.234 9.168-3v14c-1.543-1.766-5.067-3-9.168-3H7a3.988 3.988 0 01-1.564-.317z" />
                     </svg>
                   </div>
-                  <h3 className="text-2xl font-bold text-gray-900 mb-2">No Announcements Yet</h3>
-                  <p className="text-gray-600">Check back soon for exciting updates and campus news!</p>
+                  <h3 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">No Announcements Yet</h3>
+                  <p className="text-gray-600 dark:text-gray-400">Check back soon for exciting updates and campus news!</p>
                 </div>
               )
             }
@@ -1222,11 +1222,11 @@ export default function Announcements() {
                 {filtered.map((announcement, idx) => (
                   <div
                     key={announcement.id}
-                    className="bg-white rounded-2xl border border-gray-200 overflow-hidden shadow-sm hover:shadow-md transition-all duration-300"
+                    className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 overflow-hidden shadow-sm hover:shadow-md transition-all duration-300"
                     style={{ animationDelay: `${idx * 50}ms` }}
                   >
                     {/* Header - Facebook Style */}
-                    <div className="px-4 py-3 border-b border-gray-100">
+                    <div className="px-4 py-3 border-b border-gray-100 dark:border-gray-700">
                       <div className="flex items-start justify-between mb-3">
                         <div className="flex items-center gap-3 flex-1">
                           {(() => {
@@ -1234,16 +1234,16 @@ export default function Announcements() {
                             if (authorInfo.isOrg) {
                               return (
                                 <>
-                                  <div className="w-10 h-10 rounded-xl bg-gray-100 flex items-center justify-center overflow-hidden flex-shrink-0">
+                                  <div className="w-10 h-10 rounded-xl bg-gray-100 dark:bg-gray-700 flex items-center justify-center overflow-hidden flex-shrink-0">
                                     {authorInfo.logo ? (
                                       <img src={authorInfo.logo} alt={authorInfo.name} className="w-8 h-8 object-contain" />
                                     ) : (
-                                      <span className="text-lg font-bold text-gray-600">{authorInfo.orgCode?.charAt(0)}</span>
+                                      <span className="text-lg font-bold text-gray-600 dark:text-gray-300">{authorInfo.orgCode?.charAt(0)}</span>
                                     )}
                                   </div>
                                   <div className="flex-1 min-w-0">
-                                    <p className="text-sm font-bold text-gray-900">{authorInfo.name}</p>
-                                    <p className="text-xs text-gray-500">{authorInfo.subtitle} • {formatDate(announcement.createdAt)}</p>
+                                    <p className="text-sm font-bold text-gray-900 dark:text-white">{authorInfo.name}</p>
+                                    <p className="text-xs text-gray-500 dark:text-gray-400">{authorInfo.subtitle} • {formatDate(announcement.createdAt)}</p>
                                   </div>
                                 </>
                               )
@@ -1258,8 +1258,8 @@ export default function Announcements() {
                                   </div>
                                 )}
                                 <div className="flex-1 min-w-0">
-                                  <p className="text-sm font-bold text-gray-900">{authorInfo.name}</p>
-                                  <p className="text-xs text-gray-500">{authorInfo.subtitle} • {formatDate(announcement.createdAt)}</p>
+                                  <p className="text-sm font-bold text-gray-900 dark:text-white">{authorInfo.name}</p>
+                                  <p className="text-xs text-gray-500 dark:text-gray-400">{authorInfo.subtitle} • {formatDate(announcement.createdAt)}</p>
                                 </div>
                               </>
                             )
@@ -1267,7 +1267,7 @@ export default function Announcements() {
                         </div>
                         <div className="relative group flex-shrink-0">
                           <button
-                            className="text-gray-500 hover:text-gray-700 transition-colors p-1"
+                            className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 transition-colors p-1"
                           >
                             <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
                               <path d="M12 8c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zm0 2c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm0 6c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2z" />
@@ -1275,10 +1275,10 @@ export default function Announcements() {
                           </button>
                           {/* Dropdown Menu - Admin Only */}
                           {canModerate && (
-                            <div className="absolute right-0 mt-1 w-40 bg-white rounded-lg shadow-lg border border-gray-200 py-1 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-20">
+                            <div className="absolute right-0 mt-1 w-40 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 py-1 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-20">
                               <button
                                 onClick={() => openEditModal(announcement)}
-                                className="w-full flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition-colors"
+                                className="w-full flex items-center gap-2 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
                               >
                                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
@@ -1287,7 +1287,7 @@ export default function Announcements() {
                               </button>
                               <button
                                 onClick={() => setDeleteConfirm({ open: true, announcement })}
-                                className="w-full flex items-center gap-2 px-4 py-2 text-sm text-red-600 hover:bg-red-50 transition-colors border-t border-gray-100"
+                                className="w-full flex items-center gap-2 px-4 py-2 text-sm text-red-600 hover:bg-red-50 dark:hover:bg-red-900/30 transition-colors border-t border-gray-100 dark:border-gray-700"
                               >
                                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
@@ -1296,7 +1296,7 @@ export default function Announcements() {
                               </button>
                               <button
                                 onClick={() => setReportModal({ open: true, announcement })}
-                                className="w-full flex items-center gap-2 px-4 py-2 text-sm text-red-600 hover:bg-red-50 transition-colors border-t border-gray-100"
+                                className="w-full flex items-center gap-2 px-4 py-2 text-sm text-red-600 hover:bg-red-50 dark:hover:bg-red-900/30 transition-colors border-t border-gray-100 dark:border-gray-700"
                               >
                                 <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
                                   <path d="M4 4a1 1 0 011-1h2.586a1 1 0 01.707.293l.707.707H15l.707-.707A1 1 0 0116.414 3H19a1 1 0 011 1v2a1 1 0 01-1 1h-.172l-.293.707A1 1 0 0117.828 8H16v12a1 1 0 01-1 1H9a1 1 0 01-1-1V8H6.172a1 1 0 01-.707-.293L5.172 7H5a1 1 0 01-1-1V4z" />
@@ -1307,12 +1307,12 @@ export default function Announcements() {
                           )}
                           {/* Report option for all users + Delete for own announcements */}
                           {!canModerate && (
-                            <div className="absolute right-0 mt-1 w-40 bg-white rounded-lg shadow-lg border border-gray-200 py-1 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-20">
+                            <div className="absolute right-0 mt-1 w-40 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 py-1 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-20">
                               {/* Delete button for own announcements */}
                               {announcement.authorId === userProfile?.uid && (
                                 <button
                                   onClick={() => setDeleteConfirm({ open: true, announcement })}
-                                  className="w-full flex items-center gap-2 px-4 py-2 text-sm text-red-600 hover:bg-red-50 transition-colors"
+                                  className="w-full flex items-center gap-2 px-4 py-2 text-sm text-red-600 hover:bg-red-50 dark:hover:bg-red-900/30 transition-colors"
                                 >
                                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
@@ -1322,7 +1322,7 @@ export default function Announcements() {
                               )}
                               <button
                                 onClick={() => setReportModal({ open: true, announcement })}
-                                className={`w-full flex items-center gap-2 px-4 py-2 text-sm text-red-600 hover:bg-red-50 transition-colors ${announcement.authorId === userProfile?.uid ? 'border-t border-gray-100' : ''}`}
+                                className={`w-full flex items-center gap-2 px-4 py-2 text-sm text-red-600 hover:bg-red-50 dark:hover:bg-red-900/30 transition-colors ${announcement.authorId === userProfile?.uid ? 'border-t border-gray-100 dark:border-gray-700' : ''}`}
                               >
                                 <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
                                   <path d="M4 4a1 1 0 011-1h2.586a1 1 0 01.707.293l.707.707H15l.707-.707A1 1 0 0116.414 3H19a1 1 0 011 1v2a1 1 0 01-1 1h-.172l-.293.707A1 1 0 0117.828 8H16v12a1 1 0 01-1 1H9a1 1 0 01-1-1V8H6.172a1 1 0 01-.707-.293L5.172 7H5a1 1 0 01-1-1V4z" />
@@ -1348,7 +1348,7 @@ export default function Announcements() {
                             ))}
                             {announcement.targetTags.length > 3 && (
                               <div className="relative group">
-                                <span className="px-2 py-0.5 text-xs font-bold bg-gray-200 text-gray-600 rounded-full cursor-pointer">
+                                <span className="px-2 py-0.5 text-xs font-bold bg-gray-200 dark:bg-gray-700 text-gray-600 dark:text-gray-300 rounded-full cursor-pointer">
                                   +{announcement.targetTags.length - 3}
                                 </span>
                                 {/* Tooltip showing remaining tags */}
@@ -1374,10 +1374,10 @@ export default function Announcements() {
                     
                     {/* Content */}
                     <div className="px-4 py-3 cursor-pointer" onClick={() => setSelectedAnnouncement(announcement)}>
-                      <h3 className="text-base font-bold text-gray-900 mb-2 line-clamp-2 hover:text-green-600 transition-colors">
+                      <h3 className="text-base font-bold text-gray-900 dark:text-white mb-2 line-clamp-2 hover:text-green-600 transition-colors">
                         {announcement.title}
                       </h3>
-                      <p className="text-sm text-gray-700 leading-relaxed line-clamp-3">
+                      <p className="text-sm text-gray-700 dark:text-gray-300 leading-relaxed line-clamp-3">
                         {announcement.content}
                       </p>
                     </div>
@@ -1385,7 +1385,7 @@ export default function Announcements() {
                     {/* Media Gallery - Full Width */}
                     {announcement.media?.length > 0 && (
                       <div 
-                        className="bg-gray-100 cursor-pointer"
+                        className="bg-gray-100 dark:bg-gray-700 cursor-pointer"
                         onClick={() => setSelectedAnnouncement(announcement)}
                       >
                         {announcement.media.length === 1 ? (
@@ -1426,7 +1426,7 @@ export default function Announcements() {
                     )}
                     
                     {/* Engagement Stats & Action Bar - Facebook Style */}
-                    <div className="px-4 py-2 border-t border-gray-100">
+                    <div className="px-4 py-2 border-t border-gray-100 dark:border-gray-700">
                       {/* Action Buttons */}
                       <div className="flex items-center justify-start gap-0">
                         {(() => {
@@ -1439,8 +1439,8 @@ export default function Announcements() {
                               onClick={() => handleToggleReaction(announcement.id, '👍')}
                               className={`flex-1 flex items-center justify-center gap-2 px-4 py-2.5 text-sm font-semibold transition-all group ${
                                 hasUserLiked 
-                                  ? 'text-green-600 bg-green-50 hover:bg-green-100' 
-                                  : 'text-gray-700 hover:bg-gray-100'
+                                  ? 'text-green-600 bg-green-50 dark:bg-green-900/30 hover:bg-green-100 dark:hover:bg-green-900/50' 
+                                  : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
                               }`}
                             >
                               <span className="group-hover:scale-125 transition-transform">
@@ -1457,7 +1457,7 @@ export default function Announcements() {
                               <span>{hasUserLiked ? 'Liked' : 'Like'}</span>
                               {likeCount > 0 && (
                                 <span className={`text-xs px-1.5 py-0.5 rounded-full ${
-                                  hasUserLiked ? 'bg-green-200 text-green-700' : 'bg-gray-200 text-gray-600'
+                                  hasUserLiked ? 'bg-green-200 dark:bg-green-800 text-green-700 dark:text-green-300' : 'bg-gray-200 dark:bg-gray-700 text-gray-600 dark:text-gray-300'
                                 }`}>
                                   {likeCount}
                                 </span>
@@ -1467,14 +1467,14 @@ export default function Announcements() {
                         })()}
                         <button
                           onClick={() => setSelectedAnnouncement(announcement)}
-                          className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 text-sm font-semibold text-gray-700 hover:bg-gray-100 transition-all"
+                          className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 text-sm font-semibold text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-all"
                         >
                           <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
                           </svg>
                           <span>Comment</span>
                           {announcement.comments?.length > 0 && (
-                            <span className="text-xs px-1.5 py-0.5 rounded-full bg-gray-200 text-gray-600">
+                            <span className="text-xs px-1.5 py-0.5 rounded-full bg-gray-200 dark:bg-gray-700 text-gray-600 dark:text-gray-300">
                               {announcement.comments.length}
                             </span>
                           )}
@@ -1491,23 +1491,23 @@ export default function Announcements() {
 
       {/* Organizations Tab */}
       {!loading && !error && activeTab === 'organizations' && selectedOrganization === null && (
-        <div className="bg-white rounded-2xl border border-gray-200 p-8">
-          <h2 className="text-3xl font-bold text-gray-900 mb-8 text-center">Student Organizations</h2>
+        <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 p-8">
+          <h2 className="text-3xl font-bold text-gray-900 dark:text-white mb-8 text-center">Student Organizations</h2>
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-6">
             {organizations.map((org) => (
               <button
                 key={org.name}
                 onClick={() => setSelectedOrganization(org)}
-                className="flex flex-col items-center gap-4 p-4 rounded-xl border border-gray-200 hover:border-green-600 hover:shadow-lg transition-all cursor-pointer group bg-gradient-to-br from-white to-gray-50"
+                className="flex flex-col items-center gap-4 p-4 rounded-xl border border-gray-200 dark:border-gray-700 hover:border-green-600 hover:shadow-lg transition-all cursor-pointer group bg-gradient-to-br from-white to-gray-50 dark:from-gray-800 dark:to-gray-900"
               >
-                <div className="w-20 h-20 rounded-full bg-white flex items-center justify-center overflow-hidden border-2 border-gray-200 group-hover:border-green-600 group-hover:shadow-md transition-all">
+                <div className="w-20 h-20 rounded-full bg-white dark:bg-gray-700 flex items-center justify-center overflow-hidden border-2 border-gray-200 dark:border-gray-600 group-hover:border-green-600 group-hover:shadow-md transition-all">
                   <img 
                     src={org.logo} 
                     alt={org.name}
                     className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
                   />
                 </div>
-                <p className="text-sm font-semibold text-gray-900 text-center line-clamp-3">{org.name}</p>
+                <p className="text-sm font-semibold text-gray-900 dark:text-white text-center line-clamp-3">{org.name}</p>
               </button>
             ))}
           </div>
@@ -1519,11 +1519,11 @@ export default function Announcements() {
           <div className="flex items-center gap-3 mb-6">
             <button
               onClick={() => setSelectedOrganization(null)}
-              className="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg font-medium transition-colors text-sm"
+              className="px-4 py-2 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300 rounded-lg font-medium transition-colors text-sm"
             >
               ← Back to Organizations
             </button>
-            <h2 className="text-2xl font-bold text-gray-900">Announcements from {selectedOrganization.name}</h2>
+            <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Announcements from {selectedOrganization.name}</h2>
           </div>
           {(() => {
             // Filter by org code in both new format (org:CSC) and legacy format (CSC, Computer Science Clique)
@@ -1556,9 +1556,9 @@ export default function Announcements() {
             })
             if (orgAnnouncements.length === 0) {
               return (
-                <div className="bg-gray-50 rounded-2xl border-2 border-dashed border-gray-300 p-12 text-center">
-                  <h3 className="text-lg font-bold text-gray-900 mb-2">No Announcements</h3>
-                  <p className="text-gray-600">This organization hasn't posted any announcements yet.</p>
+                <div className="bg-gray-50 dark:bg-gray-800 rounded-2xl border-2 border-dashed border-gray-300 dark:border-gray-600 p-12 text-center">
+                  <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-2">No Announcements</h3>
+                  <p className="text-gray-600 dark:text-gray-400">This organization hasn't posted any announcements yet.</p>
                 </div>
               )
             }
@@ -1567,10 +1567,10 @@ export default function Announcements() {
                 {orgAnnouncements.map((announcement, idx) => (
                   <div
                     key={announcement.id}
-                    className="bg-white rounded-2xl border border-gray-200 overflow-hidden shadow-sm hover:shadow-md transition-all duration-300"
+                    className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 overflow-hidden shadow-sm hover:shadow-md transition-all duration-300"
                     style={{ animationDelay: `${idx * 50}ms` }}
                   >
-                    <div className="px-4 py-3 border-b border-gray-100">
+                    <div className="px-4 py-3 border-b border-gray-100 dark:border-gray-700">
                       <div className="flex items-start justify-between mb-3">
                         <div className="flex items-center gap-3 flex-1">
                           {(() => {
@@ -1578,16 +1578,16 @@ export default function Announcements() {
                             if (authorInfo.isOrg) {
                               return (
                                 <>
-                                  <div className="w-10 h-10 rounded-xl bg-gray-100 flex items-center justify-center overflow-hidden flex-shrink-0">
+                                  <div className="w-10 h-10 rounded-xl bg-gray-100 dark:bg-gray-700 flex items-center justify-center overflow-hidden flex-shrink-0">
                                     {authorInfo.logo ? (
                                       <img src={authorInfo.logo} alt={authorInfo.name} className="w-8 h-8 object-contain" />
                                     ) : (
-                                      <span className="text-lg font-bold text-gray-600">{authorInfo.orgCode?.charAt(0)}</span>
+                                      <span className="text-lg font-bold text-gray-600 dark:text-gray-300">{authorInfo.orgCode?.charAt(0)}</span>
                                     )}
                                   </div>
                                   <div className="flex-1 min-w-0">
-                                    <p className="text-sm font-bold text-gray-900">{authorInfo.name}</p>
-                                    <p className="text-xs text-gray-500">{authorInfo.subtitle} • {formatDate(announcement.createdAt)}</p>
+                                    <p className="text-sm font-bold text-gray-900 dark:text-white">{authorInfo.name}</p>
+                                    <p className="text-xs text-gray-500 dark:text-gray-400">{authorInfo.subtitle} • {formatDate(announcement.createdAt)}</p>
                                   </div>
                                 </>
                               )
@@ -1602,8 +1602,8 @@ export default function Announcements() {
                                   </div>
                                 )}
                                 <div className="flex-1 min-w-0">
-                                  <p className="text-sm font-bold text-gray-900">{authorInfo.name}</p>
-                                  <p className="text-xs text-gray-500">{authorInfo.subtitle} • {formatDate(announcement.createdAt)}</p>
+                                  <p className="text-sm font-bold text-gray-900 dark:text-white">{authorInfo.name}</p>
+                                  <p className="text-xs text-gray-500 dark:text-gray-400">{authorInfo.subtitle} • {formatDate(announcement.createdAt)}</p>
                                 </div>
                               </>
                             )
@@ -1617,10 +1617,10 @@ export default function Announcements() {
                       </div>
                     </div>
                     <div className="px-4 py-3 cursor-pointer" onClick={() => setSelectedAnnouncement(announcement)}>
-                      <h3 className="text-base font-bold text-gray-900 mb-2 line-clamp-2 hover:text-green-600 transition-colors">
+                      <h3 className="text-base font-bold text-gray-900 dark:text-white mb-2 line-clamp-2 hover:text-green-600 transition-colors">
                         {announcement.title}
                       </h3>
-                      <p className="text-sm text-gray-700 leading-relaxed line-clamp-3">
+                      <p className="text-sm text-gray-700 dark:text-gray-300 leading-relaxed line-clamp-3">
                         {announcement.content}
                       </p>
                     </div>
@@ -1643,7 +1643,7 @@ export default function Announcements() {
           setAnnouncementMode('classrep')
           setSelectedAnnouncementOrg(null)
         }}>
-          <div className="bg-white rounded-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto shadow-2xl mx-4">
+          <div className="bg-white dark:bg-gray-800 rounded-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto shadow-2xl mx-4">
             {/* Modal Header */}
             <div className="sticky top-0 bg-green-600 text-white px-6 py-4 flex items-center justify-between z-10 rounded-t-2xl">
               <h2 className="text-xl font-bold">Create Announcement</h2>
@@ -1668,8 +1668,8 @@ export default function Announcements() {
             <div className="p-6">
               {/* Announcement Mode Selector - Show if user has multiple roles */}
               {(canAnnounceAsClassRep && isOrgOfficer) && (
-                <div className="mb-6 p-4 bg-gray-50 rounded-xl border border-gray-200">
-                  <p className="text-sm font-semibold text-gray-700 mb-3">Announce as:</p>
+                <div className="mb-6 p-4 bg-gray-50 dark:bg-gray-700 rounded-xl border border-gray-200 dark:border-gray-600">
+                  <p className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">Announce as:</p>
                   <div className="flex gap-3">
                     <button
                       type="button"
@@ -1679,15 +1679,15 @@ export default function Announcements() {
                       }}
                       className={`flex-1 p-3 rounded-lg border-2 transition-all ${
                         announcementMode === 'classrep'
-                          ? 'border-green-500 bg-green-50'
-                          : 'border-gray-200 hover:border-gray-300'
+                          ? 'border-green-500 bg-green-50 dark:bg-green-900/30'
+                          : 'border-gray-200 dark:border-gray-600 hover:border-gray-300 dark:hover:border-gray-500'
                       }`}
                     >
                       <div className="flex items-center gap-2 justify-center">
                         <AcademicCapIcon className="w-5 h-5 text-green-600" />
                         <div className="text-left">
-                          <p className="font-semibold text-sm text-gray-900">Class Representative</p>
-                          <p className="text-xs text-gray-500">Section {userProfile?.section}</p>
+                          <p className="font-semibold text-sm text-gray-900 dark:text-white">Class Representative</p>
+                          <p className="text-xs text-gray-500 dark:text-gray-400">Section {userProfile?.section}</p>
                         </div>
                       </div>
                     </button>
@@ -1701,15 +1701,15 @@ export default function Announcements() {
                       }}
                       className={`flex-1 p-3 rounded-lg border-2 transition-all ${
                         announcementMode === 'org'
-                          ? 'border-blue-500 bg-blue-50'
-                          : 'border-gray-200 hover:border-gray-300'
+                          ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/30'
+                          : 'border-gray-200 dark:border-gray-600 hover:border-gray-300 dark:hover:border-gray-500'
                       }`}
                     >
                       <div className="flex items-center gap-2 justify-center">
                         <BuildingLibraryIcon className="w-5 h-5 text-blue-600" />
                         <div className="text-left">
-                          <p className="font-semibold text-sm text-gray-900">Organization Officer</p>
-                          <p className="text-xs text-gray-500">
+                          <p className="font-semibold text-sm text-gray-900 dark:text-white">Organization Officer</p>
+                          <p className="text-xs text-gray-500 dark:text-gray-400">
                             {userAnnouncementOrgs.map(o => o.code).join(', ')}
                           </p>
                         </div>
@@ -1731,12 +1731,12 @@ export default function Announcements() {
                         onClick={() => setSelectedAnnouncementOrg(org)}
                         className={`p-3 rounded-lg border-2 transition-all text-left ${
                           selectedAnnouncementOrg?.code === org.code
-                            ? 'border-blue-500 bg-white'
-                            : 'border-blue-100 bg-white/50 hover:border-blue-300'
+                            ? 'border-blue-500 bg-white dark:bg-gray-700'
+                            : 'border-blue-100 dark:border-blue-900 bg-white/50 dark:bg-gray-800 hover:border-blue-300 dark:hover:border-blue-700'
                         }`}
                       >
-                        <p className="font-semibold text-sm text-gray-900">{org.code}</p>
-                        <p className="text-xs text-gray-500">{org.position}</p>
+                        <p className="font-semibold text-sm text-gray-900 dark:text-white">{org.code}</p>
+                        <p className="text-xs text-gray-500 dark:text-gray-400">{org.position}</p>
                       </button>
                     ))}
                   </div>
@@ -1745,12 +1745,12 @@ export default function Announcements() {
               
               {/* Single Organization Notice */}
               {announcementMode === 'org' && userAnnouncementOrgs.length === 1 && (
-                <div className="mb-6 p-4 bg-blue-50 rounded-xl border border-blue-200">
+                <div className="mb-6 p-4 bg-blue-50 dark:bg-blue-900/30 rounded-xl border border-blue-200 dark:border-blue-800">
                   <div className="flex items-center gap-3">
                     <BuildingLibraryIcon className="w-7 h-7 text-blue-600" />
                     <div>
-                      <p className="font-semibold text-blue-900">Announcing as {selectedAnnouncementOrg?.position || userAnnouncementOrgs[0].position}</p>
-                      <p className="text-sm text-blue-700">{selectedAnnouncementOrg?.name || userAnnouncementOrgs[0].name}</p>
+                      <p className="font-semibold text-blue-900 dark:text-blue-100">Announcing as {selectedAnnouncementOrg?.position || userAnnouncementOrgs[0].position}</p>
+                      <p className="text-sm text-blue-700 dark:text-blue-300">{selectedAnnouncementOrg?.name || userAnnouncementOrgs[0].name}</p>
                     </div>
                   </div>
                 </div>
@@ -1758,15 +1758,15 @@ export default function Announcements() {
               
               <form onSubmit={handleSubmit} className="space-y-4">
                 {/* Post Creator Card */}
-                <div className="bg-white rounded-2xl border border-gray-200 p-6 shadow-sm">
+                <div className="bg-white dark:bg-gray-700 rounded-2xl border border-gray-200 dark:border-gray-600 p-6 shadow-sm">
                   {/* User Header */}
-                  <div className="flex items-center gap-3 mb-4 pb-4 border-b border-gray-200">
+                  <div className="flex items-center gap-3 mb-4 pb-4 border-b border-gray-200 dark:border-gray-600">
                     <div className="w-10 h-10 rounded-full bg-green-600 flex items-center justify-center text-white font-bold text-sm flex-shrink-0">
                       {userProfile?.givenName?.charAt(0) || 'U'}
                     </div>
                     <div className="flex-1">
-                      <p className="font-semibold text-gray-900 text-sm">{userProfile?.givenName} {userProfile?.lastName}</p>
-                      <p className="text-xs text-gray-500">{ROLE_DISPLAY_NAMES[userProfile?.role]}</p>
+                      <p className="font-semibold text-gray-900 dark:text-white text-sm">{userProfile?.givenName} {userProfile?.lastName}</p>
+                      <p className="text-xs text-gray-500 dark:text-gray-400">{ROLE_DISPLAY_NAMES[userProfile?.role]}</p>
                     </div>
                   </div>
                   
@@ -1776,7 +1776,7 @@ export default function Announcements() {
                     value={formData.title}
                     onChange={(e) => setFormData(prev => ({ ...prev, title: e.target.value }))}
                     placeholder="What's the announcement about?"
-                    className="w-full px-0 py-2 text-2xl font-bold text-gray-900 placeholder-gray-400 bg-transparent border-0 focus:outline-none resize-none mb-3"
+                    className="w-full px-0 py-2 text-2xl font-bold text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 bg-transparent border-0 focus:outline-none resize-none mb-3"
                     required
                   />
                   
@@ -1786,7 +1786,7 @@ export default function Announcements() {
                     onChange={(e) => setFormData(prev => ({ ...prev, content: e.target.value }))}
                     placeholder="Share the details of your announcement..."
                     rows={5}
-                    className="w-full px-0 py-3 text-base text-gray-900 placeholder-gray-500 bg-transparent border-0 focus:outline-none resize-none"
+                    className="w-full px-0 py-3 text-base text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 bg-transparent border-0 focus:outline-none resize-none"
                     required
                   />
                   
@@ -1823,7 +1823,7 @@ export default function Announcements() {
                   )}
                   
                   {/* Action Bar */}
-                  <div className="mt-4 pt-3 border-t border-gray-200 flex items-center gap-2">
+                  <div className="mt-4 pt-3 border-t border-gray-200 dark:border-gray-600 flex items-center gap-2">
                     <input
                       type="file"
                       ref={fileInputRef}
@@ -1837,7 +1837,7 @@ export default function Announcements() {
                     <button
                       type="button"
                       onClick={() => fileInputRef.current?.click()}
-                      className="flex-1 flex items-center justify-center gap-2 px-3 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-100 rounded-lg transition-all group"
+                      className="flex-1 flex items-center justify-center gap-2 px-3 py-2 text-sm font-semibold text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-600 rounded-lg transition-all group"
                     >
                       <svg className="w-5 h-5 text-red-500 group-hover:scale-110 transition-transform" fill="currentColor" viewBox="0 0 24 24">
                         <path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z" />
@@ -1848,7 +1848,7 @@ export default function Announcements() {
                     <select
                       value={formData.priority}
                       onChange={(e) => setFormData(prev => ({ ...prev, priority: e.target.value }))}
-                      className="flex-1 flex items-center justify-center gap-2 px-3 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-100 rounded-lg transition-all bg-transparent border-0 cursor-pointer text-center"
+                      className="flex-1 flex items-center justify-center gap-2 px-3 py-2 text-sm font-semibold text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-600 rounded-lg transition-all bg-transparent border-0 cursor-pointer text-center"
                     >
                       <option value={PRIORITY_LEVELS.LOW}>🟢 Low</option>
                       <option value={PRIORITY_LEVELS.NORMAL}>🟡 Normal</option>
@@ -1869,23 +1869,23 @@ export default function Announcements() {
                   
                   {/* Moderation Notice */}
                   {!skipReviewQueue && (
-                    <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
-                      <p className="text-xs text-blue-900"><span className="font-semibold">Note:</span> Your post will be reviewed before publishing.</p>
+                    <div className="mt-4 p-3 bg-blue-50 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-800 rounded-lg">
+                      <p className="text-xs text-blue-900 dark:text-blue-100"><span className="font-semibold">Note:</span> Your post will be reviewed before publishing.</p>
                     </div>
                   )}
                   
                   {/* Grammar & Spelling Check */}
-                  <div className="mt-4 p-3 bg-gray-50 border border-gray-200 rounded-lg">
+                  <div className="mt-4 p-3 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg">
                     <div className="flex items-center justify-between mb-2">
                       <div className="flex items-center gap-2">
-                        <PencilIcon className="w-5 h-5 text-gray-600" />
-                        <span className="text-sm font-semibold text-gray-700">Writing Assistant</span>
+                        <PencilIcon className="w-5 h-5 text-gray-600 dark:text-gray-400" />
+                        <span className="text-sm font-semibold text-gray-700 dark:text-gray-300">Writing Assistant</span>
                       </div>
                       <div className="flex items-center gap-2">
                         <button
                           type="button"
                           onClick={handleGrammarCheck}
-                          className="px-3 py-1.5 text-xs font-semibold text-indigo-700 bg-indigo-100 rounded-lg hover:bg-indigo-200 transition-all"
+                          className="px-3 py-1.5 text-xs font-semibold text-indigo-700 dark:text-indigo-300 bg-indigo-100 dark:bg-indigo-900/50 rounded-lg hover:bg-indigo-200 dark:hover:bg-indigo-900 transition-all"
                         >
                           Check Grammar
                         </button>
@@ -1893,7 +1893,7 @@ export default function Announcements() {
                           <button
                             type="button"
                             onClick={handleAutoCorrect}
-                            className="px-3 py-1.5 text-xs font-semibold text-green-700 bg-green-100 rounded-lg hover:bg-green-200 transition-all"
+                            className="px-3 py-1.5 text-xs font-semibold text-green-700 dark:text-green-300 bg-green-100 dark:bg-green-900/50 rounded-lg hover:bg-green-200 dark:hover:bg-green-900 transition-all"
                           >
                             Auto-fix
                           </button>
@@ -1903,7 +1903,7 @@ export default function Announcements() {
                     
                     {/* Grammar Check Results */}
                     {grammarCheck && showGrammarPanel && (
-                      <div className="mt-3 pt-3 border-t border-gray-200">
+                      <div className="mt-3 pt-3 border-t border-gray-200 dark:border-gray-600">
                         {/* Summary */}
                         <div className="flex items-center justify-between mb-3">
                           <div className="flex items-center gap-2">
@@ -1915,7 +1915,7 @@ export default function Announcements() {
                               {grammarCheck.qualityScore}
                             </div>
                             <div>
-                              <p className="text-xs font-semibold text-gray-700">Quality Score</p>
+                              <p className="text-xs font-semibold text-gray-700 dark:text-gray-300">Quality Score</p>
                               <p className={`text-xs ${
                                 grammarCheck.summary.status === 'excellent' ? 'text-green-600' :
                                 grammarCheck.summary.status === 'good' ? 'text-blue-600' :
@@ -1927,7 +1927,7 @@ export default function Announcements() {
                           <button
                             type="button"
                             onClick={() => setShowGrammarPanel(false)}
-                            className="text-gray-400 hover:text-gray-600"
+                            className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
                           >
                             <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
                               <path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z" />
@@ -1936,10 +1936,10 @@ export default function Announcements() {
                         </div>
                         
                         {/* Readability */}
-                        <div className="mb-3 p-2 bg-white rounded-lg border border-gray-100">
+                        <div className="mb-3 p-2 bg-white dark:bg-gray-800 rounded-lg border border-gray-100 dark:border-gray-600">
                           <div className="flex items-center justify-between text-xs">
-                            <span className="text-gray-500">Readability: <span className="font-semibold text-gray-700">{grammarCheck.readability.level}</span></span>
-                            <span className="text-gray-500">{grammarCheck.readability.words} words • {grammarCheck.readability.sentences} sentences</span>
+                            <span className="text-gray-500 dark:text-gray-400">Readability: <span className="font-semibold text-gray-700 dark:text-gray-300">{grammarCheck.readability.level}</span></span>
+                            <span className="text-gray-500 dark:text-gray-400">{grammarCheck.readability.words} words • {grammarCheck.readability.sentences} sentences</span>
                           </div>
                         </div>
                         
@@ -1978,9 +1978,9 @@ export default function Announcements() {
                         )}
                         
                         {grammarCheck.allIssues.length === 0 && (
-                          <div className="flex items-center gap-2 p-2 bg-green-50 rounded-lg border border-green-100">
+                          <div className="flex items-center gap-2 p-2 bg-green-50 dark:bg-green-900/30 rounded-lg border border-green-100 dark:border-green-800">
                             <CheckCircleIcon className="w-4 h-4 text-green-500" />
-                            <p className="text-xs text-green-800">No grammar or spelling issues found!</p>
+                            <p className="text-xs text-green-800 dark:text-green-200">No grammar or spelling issues found!</p>
                           </div>
                         )}
                       </div>
@@ -1988,7 +1988,7 @@ export default function Announcements() {
                   </div>
                   
                   {/* Submit Button */}
-                  <div className="flex gap-3 mt-4 pt-3 border-t border-gray-200">
+                  <div className="flex gap-3 mt-4 pt-3 border-t border-gray-200 dark:border-gray-600">
                     <button
                       type="button"
                       onClick={() => {
@@ -2001,7 +2001,7 @@ export default function Announcements() {
                         setGrammarCheck(null)
                         setShowGrammarPanel(false)
                       }}
-                      className="flex-1 px-4 py-2.5 text-sm font-bold text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-all"
+                      className="flex-1 px-4 py-2.5 text-sm font-bold text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-all"
                     >
                       Cancel
                     </button>
@@ -2203,7 +2203,7 @@ export default function Announcements() {
       {/* Announcement Detail Modal - Facebook Style */}
       {selectedAnnouncement && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
-          <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+          <div className="relative bg-white dark:bg-gray-800 rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
             {/* Header - Compact Facebook Style */}
             <div className="sticky top-0 bg-green-600 text-white px-4 py-3 flex items-center justify-between z-10">
               <span className={`px-3 py-1 text-xs font-bold rounded-full uppercase tracking-wide ${
@@ -2224,7 +2224,7 @@ export default function Announcements() {
               </button>
             </div>
             
-            <div className="divide-y divide-gray-200">
+            <div className="divide-y divide-gray-200 dark:divide-gray-700">
               {/* Post Header with Author */}
               <div className="px-4 py-3">
                 <div className="flex items-start justify-between mb-3">
@@ -2234,16 +2234,16 @@ export default function Announcements() {
                       if (authorInfo.isOrg) {
                         return (
                           <>
-                            <div className="w-10 h-10 rounded-xl bg-gray-100 flex items-center justify-center overflow-hidden flex-shrink-0">
+                            <div className="w-10 h-10 rounded-xl bg-gray-100 dark:bg-gray-700 flex items-center justify-center overflow-hidden flex-shrink-0">
                               {authorInfo.logo ? (
                                 <img src={authorInfo.logo} alt={authorInfo.name} className="w-8 h-8 object-contain" />
                               ) : (
-                                <span className="text-lg font-bold text-gray-600">{authorInfo.orgCode?.charAt(0)}</span>
+                                <span className="text-lg font-bold text-gray-600 dark:text-gray-300">{authorInfo.orgCode?.charAt(0)}</span>
                               )}
                             </div>
                             <div className="flex-1 min-w-0">
-                              <p className="font-bold text-gray-900 text-sm">{authorInfo.name}</p>
-                              <p className="text-xs text-gray-500">{authorInfo.subtitle}</p>
+                              <p className="font-bold text-gray-900 dark:text-white text-sm">{authorInfo.name}</p>
+                              <p className="text-xs text-gray-500 dark:text-gray-400">{authorInfo.subtitle}</p>
                             </div>
                           </>
                         )
@@ -2258,15 +2258,15 @@ export default function Announcements() {
                             </div>
                           )}
                           <div className="flex-1 min-w-0">
-                            <p className="font-bold text-gray-900 text-sm">{authorInfo.name}</p>
-                            <p className="text-xs text-gray-500">{authorInfo.subtitle}</p>
+                            <p className="font-bold text-gray-900 dark:text-white text-sm">{authorInfo.name}</p>
+                            <p className="text-xs text-gray-500 dark:text-gray-400">{authorInfo.subtitle}</p>
                           </div>
                         </>
                       )
                     })()}
                   </div>
                 </div>
-                <p className="text-xs text-gray-500 flex items-center gap-2">
+                <p className="text-xs text-gray-500 dark:text-gray-400 flex items-center gap-2">
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                   </svg>
@@ -2276,15 +2276,15 @@ export default function Announcements() {
               
               {/* Content */}
               <div className="px-4 py-3">
-                <h2 className="text-2xl font-bold text-gray-900 mb-3">{selectedAnnouncement.title}</h2>
-                <div className="text-gray-700 text-sm leading-relaxed whitespace-pre-wrap">
+                <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-3">{selectedAnnouncement.title}</h2>
+                <div className="text-gray-700 dark:text-gray-300 text-sm leading-relaxed whitespace-pre-wrap">
                   {selectedAnnouncement.content}
                 </div>
               </div>
               
               {/* Media Gallery - Full Width */}
               {selectedAnnouncement.media?.length > 0 && (
-                <div className="bg-gray-100">
+                <div className="bg-gray-100 dark:bg-gray-700">
                   {selectedAnnouncement.media.length === 1 ? (
                     <div className="w-full cursor-pointer" onClick={() => openMediaViewer(selectedAnnouncement.media[0], 0, selectedAnnouncement.media)}>
                       {selectedAnnouncement.media[0].type === 'image' ? (
@@ -2329,7 +2329,7 @@ export default function Announcements() {
               {/* Target Tags */}
               {selectedAnnouncement.targetTags?.length > 0 && (
                 <div className="px-4 py-3">
-                  <p className="text-xs font-bold text-gray-600 mb-2">Audience Targeting ({selectedAnnouncement.targetTags.length} tag{selectedAnnouncement.targetTags.length !== 1 ? 's' : ''})</p>
+                  <p className="text-xs font-bold text-gray-600 dark:text-gray-400 mb-2">Audience Targeting ({selectedAnnouncement.targetTags.length} tag{selectedAnnouncement.targetTags.length !== 1 ? 's' : ''})</p>
                   <div className="flex flex-wrap gap-2">
                     {selectedAnnouncement.targetTags.map((tag, idx) => (
                       <span key={idx} className={`px-2.5 py-1 text-xs font-semibold rounded-full ${getTagColor(tag)}`}>
@@ -2341,19 +2341,19 @@ export default function Announcements() {
               )}
               
               {/* Comments Section */}
-              <div className="px-4 py-3 border-t border-gray-200">
-                <h3 className="text-sm font-bold text-gray-900 mb-4">Comments ({comments.length})</h3>
+              <div className="px-4 py-3 border-t border-gray-200 dark:border-gray-700">
+                <h3 className="text-sm font-bold text-gray-900 dark:text-white mb-4">Comments ({comments.length})</h3>
                 
                 {/* Reply indicator */}
                 {replyingTo && (
-                  <div className="mb-3 px-3 py-2 bg-blue-50 border border-blue-200 rounded-lg flex items-center justify-between">
-                    <p className="text-xs text-blue-700">
+                  <div className="mb-3 px-3 py-2 bg-blue-50 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-800 rounded-lg flex items-center justify-between">
+                    <p className="text-xs text-blue-700 dark:text-blue-300">
                       Replying to <span className="font-semibold">{replyingTo.authorName}</span>
                     </p>
                     <button
                       type="button"
                       onClick={() => setReplyingTo(null)}
-                      className="text-blue-600 hover:text-blue-800"
+                      className="text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300"
                     >
                       <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -2378,7 +2378,7 @@ export default function Announcements() {
                         onChange={(e) => setCommentText(e.target.value)}
                         placeholder={replyingTo ? `Reply to ${replyingTo.authorName}...` : "Share your thoughts..."}
                         rows={2}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent resize-none text-sm"
+                        className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent resize-none text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400"
                       />
                       <div className="flex justify-end gap-2 mt-2">
                         <button
@@ -2387,7 +2387,7 @@ export default function Announcements() {
                             setCommentText('')
                             setReplyingTo(null)
                           }}
-                          className="px-3 py-1.5 text-xs font-semibold text-gray-600 bg-gray-100 rounded-lg hover:bg-gray-200 transition-all"
+                          className="px-3 py-1.5 text-xs font-semibold text-gray-600 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-all"
                         >
                           Cancel
                         </button>
@@ -2404,16 +2404,16 @@ export default function Announcements() {
                 </form>
                 
                 {/* Divider */}
-                <div className="border-t border-gray-200 my-4"></div>
+                <div className="border-t border-gray-200 dark:border-gray-700 my-4"></div>
                 
                 {/* Comments List */}
                 {loadingComments ? (
                   <div className="text-center py-8">
                     <div className="w-5 h-5 border-2 border-green-600 border-t-transparent rounded-full animate-spin mx-auto mb-2"></div>
-                    <p className="text-xs text-gray-500">Loading comments...</p>
+                    <p className="text-xs text-gray-500 dark:text-gray-400">Loading comments...</p>
                   </div>
                 ) : comments.length === 0 ? (
-                  <p className="text-center text-sm text-gray-500 py-8">No comments yet. Be the first to share your thoughts!</p>
+                  <p className="text-center text-sm text-gray-500 dark:text-gray-400 py-8">No comments yet. Be the first to share your thoughts!</p>
                 ) : (
                   <div className="space-y-3 max-h-80 overflow-y-auto">
                     {/* Parent comments (no parentId) */}
@@ -2428,17 +2428,17 @@ export default function Announcements() {
                             </div>
                           )}
                           <div className="flex-1 min-w-0">
-                            <div className={`rounded-lg px-3 py-2 ${comment.status === 'pending_review' ? 'bg-yellow-50 border border-yellow-200' : 'bg-gray-100'}`}>
+                            <div className={`rounded-lg px-3 py-2 ${comment.status === 'pending_review' ? 'bg-yellow-50 dark:bg-yellow-900/30 border border-yellow-200 dark:border-yellow-800' : 'bg-gray-100 dark:bg-gray-700'}`}>
                               <div className="flex items-center gap-2">
-                                <p className="text-sm font-semibold text-gray-900">{comment.authorName}</p>
+                                <p className="text-sm font-semibold text-gray-900 dark:text-white">{comment.authorName}</p>
                                 {comment.status === 'pending_review' && (
-                                  <span className="text-[10px] px-1.5 py-0.5 bg-yellow-200 text-yellow-800 rounded font-medium">Pending Review</span>
+                                  <span className="text-[10px] px-1.5 py-0.5 bg-yellow-200 dark:bg-yellow-800 text-yellow-800 dark:text-yellow-200 rounded font-medium">Pending Review</span>
                                 )}
                               </div>
-                              <p className="text-sm text-gray-700 mt-0.5">{comment.content}</p>
+                              <p className="text-sm text-gray-700 dark:text-gray-300 mt-0.5">{comment.content}</p>
                             </div>
                             <div className="flex items-center gap-3 mt-1">
-                              <p className="text-xs text-gray-500">{formatDate(comment.createdAt)}</p>
+                              <p className="text-xs text-gray-500 dark:text-gray-400">{formatDate(comment.createdAt)}</p>
                               <button
                                 onClick={() => setReplyingTo({ id: comment.id, authorName: comment.authorName })}
                                 className="text-xs text-primary hover:text-primary/80 font-medium"
@@ -2460,16 +2460,16 @@ export default function Announcements() {
                               </div>
                             )}
                             <div className="flex-1 min-w-0">
-                              <div className={`rounded-lg px-3 py-2 ${reply.status === 'pending_review' ? 'bg-yellow-50 border border-yellow-200' : 'bg-gray-50'}`}>
+                              <div className={`rounded-lg px-3 py-2 ${reply.status === 'pending_review' ? 'bg-yellow-50 dark:bg-yellow-900/30 border border-yellow-200 dark:border-yellow-800' : 'bg-gray-50 dark:bg-gray-700'}`}>
                                 <div className="flex items-center gap-2">
-                                  <p className="text-xs font-semibold text-gray-900">{reply.authorName}</p>
+                                  <p className="text-xs font-semibold text-gray-900 dark:text-white">{reply.authorName}</p>
                                   {reply.status === 'pending_review' && (
-                                    <span className="text-[10px] px-1.5 py-0.5 bg-yellow-200 text-yellow-800 rounded font-medium">Pending</span>
+                                    <span className="text-[10px] px-1.5 py-0.5 bg-yellow-200 dark:bg-yellow-800 text-yellow-800 dark:text-yellow-200 rounded font-medium">Pending</span>
                                   )}
                                 </div>
-                                <p className="text-xs text-gray-700 mt-0.5">{reply.content}</p>
+                                <p className="text-xs text-gray-700 dark:text-gray-300 mt-0.5">{reply.content}</p>
                               </div>
-                              <p className="text-[10px] text-gray-500 mt-1">{formatDate(reply.createdAt)}</p>
+                              <p className="text-[10px] text-gray-500 dark:text-gray-400 mt-1">{formatDate(reply.createdAt)}</p>
                             </div>
                           </div>
                         ))}
@@ -2481,7 +2481,7 @@ export default function Announcements() {
               
               {/* Admin Actions */}
               {canModerate && (
-                <div className="px-4 py-3 bg-gray-50 border-t border-gray-200 flex gap-2">
+                <div className="px-4 py-3 bg-gray-50 dark:bg-gray-900 border-t border-gray-200 dark:border-gray-700 flex gap-2">
                   <button
                     onClick={() => openEditModal(selectedAnnouncement)}
                     className="flex-1 inline-flex items-center justify-center gap-2 px-4 py-2.5 text-sm font-bold text-blue-600 bg-blue-50 border border-blue-200 rounded-lg hover:bg-blue-100 transition-all"
@@ -2577,12 +2577,12 @@ export default function Announcements() {
       {editModal.open && editModal.announcement && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
           <div className="absolute inset-0 bg-black/50" onClick={() => setEditModal({ open: false, announcement: null })} />
-          <div className="relative bg-white rounded-xl shadow-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
-            <div className="sticky top-0 bg-white border-b border-gray-100 px-4 py-3 flex items-center justify-between z-10">
-              <h3 className="text-lg font-semibold text-gray-900">Edit Announcement</h3>
+          <div className="relative bg-white dark:bg-gray-800 rounded-xl shadow-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+            <div className="sticky top-0 bg-white dark:bg-gray-800 border-b border-gray-100 dark:border-gray-700 px-4 py-3 flex items-center justify-between z-10">
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Edit Announcement</h3>
               <button
                 onClick={() => setEditModal({ open: false, announcement: null })}
-                className="text-gray-400 hover:text-gray-600"
+                className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
               >
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -2593,26 +2593,26 @@ export default function Announcements() {
             <form onSubmit={handleEditSubmit} className="p-6 space-y-6">
               {/* Title */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Title</label>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Title</label>
                 <input
                   type="text"
                   value={editFormData.title}
                   onChange={(e) => setEditFormData(prev => ({ ...prev, title: e.target.value }))}
                   placeholder="Enter announcement title"
-                  className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
+                  className="w-full px-4 py-2 border border-gray-200 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
                   required
                 />
               </div>
               
               {/* Content */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Content</label>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Content</label>
                 <textarea
                   value={editFormData.content}
                   onChange={(e) => setEditFormData(prev => ({ ...prev, content: e.target.value }))}
                   placeholder="Write your announcement content..."
                   rows={6}
-                  className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary resize-none"
+                  className="w-full px-4 py-2 border border-gray-200 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary resize-none bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
                   required
                 />
               </div>
@@ -2623,7 +2623,7 @@ export default function Announcements() {
                 <select
                   value={editFormData.priority}
                   onChange={(e) => setEditFormData(prev => ({ ...prev, priority: e.target.value }))}
-                  className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
+                  className="w-full px-4 py-2 border border-gray-200 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
                 >
                   <option value={PRIORITY_LEVELS.LOW}>Low</option>
                   <option value={PRIORITY_LEVELS.NORMAL}>Normal</option>
@@ -2634,11 +2634,11 @@ export default function Announcements() {
               
               {/* Target Organizations */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                   Target Audience
-                  <span className="font-normal text-gray-500 ml-1">(Leave empty for campus-wide)</span>
+                  <span className="font-normal text-gray-500 dark:text-gray-400 ml-1">(Leave empty for campus-wide)</span>
                 </label>
-                <div className="flex flex-wrap gap-2 p-4 bg-gray-50 rounded-lg max-h-48 overflow-y-auto">
+                <div className="flex flex-wrap gap-2 p-4 bg-gray-50 dark:bg-gray-700 rounded-lg max-h-48 overflow-y-auto">
                   {organizations.map((org) => (
                     <button
                       key={org.name}
@@ -2647,7 +2647,7 @@ export default function Announcements() {
                       className={`px-3 py-1.5 text-xs font-medium rounded-full transition-colors ${
                         editFormData.targetTags.includes(org.name)
                           ? 'bg-primary text-white'
-                          : 'bg-white border border-gray-200 text-gray-700 hover:bg-gray-100'
+                          : 'bg-white dark:bg-gray-600 border border-gray-200 dark:border-gray-500 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-500'
                       }`}
                     >
                       {org.name}
@@ -2659,10 +2659,10 @@ export default function Announcements() {
               {/* Existing Media */}
               {editModal.announcement.media?.length > 0 && (
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Existing Attachments</label>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Existing Attachments</label>
                   <div className="flex flex-wrap gap-3">
                     {editModal.announcement.media.map((media, idx) => (
-                      <div key={idx} className="w-20 h-20 rounded-lg overflow-hidden bg-gray-100">
+                      <div key={idx} className="w-20 h-20 rounded-lg overflow-hidden bg-gray-100 dark:bg-gray-700">
                         {media.type === 'image' ? (
                           <img src={media.url} alt="" className="w-full h-full object-cover" />
                         ) : (
@@ -2671,7 +2671,7 @@ export default function Announcements() {
                       </div>
                     ))}
                   </div>
-                  <p className="text-xs text-gray-500 mt-2">Note: Editing media requires re-creating the announcement</p>
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">Note: Editing media requires re-creating the announcement</p>
                 </div>
               )}
               
@@ -2680,7 +2680,7 @@ export default function Announcements() {
                 <button
                   type="button"
                   onClick={() => setEditModal({ open: false, announcement: null })}
-                  className="flex-1 px-4 py-2.5 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
+                  className="flex-1 px-4 py-2.5 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
                 >
                   Cancel
                 </button>
@@ -2707,29 +2707,29 @@ export default function Announcements() {
       {/* Delete Confirmation Modal */}
       {deleteConfirm.open && deleteConfirm.announcement && (
         <div className="fixed inset-0 z-[55] flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
-          <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-md p-8">
+          <div className="relative bg-white dark:bg-gray-800 rounded-2xl shadow-2xl w-full max-w-md p-8">
             <div className="flex items-center gap-4 mb-6">
-              <div className="w-14 h-14 rounded-full bg-red-100 flex items-center justify-center flex-shrink-0">
+              <div className="w-14 h-14 rounded-full bg-red-100 dark:bg-red-900/30 flex items-center justify-center flex-shrink-0">
                 <svg className="w-7 h-7 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                 </svg>
               </div>
               <div>
-                <h3 className="text-xl font-bold text-gray-900">Delete Announcement?</h3>
-                <p className="text-sm text-gray-600 mt-1">This action cannot be undone.</p>
+                <h3 className="text-xl font-bold text-gray-900 dark:text-white">Delete Announcement?</h3>
+                <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">This action cannot be undone.</p>
               </div>
             </div>
             
-            <div className="bg-gray-50 rounded-lg p-4 mb-6 border-l-4 border-red-500">
-              <p className="text-sm font-bold text-gray-900 line-clamp-2">{deleteConfirm.announcement.title}</p>
-              <p className="text-xs text-gray-500 mt-2">by {deleteConfirm.announcement.authorName}</p>
+            <div className="bg-gray-50 dark:bg-gray-700 rounded-lg p-4 mb-6 border-l-4 border-red-500">
+              <p className="text-sm font-bold text-gray-900 dark:text-white line-clamp-2">{deleteConfirm.announcement.title}</p>
+              <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">by {deleteConfirm.announcement.authorName}</p>
             </div>
             
             <div className="flex gap-3">
               <button
                 onClick={() => setDeleteConfirm({ open: false, announcement: null })}
                 disabled={deleting}
-                className="flex-1 px-4 py-3 text-sm font-bold text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-all disabled:opacity-50"
+                className="flex-1 px-4 py-3 text-sm font-bold text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-all disabled:opacity-50"
               >
                 Cancel
               </button>
@@ -2755,34 +2755,34 @@ export default function Announcements() {
       {/* Report Modal */}
       {reportModal.open && reportModal.announcement && (
         <div className="fixed inset-0 z-[55] flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
-          <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-md p-8">
+          <div className="relative bg-white dark:bg-gray-800 rounded-2xl shadow-2xl w-full max-w-md p-8">
             <div className="flex items-center gap-4 mb-6">
-              <div className="w-14 h-14 rounded-full bg-orange-100 flex items-center justify-center flex-shrink-0">
+              <div className="w-14 h-14 rounded-full bg-orange-100 dark:bg-orange-900/30 flex items-center justify-center flex-shrink-0">
                 <svg className="w-7 h-7 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4v2m0 0a9 9 0 1 1 0-18 9 9 0 0 1 0 18z" />
                 </svg>
               </div>
               <div>
-                <h3 className="text-xl font-bold text-gray-900">Report Announcement</h3>
-                <p className="text-sm text-gray-600 mt-1">Help us keep the community safe</p>
+                <h3 className="text-xl font-bold text-gray-900 dark:text-white">Report Announcement</h3>
+                <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">Help us keep the community safe</p>
               </div>
             </div>
             
-            <div className="bg-gray-50 rounded-lg p-4 mb-6 border-l-4 border-orange-500">
-              <p className="text-sm font-bold text-gray-900 line-clamp-2">{reportModal.announcement.title}</p>
-              <p className="text-xs text-gray-500 mt-2">by {reportModal.announcement.authorName}</p>
+            <div className="bg-gray-50 dark:bg-gray-700 rounded-lg p-4 mb-6 border-l-4 border-orange-500">
+              <p className="text-sm font-bold text-gray-900 dark:text-white line-clamp-2">{reportModal.announcement.title}</p>
+              <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">by {reportModal.announcement.authorName}</p>
             </div>
 
             <div className="mb-6">
-              <label className="block text-sm font-bold text-gray-900 mb-2">Reason for Report</label>
+              <label className="block text-sm font-bold text-gray-900 dark:text-white mb-2">Reason for Report</label>
               <textarea
                 value={reportReason}
                 onChange={(e) => setReportReason(e.target.value)}
                 placeholder="Please describe why you're reporting this announcement (minimum 10 characters)..."
                 rows={4}
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent resize-none text-sm"
+                className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent resize-none text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400"
               />
-              <p className="text-xs text-gray-500 mt-2">{reportReason.length} characters</p>
+              <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">{reportReason.length} characters</p>
             </div>
             
             <div className="flex gap-3">
@@ -2792,7 +2792,7 @@ export default function Announcements() {
                   setReportReason('')
                 }}
                 disabled={reportSubmitting}
-                className="flex-1 px-4 py-3 text-sm font-bold text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-all disabled:opacity-50"
+                className="flex-1 px-4 py-3 text-sm font-bold text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-all disabled:opacity-50"
               >
                 Cancel
               </button>
@@ -2818,42 +2818,42 @@ export default function Announcements() {
       {/* Content Warning Modal (Faculty/President Confirmation) */}
       {contentWarningModal.open && (
         <div className="fixed inset-0 z-[10000] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
-          <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-lg p-8 animate-in fade-in zoom-in duration-200">
+          <div className="relative bg-white dark:bg-gray-800 rounded-2xl shadow-2xl w-full max-w-lg p-8 animate-in fade-in zoom-in duration-200">
             {/* Warning Icon */}
             <div className="flex items-center gap-4 mb-6">
-              <div className="w-16 h-16 rounded-full bg-amber-100 flex items-center justify-center flex-shrink-0 animate-pulse">
+              <div className="w-16 h-16 rounded-full bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center flex-shrink-0 animate-pulse">
                 <svg className="w-9 h-9 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
                 </svg>
               </div>
               <div>
-                <h3 className="text-xl font-bold text-gray-900">Content Warning Detected</h3>
-                <p className="text-sm text-gray-600 mt-1">Sensitive content has been flagged in your announcement</p>
+                <h3 className="text-xl font-bold text-gray-900 dark:text-white">Content Warning Detected</h3>
+                <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">Sensitive content has been flagged in your announcement</p>
               </div>
             </div>
             
             {/* Flagged Content Display */}
-            <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 mb-6">
-              <p className="text-sm font-semibold text-amber-800 mb-2 flex items-center gap-1.5"><ExclamationTriangleIcon className="w-4 h-4" /> Flagged words/phrases:</p>
+            <div className="bg-amber-50 dark:bg-amber-900/30 border border-amber-200 dark:border-amber-800 rounded-xl p-4 mb-6">
+              <p className="text-sm font-semibold text-amber-800 dark:text-amber-200 mb-2 flex items-center gap-1.5"><ExclamationTriangleIcon className="w-4 h-4" /> Flagged words/phrases:</p>
               <div className="flex flex-wrap gap-2">
                 {contentWarningModal.flaggedWords.length > 0 ? (
                   contentWarningModal.flaggedWords.map((item, idx) => (
-                    <span key={idx} className="px-2 py-1 text-xs font-bold bg-amber-200 text-amber-900 rounded-lg">
+                    <span key={idx} className="px-2 py-1 text-xs font-bold bg-amber-200 dark:bg-amber-800 text-amber-900 dark:text-amber-100 rounded-lg">
                       {typeof item === 'string' ? item : item.word}
                     </span>
                   ))
                 ) : (
-                  <span className="text-xs text-amber-700">Potentially sensitive content detected</span>
+                  <span className="text-xs text-amber-700 dark:text-amber-300">Potentially sensitive content detected</span>
                 )}
               </div>
             </div>
             
             {/* Warning Message */}
-            <div className="bg-gray-50 border-l-4 border-amber-500 p-4 rounded-r-lg mb-6">
-              <p className="text-sm text-gray-700">
+            <div className="bg-gray-50 dark:bg-gray-700 border-l-4 border-amber-500 p-4 rounded-r-lg mb-6">
+              <p className="text-sm text-gray-700 dark:text-gray-300">
                 <strong>As a Faculty member or Organization President,</strong> you have the authority to proceed with this announcement despite the flagged content. 
               </p>
-              <p className="text-sm text-gray-600 mt-2">
+              <p className="text-sm text-gray-600 dark:text-gray-400 mt-2">
                 Please confirm that this content is appropriate for your intended audience.
               </p>
             </div>
@@ -2862,7 +2862,7 @@ export default function Announcements() {
             <div className="flex gap-3">
               <button
                 onClick={() => setContentWarningModal({ open: false, flaggedWords: [], onConfirm: null })}
-                className="flex-1 px-4 py-3 text-sm font-bold text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-all"
+                className="flex-1 px-4 py-3 text-sm font-bold text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-all"
               >
                 ← Go Back & Edit
               </button>
