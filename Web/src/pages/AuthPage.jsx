@@ -380,7 +380,7 @@ export default function AuthPage() {
       </div>
 
       {/* Right Panel - Auth Forms */}
-      <div className="flex-1 flex items-center justify-center p-6 sm:p-8 lg:p-12 min-h-screen lg:min-h-0">
+      <div className="flex-1 flex items-center justify-center p-6 sm:p-8 lg:p-12 min-h-screen lg:min-h-0 bg-gradient-to-br from-gray-50 via-white to-gray-100 dark:from-gray-900 dark:via-gray-900 dark:to-gray-800">
         <div className="w-full max-w-sm">
           {/* Mobile Header */}
           <div className="lg:hidden text-center mb-10">

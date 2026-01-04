@@ -1,5 +1,6 @@
 import { useNavigate } from 'react-router-dom'
 import { useAuth, ROLE_DISPLAY_NAMES, ROLES } from '../../contexts/AuthContext'
+import { useTheme } from '../../contexts/ThemeContext'
 import { logoutUser } from '../../services/authService'
 import { useState, useRef, useEffect } from 'react'
 import { 
@@ -7,7 +8,6 @@ import {
   markNotificationAsRead, 
   markAllNotificationsAsRead 
 } from '../../services/notificationService'
-import ThemeToggle from '../ui/ThemeToggle'
 
 /**
  * Header Component
@@ -16,6 +16,7 @@ import ThemeToggle from '../ui/ThemeToggle'
  */
 export default function Header({ onMenuClick }) {
   const { userProfile, user, hasMinRole } = useAuth()
+  const { isDark, toggleTheme } = useTheme()
   const navigate = useNavigate()
   const [showUserMenu, setShowUserMenu] = useState(false)
   const [showNotifications, setShowNotifications] = useState(false)
@@ -131,9 +132,6 @@ export default function Header({ onMenuClick }) {
 
         {/* Right side - Search, Notifications, User menu */}
         <div className="flex items-center gap-2 sm:gap-4">
-          {/* Theme Toggle */}
-          <ThemeToggle />
-
           {/* Search (hidden on mobile) */}
           <div className="hidden md:block relative">
             <input
@@ -307,6 +305,32 @@ export default function Header({ onMenuClick }) {
                     Settings
                   </button>
                   )}
+                </div>
+
+                {/* Theme Toggle */}
+                <div className="border-t border-gray-100 dark:border-gray-700 py-1">
+                  <button
+                    onClick={toggleTheme}
+                    className="w-full px-4 py-2 flex items-center justify-between hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+                  >
+                    <div className="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
+                      {isDark ? (
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <circle cx="12" cy="12" r="4" strokeWidth={2} />
+                          <path strokeLinecap="round" strokeWidth={2} d="M12 2v2m0 16v2M4.93 4.93l1.41 1.41m11.32 11.32l1.41 1.41M2 12h2m16 0h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41" />
+                        </svg>
+                      ) : (
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
+                        </svg>
+                      )}
+                      <span>{isDark ? 'Light Mode' : 'Dark Mode'}</span>
+                    </div>
+                    {/* Switch */}
+                    <div className={`relative w-11 h-6 rounded-full transition-colors duration-300 ${isDark ? 'bg-primary' : 'bg-gray-300 dark:bg-gray-600'}`}>
+                      <div className={`absolute top-1 w-4 h-4 bg-white rounded-full shadow-sm transition-transform duration-300 ${isDark ? 'translate-x-6' : 'translate-x-1'}`} />
+                    </div>
+                  </button>
                 </div>
 
                 {/* Logout */}
