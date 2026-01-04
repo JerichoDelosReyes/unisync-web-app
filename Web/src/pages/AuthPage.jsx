@@ -311,10 +311,10 @@ export default function AuthPage() {
         {/* Center - Main Message */}
         <div className="relative z-10 space-y-8">
           <div className="space-y-4">
-            <h1 className="text-5xl xl:text-7xl font-black leading-[0.9] tracking-tight">
-              Campus Life,
+            <h1 className="text-5xl xl:text-6xl font-black leading-tight tracking-tight">
+              Gawa ng mga CvSUeño,
               <br />
-              <span className="text-emerald-300">Simplified.</span>
+              <span className="text-emerald-300">para sa mga CvSUeño.</span>
             </h1>
             <p className="text-lg xl:text-xl text-emerald-100/80 max-w-md leading-relaxed font-light">
               Everything you need in one place. Schedules, announcements, rooms, and more.
