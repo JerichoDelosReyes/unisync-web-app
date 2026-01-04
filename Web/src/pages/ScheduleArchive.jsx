@@ -26,6 +26,9 @@ export default function ScheduleArchive() {
   const [isDeleting, setIsDeleting] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
   const [filterSection, setFilterSection] = useState('')
+  const [filterYearLevel, setFilterYearLevel] = useState('')
+  const [currentPage, setCurrentPage] = useState(1)
+  const itemsPerPage = 10
   
   // Load archives on mount
   useEffect(() => {
@@ -64,6 +67,8 @@ export default function ScheduleArchive() {
     setArchiveDetails(null)
     setSearchQuery('')
     setFilterSection('')
+    setFilterYearLevel('')
+    setCurrentPage(1)
   }
   
   // Delete archive
@@ -162,8 +167,9 @@ export default function ScheduleArchive() {
         student.section?.toLowerCase().includes(searchQuery.toLowerCase())
       
       const matchesSection = !filterSection || student.section === filterSection
+      const matchesYearLevel = !filterYearLevel || student.yearLevel === filterYearLevel
       
-      return matchesSearch && matchesSection
+      return matchesSearch && matchesSection && matchesYearLevel
     })
   }
   
@@ -177,8 +183,31 @@ export default function ScheduleArchive() {
     return Array.from(sections).sort()
   }
   
+  // Get unique year levels from archive
+  const getUniqueYearLevels = () => {
+    if (!archiveDetails?.schedules) return []
+    const yearLevels = new Set()
+    archiveDetails.schedules.forEach(s => {
+      if (s.yearLevel) yearLevels.add(s.yearLevel)
+    })
+    return Array.from(yearLevels).sort()
+  }
+  
   const filteredSchedules = getFilteredSchedules()
   const uniqueSections = getUniqueSections()
+  const uniqueYearLevels = getUniqueYearLevels()
+  
+  // Pagination logic
+  const totalPages = Math.ceil(filteredSchedules.length / itemsPerPage)
+  const paginatedSchedules = filteredSchedules.slice(
+    (currentPage - 1) * itemsPerPage,
+    currentPage * itemsPerPage
+  )
+  
+  // Reset to page 1 when filters change
+  useEffect(() => {
+    setCurrentPage(1)
+  }, [searchQuery, filterSection, filterYearLevel])
 
   // Loading state
   if (isLoading) {
@@ -305,6 +334,19 @@ export default function ScheduleArchive() {
                   ))}
                 </select>
               </div>
+              <div className="w-48">
+                <label className="block text-sm font-medium text-gray-700 mb-1">Filter by Year</label>
+                <select
+                  value={filterYearLevel}
+                  onChange={(e) => setFilterYearLevel(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/20"
+                >
+                  <option value="">All Years</option>
+                  {uniqueYearLevels.map(year => (
+                    <option key={year} value={year}>{year}</option>
+                  ))}
+                </select>
+              </div>
             </div>
           </div>
 
@@ -319,10 +361,15 @@ export default function ScheduleArchive() {
             </div>
           ) : (
             <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
-              <div className="px-6 py-4 border-b border-gray-200 bg-gray-50">
+              <div className="px-6 py-4 border-b border-gray-200 bg-gray-50 flex items-center justify-between">
                 <h3 className="font-semibold text-gray-900">
                   Student Schedules ({filteredSchedules.length} of {archiveDetails?.schedules?.length || 0})
                 </h3>
+                {totalPages > 1 && (
+                  <span className="text-sm text-gray-500">
+                    Page {currentPage} of {totalPages}
+                  </span>
+                )}
               </div>
               
               {filteredSchedules.length === 0 ? (
@@ -330,11 +377,94 @@ export default function ScheduleArchive() {
                   No schedules found matching your filters.
                 </div>
               ) : (
-                <div className="divide-y divide-gray-100 max-h-[600px] overflow-y-auto">
-                  {filteredSchedules.map((student, idx) => (
-                    <StudentScheduleCard key={idx} student={student} />
-                  ))}
-                </div>
+                <>
+                  <div className="divide-y divide-gray-100">
+                    {paginatedSchedules.map((student, idx) => (
+                      <StudentScheduleCard key={idx} student={student} />
+                    ))}
+                  </div>
+                  
+                  {/* Pagination Controls */}
+                  {totalPages > 1 && (
+                    <div className="px-6 py-4 border-t border-gray-200 bg-gray-50 flex items-center justify-between">
+                      <p className="text-sm text-gray-500">
+                        Showing {(currentPage - 1) * itemsPerPage + 1} to {Math.min(currentPage * itemsPerPage, filteredSchedules.length)} of {filteredSchedules.length} students
+                      </p>
+                      <div className="flex items-center gap-2">
+                        <button
+                          onClick={() => setCurrentPage(1)}
+                          disabled={currentPage === 1}
+                          className="p-2 rounded-lg border border-gray-200 hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                          title="First page"
+                        >
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 19l-7-7 7-7m8 14l-7-7 7-7" />
+                          </svg>
+                        </button>
+                        <button
+                          onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                          disabled={currentPage === 1}
+                          className="p-2 rounded-lg border border-gray-200 hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                          title="Previous page"
+                        >
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                          </svg>
+                        </button>
+                        
+                        {/* Page numbers */}
+                        <div className="flex items-center gap-1">
+                          {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                            let pageNum
+                            if (totalPages <= 5) {
+                              pageNum = i + 1
+                            } else if (currentPage <= 3) {
+                              pageNum = i + 1
+                            } else if (currentPage >= totalPages - 2) {
+                              pageNum = totalPages - 4 + i
+                            } else {
+                              pageNum = currentPage - 2 + i
+                            }
+                            return (
+                              <button
+                                key={pageNum}
+                                onClick={() => setCurrentPage(pageNum)}
+                                className={`w-8 h-8 rounded-lg text-sm font-medium transition-colors ${
+                                  currentPage === pageNum
+                                    ? 'bg-primary text-white'
+                                    : 'border border-gray-200 hover:bg-gray-100'
+                                }`}
+                              >
+                                {pageNum}
+                              </button>
+                            )
+                          })}
+                        </div>
+                        
+                        <button
+                          onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                          disabled={currentPage === totalPages}
+                          className="p-2 rounded-lg border border-gray-200 hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                          title="Next page"
+                        >
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                          </svg>
+                        </button>
+                        <button
+                          onClick={() => setCurrentPage(totalPages)}
+                          disabled={currentPage === totalPages}
+                          className="p-2 rounded-lg border border-gray-200 hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                          title="Last page"
+                        >
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 5l7 7-7 7M5 5l7 7-7 7" />
+                          </svg>
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </>
               )}
             </div>
           )}
