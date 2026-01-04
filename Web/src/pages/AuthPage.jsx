@@ -21,7 +21,24 @@ import {
 
 export default function AuthPage() {
   const [activeTab, setActiveTab] = useState('signin')
+  const [roleMessageIndex, setRoleMessageIndex] = useState(0)
   const navigate = useNavigate()
+  
+  // Role-specific messages for the hero section
+  const roleMessages = [
+    { role: 'Students', emoji: '📚', message: 'Track your schedule, never miss a class again!' },
+    { role: 'Faculty', emoji: '👨‍🏫', message: 'Manage classes and connect with students.' },
+    { role: 'Organizations', emoji: '🎯', message: 'Coordinate events and reach your members.' },
+    { role: 'Everyone', emoji: '🌟', message: 'One platform, endless possibilities.' }
+  ]
+  
+  // Rotate through role messages
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setRoleMessageIndex(prev => (prev + 1) % roleMessages.length)
+    }, 3000)
+    return () => clearInterval(interval)
+  }, [])
   
   // Sign In State
   const [signInEmail, setSignInEmail] = useState('')
@@ -321,17 +338,32 @@ export default function AuthPage() {
             </p>
           </div>
           
-          {/* Minimal Feature Pills */}
-          <div className="flex flex-wrap gap-3">
-            {['Smart Scheduling', 'Real-time Updates', 'Room Finder', 'Org Hub'].map((feature, i) => (
-              <div 
-                key={feature}
-                className="px-4 py-2 bg-white/10 backdrop-blur-sm rounded-full text-sm font-medium border border-white/10 hover:bg-white/20 transition-all duration-300 cursor-default"
-                style={{ animationDelay: `${i * 100}ms` }}
-              >
-                {feature}
+          {/* Rotating Role Message */}
+          <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-5 border border-white/10 max-w-md">
+            <div className="flex items-center gap-4">
+              <div className="w-12 h-12 bg-emerald-400/20 rounded-xl flex items-center justify-center text-2xl">
+                {roleMessages[roleMessageIndex].emoji}
               </div>
-            ))}
+              <div className="flex-1">
+                <p className="text-xs uppercase tracking-wider text-emerald-300/80 font-semibold mb-1">
+                  For {roleMessages[roleMessageIndex].role}
+                </p>
+                <p className="text-white/90 font-medium transition-all duration-500">
+                  {roleMessages[roleMessageIndex].message}
+                </p>
+              </div>
+            </div>
+            {/* Progress dots */}
+            <div className="flex gap-1.5 mt-4 justify-center">
+              {roleMessages.map((_, i) => (
+                <div 
+                  key={i} 
+                  className={`h-1.5 rounded-full transition-all duration-300 ${
+                    i === roleMessageIndex ? 'w-6 bg-emerald-400' : 'w-1.5 bg-white/30'
+                  }`}
+                />
+              ))}
+            </div>
           </div>
         </div>
         
