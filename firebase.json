@@ -7,6 +7,7 @@
     "rules": "firebase/storage.rules"
   },
   "hosting": {
+    "site": "unisync-imus",
     "public": "dist",
     "ignore": [
       "firebase.json",
