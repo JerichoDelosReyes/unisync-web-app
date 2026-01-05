@@ -692,8 +692,8 @@ export default function FacultyScheduleView() {
             <div className="overflow-x-auto">
               <div className="min-w-[900px]">
                 {/* Day Headers */}
-                <div className="grid grid-cols-[80px_repeat(6,1fr)] border-b border-gray-100">
-                  <div className="p-3 bg-gray-50"></div>
+                <div className="grid grid-cols-[80px_repeat(6,1fr)] border-b border-gray-100 dark:border-gray-700">
+                  <div className="p-3 bg-gray-50 dark:bg-gray-700"></div>
                   {days.map((day, index) => {
                     const date = weekDates[index]
                     const isToday = date && 
