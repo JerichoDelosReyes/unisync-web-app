@@ -404,20 +404,59 @@ export default function Logs() {
           </div>
         ) : (
           <>
-            <div className="overflow-x-auto">
+            {/* Mobile Card View */}
+            <div className="md:hidden divide-y divide-gray-200 dark:divide-gray-700">
+              {paginatedLogs.map((log) => (
+                <div key={log.id} className="p-4 hover:bg-gray-50 dark:hover:bg-gray-700/50">
+                  <div className="flex items-start justify-between gap-3 mb-2">
+                    <span className={`px-2 py-1 text-xs font-medium rounded-full ${CATEGORY_COLORS[log.category] || 'bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-300'}`}>
+                      {CATEGORY_LABELS[log.category] || log.category}
+                    </span>
+                    <span className="text-xs text-gray-500 dark:text-gray-400 whitespace-nowrap">
+                      {formatTimestamp(log.timestamp)}
+                    </span>
+                  </div>
+                  <p className="text-sm font-medium text-gray-900 dark:text-white mb-1">
+                    {ACTION_LABELS[log.action] || log.action}
+                  </p>
+                  {log.description && (
+                    <p className="text-xs text-gray-600 dark:text-gray-400 mb-2 line-clamp-2">
+                      {log.description}
+                    </p>
+                  )}
+                  <div className="flex items-center gap-2 text-xs text-gray-500 dark:text-gray-400">
+                    <div className="flex items-center gap-1">
+                      <div className="w-5 h-5 rounded-full bg-primary flex items-center justify-center text-white text-[10px] font-medium">
+                        {log.performedBy?.name?.charAt(0) || 'S'}
+                      </div>
+                      <span>{log.performedBy?.name || 'System'}</span>
+                    </div>
+                    {log.targetUser && (
+                      <>
+                        <span>→</span>
+                        <span>{log.targetUser.name}</span>
+                      </>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* Desktop Table View */}
+            <div className="hidden md:block overflow-x-auto">
               <table className="w-full">
                 <thead className="bg-gray-50 dark:bg-gray-700 border-b border-gray-200 dark:border-gray-600">
                   <tr>
-                    <th className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider whitespace-nowrap">
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider whitespace-nowrap">
                       Timestamp
                     </th>
-                    <th className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider whitespace-nowrap">
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider whitespace-nowrap">
                       Category
                     </th>
-                    <th className="hidden sm:table-cell px-4 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider whitespace-nowrap">
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider whitespace-nowrap">
                       Action
                     </th>
-                    <th className="hidden md:table-cell px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider whitespace-nowrap">
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider whitespace-nowrap">
                       Performed By
                     </th>
                     <th className="hidden lg:table-cell px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider whitespace-nowrap">
@@ -431,18 +470,18 @@ export default function Logs() {
                 <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
                   {paginatedLogs.map((log) => (
                     <tr key={log.id} className="hover:bg-gray-50 dark:hover:bg-gray-700/50">
-                      <td className="px-4 sm:px-6 py-4 whitespace-nowrap text-xs sm:text-sm text-gray-500 dark:text-gray-400">
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
                         {formatTimestamp(log.timestamp)}
                       </td>
-                      <td className="px-4 sm:px-6 py-4 whitespace-nowrap">
+                      <td className="px-6 py-4 whitespace-nowrap">
                         <span className={`px-2 py-1 text-xs font-medium rounded-full ${CATEGORY_COLORS[log.category] || 'bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-300'}`}>
                           {CATEGORY_LABELS[log.category] || log.category}
                         </span>
                       </td>
-                      <td className="hidden sm:table-cell px-4 sm:px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
                         {ACTION_LABELS[log.action] || log.action}
                       </td>
-                      <td className="hidden md:table-cell px-6 py-4 whitespace-nowrap">
+                      <td className="px-6 py-4 whitespace-nowrap">
                         <div className="flex items-center gap-2">
                           <div className="w-8 h-8 rounded-full bg-primary flex items-center justify-center text-white text-xs font-medium">
                             {log.performedBy?.name?.charAt(0) || 'S'}

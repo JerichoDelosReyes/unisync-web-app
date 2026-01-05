@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { createPortal } from 'react-dom'
 import { useAuth, ROLES, ROLE_DISPLAY_NAMES, ROLE_HIERARCHY } from '../contexts/AuthContext'
-import { getDocuments, updateDocument, addDocument } from '../services/dbService'
+import { getDocuments, updateDocument, addDocument, deleteDocument } from '../services/dbService'
 import { createUserWithEmailAndPassword, sendEmailVerification } from 'firebase/auth'
 import { auth } from '../config/firebase'
 import { ALLOWED_DOMAIN } from '../services/authService'
@@ -201,6 +201,10 @@ export default function UserManagement() {
   const [addingUser, setAddingUser] = useState(false)
   const [addUserError, setAddUserError] = useState('')
   
+  // Delete User
+  const [deleteModalUser, setDeleteModalUser] = useState(null)
+  const [deletingUser, setDeletingUser] = useState(false)
+  
   const assignableRoles = getAssignableRoles()
 
   // Show toast notification
@@ -315,6 +319,61 @@ export default function UserManagement() {
     const myLevel = ROLE_HIERARCHY[userProfile.role] || 0
     const targetLevel = ROLE_HIERARCHY[targetUser.role] || 0
     return myLevel > targetLevel
+  }
+
+  // Check if current user can delete a specific user
+  const canDeleteUser = (targetUser) => {
+    if (!userProfile || !targetUser) return false
+    // Cannot delete yourself
+    if (targetUser.id === userProfile.id) return false
+    // Can only delete users with lower role hierarchy
+    const myLevel = ROLE_HIERARCHY[userProfile.role] || 0
+    const targetLevel = ROLE_HIERARCHY[targetUser.role] || 0
+    return myLevel > targetLevel
+  }
+
+  // Handle delete user
+  const handleDeleteUser = async () => {
+    if (!deleteModalUser) return
+    
+    try {
+      setDeletingUser(true)
+      
+      // Delete from Firestore
+      await deleteDocument('users', deleteModalUser.id)
+      
+      // Log the deletion
+      await createLog({
+        category: LOG_CATEGORIES.USER_MANAGEMENT,
+        action: LOG_ACTIONS.USER_DELETE || 'USER_DELETE',
+        performedBy: {
+          uid: userProfile.id,
+          email: userProfile.email,
+          name: `${userProfile.givenName} ${userProfile.lastName}`
+        },
+        targetUser: {
+          uid: deleteModalUser.id,
+          email: deleteModalUser.email,
+          name: `${deleteModalUser.givenName} ${deleteModalUser.lastName}`
+        },
+        details: {
+          deletedRole: deleteModalUser.role,
+          deletedRoleLabel: ROLE_DISPLAY_NAMES[deleteModalUser.role]
+        },
+        description: `Deleted user ${deleteModalUser.email} with role ${ROLE_DISPLAY_NAMES[deleteModalUser.role]}`
+      })
+      
+      // Remove from local state
+      setUsers(prev => prev.filter(u => u.id !== deleteModalUser.id))
+      
+      showToast(`User ${deleteModalUser.email} deleted successfully`, 'success')
+      setDeleteModalUser(null)
+    } catch (err) {
+      console.error('❌ Error deleting user:', err)
+      showToast('Failed to delete user. Please try again.', 'error')
+    } finally {
+      setDeletingUser(false)
+    }
   }
 
   // Handle role change
@@ -775,37 +834,124 @@ export default function UserManagement() {
           </div>
         )}
 
-        {/* Table */}
+        {/* Table - Desktop View */}
         {!loading && !error && filteredUsers.length > 0 && (
-          <div className="overflow-x-auto">
+          <>
+          {/* Mobile Card View */}
+          <div className="md:hidden divide-y divide-gray-200 dark:divide-gray-700">
+            {currentUsers.map((user) => (
+              <div key={user.id} className="p-4 hover:bg-gray-50 dark:hover:bg-gray-700/50">
+                <div className="flex items-start gap-3">
+                  <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
+                    <span className="text-primary font-semibold text-sm">{getInitials(user)}</span>
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center justify-between gap-2">
+                      <p className="text-sm font-medium text-gray-900 dark:text-white truncate">
+                        {user.givenName} {user.lastName}
+                      </p>
+                      <span className={`inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full ${user.emailVerified ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' : 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400'}`}>
+                        <span className={`w-1.5 h-1.5 rounded-full ${user.emailVerified ? 'bg-green-500' : 'bg-yellow-500'}`}></span>
+                        {user.emailVerified ? 'Verified' : 'Pending'}
+                      </span>
+                    </div>
+                    <p className="text-xs text-gray-500 dark:text-gray-400 truncate mt-0.5">{user.email}</p>
+                    <div className="flex items-center gap-2 mt-2 flex-wrap">
+                      {canChangeUserRole(user) ? (
+                        <select
+                          value={user.role}
+                          onChange={(e) => handleRoleChange(user.id, e.target.value)}
+                          disabled={updatingUserId === user.id}
+                          className={`text-xs font-medium rounded-lg px-2 py-1 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-200 cursor-pointer focus:outline-none focus:ring-2 focus:ring-primary/20 ${updatingUserId === user.id ? 'opacity-50' : ''}`}
+                        >
+                          <option value={user.role}>{ROLE_DISPLAY_NAMES[user.role]}</option>
+                          {assignableRoles.filter(role => role !== user.role).map(role => (
+                            <option key={role} value={role}>{ROLE_DISPLAY_NAMES[role]}</option>
+                          ))}
+                        </select>
+                      ) : (
+                        <span className={`px-2 py-0.5 text-xs font-medium rounded-full ${getRoleBadgeColor(user.role)}`}>
+                          {ROLE_DISPLAY_NAMES[user.role] || user.role}
+                        </span>
+                      )}
+                      {(user.tags || []).slice(0, 2).map((tag, idx) => (
+                        <span key={idx} className={`px-2 py-0.5 text-xs rounded-full ${getTagColor(tag)}`}>
+                          {formatTagDisplay(tag)}
+                        </span>
+                      ))}
+                      {(user.tags || []).length > 2 && (
+                        <span className="text-xs text-gray-400">+{user.tags.length - 2}</span>
+                      )}
+                      <button
+                        onClick={() => {
+                          setTagModalUser(user)
+                          setSelectedSection('')
+                          setSelectedYearLevel('')
+                          if (user.role === ROLES.FACULTY || user.role === 'faculty') {
+                            setFacultyDepartment(user.department || '')
+                            setFacultyOrgs(user.linkedOrganizations || [])
+                          } else {
+                            setFacultyDepartment('')
+                            setFacultyOrgs([])
+                          }
+                        }}
+                        className="p-1 text-gray-400 hover:text-primary hover:bg-gray-100 dark:hover:bg-gray-600 rounded"
+                        title="View tags"
+                      >
+                        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                        </svg>
+                      </button>
+                      {canDeleteUser(user) && (
+                        <button
+                          onClick={() => setDeleteModalUser(user)}
+                          className="p-1 text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/30 rounded"
+                          title="Delete user"
+                        >
+                          <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                          </svg>
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* Desktop Table View */}
+          <div className="hidden md:block overflow-x-auto">
             <table className="w-full">
               <thead className="bg-gray-50 dark:bg-gray-700 border-b border-gray-200 dark:border-gray-600">
                 <tr>
-                  <th className="px-4 sm:px-6 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase whitespace-nowrap">User</th>
-                  <th className="px-4 sm:px-6 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase whitespace-nowrap">Email</th>
-                  <th className="hidden sm:table-cell px-4 sm:px-6 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase whitespace-nowrap">Role</th>
-                  <th className="hidden md:table-cell px-6 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase whitespace-nowrap">Tags</th>
+                  <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase whitespace-nowrap">User</th>
+                  <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase whitespace-nowrap">Email</th>
+                  <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase whitespace-nowrap">Role</th>
+                  <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase whitespace-nowrap">Tags</th>
                   <th className="hidden lg:table-cell px-6 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase whitespace-nowrap">Created</th>
-                  <th className="hidden sm:table-cell px-6 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase whitespace-nowrap">Status</th>
+                  <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase whitespace-nowrap">Status</th>
+                  <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase whitespace-nowrap">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
                 {currentUsers.map((user) => (
                   <tr key={user.id} className="hover:bg-gray-50 dark:hover:bg-gray-700/50">
-                    <td className="px-4 sm:px-6 py-4">
+                    <td className="px-6 py-4">
                       <div className="flex items-center gap-3">
                         <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
                           <span className="text-primary font-semibold text-xs">{getInitials(user)}</span>
                         </div>
-                        <span className="text-sm font-medium text-gray-900 dark:text-white truncate max-w-[120px] sm:max-w-none">
+                        <span className="text-sm font-medium text-gray-900 dark:text-white whitespace-nowrap">
                           {user.givenName} {user.lastName}
                         </span>
                       </div>
                     </td>
-                    <td className="px-4 sm:px-6 py-4 text-sm text-gray-500 dark:text-gray-400">
-                      <span className="truncate block max-w-[150px] sm:max-w-none">{user.email}</span>
+                    <td className="px-6 py-4 text-sm text-gray-500 dark:text-gray-400">
+                      <span className="truncate block max-w-[200px] lg:max-w-none">{user.email}</span>
                     </td>
-                    <td className="hidden sm:table-cell px-6 py-4">
+                    <td className="px-6 py-4">
                       {canChangeUserRole(user) ? (
                         <div className="relative">
                           <select
@@ -837,7 +983,7 @@ export default function UserManagement() {
                         </span>
                       )}
                     </td>
-                    <td className="hidden md:table-cell px-6 py-4">
+                    <td className="px-6 py-4">
                       <div className="flex items-center gap-1 flex-wrap">
                         {(user.tags || []).slice(0, 2).map((tag, idx) => (
                           <span key={idx} className={`px-2 py-0.5 text-xs rounded-full ${getTagColor(tag)}`}>
@@ -889,17 +1035,33 @@ export default function UserManagement() {
                     <td className="hidden lg:table-cell px-6 py-4 text-sm text-gray-500 dark:text-gray-400">
                       {formatDate(user.createdAt)}
                     </td>
-                    <td className="hidden sm:table-cell px-6 py-4">
+                    <td className="px-6 py-4">
                       <span className={`inline-flex items-center gap-1 text-xs ${user.emailVerified ? 'text-green-600' : 'text-yellow-600'}`}>
                         <span className={`w-1.5 h-1.5 rounded-full ${user.emailVerified ? 'bg-green-500' : 'bg-yellow-500'}`}></span>
                         {user.emailVerified ? 'Verified' : 'Pending'}
                       </span>
+                    </td>
+                    <td className="px-6 py-4">
+                      {canDeleteUser(user) ? (
+                        <button
+                          onClick={() => setDeleteModalUser(user)}
+                          className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/30 rounded-lg transition-colors"
+                          title="Delete user"
+                        >
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                          </svg>
+                        </button>
+                      ) : (
+                        <span className="text-xs text-gray-400">—</span>
+                      )}
                     </td>
                   </tr>
                 ))}
               </tbody>
             </table>
           </div>
+          </>
         )}
 
         {/* Pagination */}
@@ -1246,6 +1408,99 @@ export default function UserManagement() {
                 </button>
               </div>
             </form>
+            </div>
+          </div>
+        </div>,
+        document.body
+      )}
+
+      {/* Delete Confirmation Modal */}
+      {deleteModalUser && createPortal(
+        <div 
+          className="fixed inset-0 z-[9999] flex items-center justify-center"
+          style={{ 
+            position: 'fixed',
+            top: '-50px',
+            left: 0,
+            right: 0,
+            bottom: '-50px',
+            paddingTop: '50px',
+            paddingBottom: '50px'
+          }}
+        >
+          <div 
+            className="absolute bg-black/40 backdrop-blur-sm" 
+            style={{ top: 0, left: 0, right: 0, bottom: 0 }}
+            onClick={() => !deletingUser && setDeleteModalUser(null)}
+          />
+          <div className="relative bg-white dark:bg-gray-800 rounded-xl shadow-xl w-full max-w-md mx-4 overflow-hidden">
+            {/* Header */}
+            <div className="bg-red-600 text-white px-6 py-4 flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 bg-white/20 rounded-full flex items-center justify-center">
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                  </svg>
+                </div>
+                <h3 className="text-lg font-bold">Delete User</h3>
+              </div>
+              <button
+                onClick={() => !deletingUser && setDeleteModalUser(null)}
+                disabled={deletingUser}
+                className="p-2 hover:bg-white/20 rounded-lg transition-colors disabled:opacity-50"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+
+            {/* Content */}
+            <div className="p-6">
+              <div className="flex items-center gap-4 mb-4 p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                <div className="w-12 h-12 rounded-full bg-red-100 dark:bg-red-900/30 flex items-center justify-center flex-shrink-0">
+                  <span className="text-red-600 dark:text-red-400 font-semibold text-lg">{getInitials(deleteModalUser)}</span>
+                </div>
+                <div className="min-w-0">
+                  <p className="font-medium text-gray-900 dark:text-white truncate">
+                    {deleteModalUser.givenName} {deleteModalUser.lastName}
+                  </p>
+                  <p className="text-sm text-gray-500 dark:text-gray-400 truncate">{deleteModalUser.email}</p>
+                  <span className={`inline-block mt-1 px-2 py-0.5 text-xs font-medium rounded-full ${getRoleBadgeColor(deleteModalUser.role)}`}>
+                    {ROLE_DISPLAY_NAMES[deleteModalUser.role] || deleteModalUser.role}
+                  </span>
+                </div>
+              </div>
+              
+              <p className="text-sm text-gray-600 dark:text-gray-400 mb-6">
+                Are you sure you want to delete this user? This action <span className="font-semibold text-red-600 dark:text-red-400">cannot be undone</span>. The user will lose access to the system permanently.
+              </p>
+
+              {/* Actions */}
+              <div className="flex gap-3">
+                <button
+                  type="button"
+                  onClick={() => setDeleteModalUser(null)}
+                  disabled={deletingUser}
+                  className="flex-1 px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors disabled:opacity-50"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleDeleteUser}
+                  disabled={deletingUser}
+                  className="flex-1 px-4 py-2 text-sm font-medium text-white bg-red-600 rounded-lg hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                >
+                  {deletingUser ? (
+                    <span className="flex items-center justify-center gap-2">
+                      <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                      Deleting...
+                    </span>
+                  ) : (
+                    'Delete User'
+                  )}
+                </button>
+              </div>
             </div>
           </div>
         </div>,
