@@ -32,13 +32,14 @@ const BAD_WORD_ROOTS = {
     "kepyas", "jakol", "jabol", "bayag", "bilat", "burat", "kupal",
     "kainin mo to", "haup ka", "hayp", "impi", "sulot", "bugbugan", 
     "samantalahin", "bakla", "bading", "inamo", "namo", "namu", "bobomo",
-    "pukinangina", "pukinginamo"
+    "pukinangina", "pukinginamo", "taena", "pucha", "pukingina"
   ],
   english: [
     "fuck", "fck", "shit", "shet", "bitch", "btch", "asshole",
-    "bastard", "bullshit", "crap", "dick", "pussy",
-    "cock", "cunt", "whore", "slut", "motherfucker",
-    "nigga", "nigger", "faggot", "retard"
+    "bastard", "bullshit", "dick", "pussy", "penis", "vagina",
+    "cock", "cunt", "whore", "slut", "motherfucker", "sex",
+    "nigga", "nigger", "faggot", "retard", "rape", "porn",
+    "boobs", "tits", "dildo", "blowjob", "handjob", "masturbate"
   ]
 }
 
