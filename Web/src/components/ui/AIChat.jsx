@@ -217,6 +217,103 @@ const getRoomStats = async () => {
 // NLP UTILITIES
 // ============================================
 
+// Common typo corrections map
+const TYPO_CORRECTIONS = {
+  // Schedule related
+  'sked': 'schedule', 'shedule': 'schedule', 'schdule': 'schedule', 'schedle': 'schedule',
+  'scheduel': 'schedule', 'shcedule': 'schedule', 'skejul': 'schedule', 'skedyul': 'schedule',
+  'scedule': 'schedule', 'schedulle': 'schedule', 'scheduele': 'schedule', 'sche': 'schedule',
+  'skd': 'schedule', 'schd': 'schedule', 'isked': 'schedule', 'skeds': 'schedules',
+  // Announcement related
+  'anouncement': 'announcement', 'annoucement': 'announcement', 'announement': 'announcement',
+  'annoucment': 'announcement', 'anounce': 'announce', 'anunsyo': 'announcement',
+  'annoucnement': 'announcement', 'announcment': 'announcement', 'anncmnt': 'announcement',
+  'annc': 'announcement', 'announce': 'announcement', 'anounc': 'announcement',
+  'balita': 'announcement', 'news': 'announcement', 'updates': 'announcement',
+  // Room related
+  'rom': 'room', 'rooom': 'room', 'rrom': 'room', 'silid': 'room', 'kwarto': 'room',
+  'roo': 'room', 'rmm': 'room', 'rm': 'room', 'rms': 'rooms', 'roms': 'rooms',
+  'claasroom': 'classroom', 'classrom': 'classroom', 'classrm': 'classroom',
+  // Organization related
+  'organiztion': 'organization', 'organzation': 'organization', 'orgnization': 'organization',
+  'organisasyon': 'organization', 'org': 'organization', 'orgs': 'organizations',
+  'organizasyon': 'organization', 'organiation': 'organization', 'orgnaization': 'organization',
+  'klub': 'club', 'klubs': 'clubs', 'clubs': 'organizations',
+  // Common words
+  'hwo': 'how', 'waht': 'what', 'teh': 'the', 'cna': 'can', 'yuo': 'you', 'adn': 'and',
+  'taht': 'that', 'wiht': 'with', 'abotu': 'about', 'abuot': 'about', 'baout': 'about',
+  'becuase': 'because', 'beacuse': 'because', 'becasue': 'because', 'cuz': 'because', 'coz': 'because',
+  'wnat': 'want', 'watn': 'want', 'nede': 'need', 'neeed': 'need', 'ned': 'need',
+  'plase': 'please', 'pleae': 'please', 'pls': 'please', 'plz': 'please', 'plss': 'please',
+  'thnks': 'thanks', 'thx': 'thanks', 'tnx': 'thanks', 'salamta': 'salamat', 'thnk': 'thanks',
+  'hlep': 'help', 'hepl': 'help', 'hellp': 'help', 'tulog': 'tulong', 'hlp': 'help',
+  'pano': 'paano', 'panu': 'paano', 'paanu': 'paano', 'pnu': 'paano', 'pao': 'paano',
+  'san': 'saan', 'sna': 'saan', 'nasan': 'nasaan', 'nsaan': 'nasaan', 'sn': 'saan',
+  'sino': 'sino', 'cno': 'sino', 'sno': 'sino', 'sinu': 'sino', 'cinu': 'sino',
+  'ano': 'ano', 'anu': 'ano', 'anong': 'ano ang', 'anon': 'ano', 'anuu': 'ano',
+  // Position typos
+  'pres': 'president', 'presedent': 'president', 'presidnet': 'president', 'presi': 'president',
+  'presidente': 'president', 'presiden': 'president', 'prez': 'president',
+  'sec': 'secretary', 'secratary': 'secretary', 'secreatry': 'secretary', 'sekre': 'secretary',
+  'sekretaryo': 'secretary', 'secy': 'secretary', 'secretry': 'secretary',
+  'treas': 'treasurer', 'treasrer': 'treasurer', 'tresurer': 'treasurer', 'tresuarer': 'treasurer',
+  'advisr': 'adviser', 'advsor': 'adviser', 'advisor': 'adviser', 'advsier': 'adviser',
+  'oficer': 'officer', 'offcer': 'officer', 'oficers': 'officers', 'offcier': 'officer',
+  'oficrs': 'officers', 'ofcr': 'officer', 'ofcrs': 'officers',
+  'memebr': 'member', 'meber': 'member', 'membr': 'member', 'mmber': 'member',
+  'miyembro': 'member', 'mmbr': 'member', 'membres': 'members',
+  // Student/faculty
+  'studnt': 'student', 'studen': 'student', 'estudyante': 'student', 'stud': 'student',
+  'fculty': 'faculty', 'faculyt': 'faculty', 'guro': 'faculty', 'teacher': 'faculty',
+  'techer': 'faculty', 'tcher': 'faculty', 'prof': 'faculty', 'propesor': 'faculty',
+  // Class
+  'claas': 'class', 'clas': 'class', 'klase': 'class', 'klas': 'class', 'clss': 'class',
+  // Actions
+  'uploaf': 'upload', 'uplaod': 'upload', 'iupload': 'upload', 'upld': 'upload',
+  'veify': 'verify', 'verfiy': 'verify', 'verfy': 'verify', 'vrfy': 'verify',
+  'regitration': 'registration', 'registartion': 'registration', 'rehistrasyon': 'registration',
+  'cor': 'registration form', 'c.o.r': 'registration form', 'c.o.r.': 'registration form',
+  // Greetings
+  'helo': 'hello', 'hellow': 'hello', 'hii': 'hi', 'hiii': 'hi', 'heyyy': 'hey',
+  'kumsta': 'kumusta', 'kmusta': 'kumusta', 'msta': 'kumusta', 'musta': 'kumusta',
+  // Actions
+  'cretae': 'create', 'craete': 'create', 'gumwa': 'gumawa', 'gawa': 'gumawa', 'creat': 'create',
+  'veiw': 'view', 'viwe': 'view', 'tingnn': 'tingnan', 'tngnan': 'tingnan', 'vw': 'view',
+  'fnd': 'find', 'fidn': 'find', 'hanapin': 'find', 'hanap': 'find', 'fid': 'find',
+  'jion': 'join', 'jon': 'join', 'sumali': 'join', 'sumla': 'join', 'jn': 'join',
+  'requst': 'request', 'rquest': 'request', 'rekwest': 'request', 'req': 'request',
+  // Check/see
+  'chek': 'check', 'chck': 'check', 'cehck': 'check', 'cheeck': 'check',
+  'se': 'see', 'seee': 'see', 'c': 'see',
+  // Where/show
+  'wher': 'where', 'whre': 'where', 'were': 'where', 'wher': 'where',
+  'shwo': 'show', 'shw': 'show', 'shoow': 'show', 'sho': 'show',
+  // Available
+  'availble': 'available', 'avalable': 'available', 'avail': 'available', 'avlbl': 'available',
+  'bakante': 'available', 'libre': 'available', 'vacant': 'available', 'vacnt': 'available'
+}
+
+// Normalize text by fixing common typos
+const normalizeText = (input) => {
+  let normalized = input.toLowerCase().trim()
+  
+  // Remove extra spaces
+  normalized = normalized.replace(/\s+/g, ' ')
+  
+  // Remove common filler words that don't affect meaning
+  const fillers = ['po', 'naman', 'lang', 'nga', 'ba', 'eh', 'ah', 'oh', 'uh', 'um', 'like', 'just', 'actually', 'basically']
+  fillers.forEach(filler => {
+    normalized = normalized.replace(new RegExp(`\\b${filler}\\b`, 'g'), '')
+  })
+  
+  // Fix typos word by word
+  const words = normalized.split(' ')
+  const correctedWords = words.map(word => TYPO_CORRECTIONS[word] || word)
+  normalized = correctedWords.join(' ').replace(/\s+/g, ' ').trim()
+  
+  return normalized
+}
+
 // Levenshtein distance for fuzzy matching
 const levenshteinDistance = (str1, str2) => {
   const m = str1.length
@@ -246,7 +343,7 @@ const similarity = (str1, str2) => {
 }
 
 // Fuzzy match - returns true if similarity > threshold
-const fuzzyMatch = (input, target, threshold = 0.7) => {
+const fuzzyMatch = (input, target, threshold = 0.6) => {
   const words = input.toLowerCase().split(/\s+/)
   const targetLower = target.toLowerCase()
   
@@ -258,210 +355,443 @@ const fuzzyMatch = (input, target, threshold = 0.7) => {
 }
 
 // ============================================
-// INTENT DEFINITIONS
+// INTENT DEFINITIONS (Expanded for typo tolerance)
 // ============================================
 
 const intents = {
   GREETING: {
     patterns: [
-      'hello', 'hi', 'hey', 'good morning', 'good afternoon', 'good evening',
-      'kumusta', 'kamusta', 'musta', 'magandang umaga', 'magandang hapon', 
-      'magandang gabi', 'yo', 'sup', 'hola', 'greetings'
+      // English greetings
+      'hello', 'hi', 'hey', 'heya', 'hiya', 'yo', 'sup', 'whats up', "what's up", 'wassup',
+      'good morning', 'good afternoon', 'good evening', 'good day', 'greetings',
+      'howdy', 'hola', 'aloha', 'morning', 'afternoon', 'evening',
+      // Filipino greetings
+      'kumusta', 'kamusta', 'musta', 'oi', 'uy', 'pre', 'pare', 'bes', 'beshie',
+      'magandang umaga', 'magandang hapon', 'magandang gabi', 'magandang tanghali',
+      // Casual/informal
+      'ayy', 'ey', 'yow', 'hoi', 'hewwo', 'henlo', 'hai', 'hallo'
     ],
     weight: 1.0
   },
   FAREWELL: {
     patterns: [
-      'bye', 'goodbye', 'see you', 'take care', 'paalam', 'babay', 
-      'sige', 'ingat', 'later', 'gtg', 'gotta go'
+      'bye', 'goodbye', 'good bye', 'see you', 'see ya', 'later', 'take care',
+      'gotta go', 'gtg', 'ttyl', 'talk later', 'cya', 'c ya', 'bai', 'byeee',
+      // Filipino
+      'paalam', 'babay', 'bye bye', 'sige', 'ingat', 'aalis na ako', 'kailangan ko na umalis',
+      'hanggang sa muli', 'salamat sige'
     ],
     weight: 1.0
   },
   THANKS: {
     patterns: [
-      'thank', 'thanks', 'thank you', 'salamat', 'maraming salamat', 
-      'appreciate', 'grateful', 'ty', 'tysm'
+      'thank', 'thanks', 'thank you', 'thankyou', 'thx', 'ty', 'tysm', 'tyvm',
+      'thanks a lot', 'thank you so much', 'much appreciated', 'appreciate it',
+      'grateful', 'i appreciate', 'thnx', 'thankss', 'thanku',
+      // Filipino
+      'salamat', 'maraming salamat', 'salamat po', 'thank you po', 'salamuch',
+      'thanks pre', 'tnx', 'thnks'
     ],
     weight: 1.0
   },
   VIEW_SCHEDULE: {
     patterns: [
-      'view schedule', 'see schedule', 'check schedule', 'my schedule',
-      'class schedule', 'classes', 'timetable', 'when is my class',
-      'tingnan schedule', 'schedule ko', 'oras ng klase', 'ano klase ko',
-      'what subjects', 'ano subject', 'my classes', 'show my schedule',
-      'schedule', 'sched', 'how to view schedule'
+      // Direct queries
+      'view schedule', 'see schedule', 'check schedule', 'my schedule', 'show schedule',
+      'class schedule', 'show my class', 'my classes', 'what are my classes',
+      'display schedule', 'get schedule', 'open schedule', 'look at schedule',
+      // Time-based
+      'timetable', 'time table', 'when is my class', 'what time is my class',
+      'class times', 'when do i have class', 'class today', 'classes tomorrow',
+      // Subject related
+      'what subjects', 'my subjects', 'which subjects', 'subject list', 'subject schedule',
+      // Questions
+      'where to see schedule', 'how to check schedule', 'how to view schedule',
+      'how can i see my schedule', 'where is my schedule', 'schedule where',
+      'pano makita schedule', 'san makita schedule', 'nasaan schedule ko',
+      // Filipino
+      'tingnan schedule', 'schedule ko', 'oras ng klase', 'ano klase ko', 'klase ko',
+      'ano schedule ko', 'ano sked ko', 'saan makita sched', 'paano makita sched',
+      'ipakita schedule', 'check sched', 'tignan sched',
+      // Short forms
+      'schedule', 'sched', 'sked', 'classes', 'klase',
+      // Questions with what/where
+      'what is my schedule', 'where can i see schedule', 'show me my schedule',
+      'can i see my schedule', 'i want to see my schedule', 'need to check schedule'
     ],
     weight: 1.2
   },
   UPLOAD_SCHEDULE: {
     patterns: [
-      'upload schedule', 'add schedule', 'registration form', 'cor upload',
-      'upload cor', 'add registration', 'how to add schedule', 'import schedule',
-      'paano magdagdag schedule', 'upload registration', 'add my schedule'
+      // COR/Registration related
+      'upload schedule', 'add schedule', 'registration form', 'cor upload', 'upload cor',
+      'add registration', 'import schedule', 'submit registration', 'registration upload',
+      'how to add schedule', 'how to upload schedule', 'upload my cor', 'submit cor',
+      'cor', 'c.o.r', 'c.o.r.', 'certificate of registration', 'upload registration form',
+      // Action-based
+      'add my schedule', 'input schedule', 'enter schedule', 'set up schedule',
+      'setup schedule', 'put schedule', 'insert schedule',
+      // Questions
+      'how to add schedule', 'where to upload schedule', 'how can i upload',
+      'paano mag-upload', 'saan mag-upload ng schedule', 'paano magdagdag schedule',
+      // Filipino
+      'paano magdagdag schedule', 'upload registration', 'add my schedule',
+      'i-upload schedule', 'dagdag schedule', 'ilagay schedule',
+      // Contextual
+      'no schedule yet', 'schedule not showing', 'add classes', 'input classes'
     ],
     weight: 1.2
   },
   FACULTY_SCHEDULE: {
     patterns: [
-      'faculty schedule', 'teacher schedule', 'teaching schedule', 'claim classes',
-      'claim schedule', 'professor schedule', 'guro schedule', 'schedule code',
-      'how to claim', 'claim code'
+      // Faculty-specific
+      'faculty schedule', 'teacher schedule', 'teaching schedule', 'professor schedule',
+      'instructor schedule', 'my teaching load', 'teaching load',
+      // Claim related
+      'claim classes', 'claim schedule', 'claim code', 'schedule code', 'class code',
+      'how to claim', 'claim my classes', 'claiming schedule', 'get claim code',
+      'verify schedule', 'link schedule', 'connect schedule',
+      // Questions
+      'how do faculty add schedule', 'im a teacher how do i', 'as a faculty',
+      'where to claim', 'pano mag-claim', 'paano i-claim',
+      // Filipino
+      'guro schedule', 'sched ng guro', 'schedule ng faculty', 'code para sa sched',
+      'kunin schedule', 'claim ng klase'
     ],
     weight: 1.3
   },
   VIEW_ANNOUNCEMENTS: {
     patterns: [
-      'announcements', 'news', 'updates', 'posts', 'balita', 'anunsyo',
-      'what\'s new', 'ano bago', 'latest news', 'campus news', 'notices',
-      'announcement', 'check announcements', 'view announcements'
+      // Direct
+      'announcements', 'news', 'updates', 'posts', 'latest news', 'recent news',
+      'campus news', 'notices', 'bulletin', 'what is new', 'whats new', "what's new",
+      'new posts', 'new updates', 'recent posts', 'latest posts', 'latest updates',
+      // View/check
+      'view announcements', 'check announcements', 'see announcements', 'read announcements',
+      'show announcements', 'open announcements', 'view news', 'check news',
+      // Questions
+      'any announcements', 'any news', 'any updates', 'is there news',
+      'what are the announcements', 'what announcements', 'announcement today',
+      'where to see news', 'where announcements', 'meron bang balita',
+      // Filipino
+      'balita', 'anunsyo', 'ano bago', 'ano ang bago', 'mga anunsyo', 'mga balita',
+      'tingnan anunsyo', 'mga post', 'ano updates', 'may balita ba',
+      'bagong updates', 'bagong balita', 'latest anunsyo'
     ],
     weight: 1.0
   },
   CREATE_ANNOUNCEMENT: {
     patterns: [
-      'create announcement', 'post announcement', 'make announcement', 
-      'new announcement', 'how to post', 'gumawa ng announcement',
-      'mag-post', 'paano mag-announce', 'publish announcement'
+      // Create/post
+      'create announcement', 'post announcement', 'make announcement', 'new announcement',
+      'publish announcement', 'add announcement', 'write announcement', 'compose post',
+      'create post', 'make post', 'new post', 'publish post', 'submit post',
+      // How to
+      'how to post', 'how to create announcement', 'how to announce', 'how to make announcement',
+      'where to post', 'can i post', 'i want to post', 'post something',
+      'paano mag-post', 'saan mag-post', 'paano gumawa ng announcement',
+      // Filipino
+      'gumawa ng announcement', 'mag-post', 'mag-announce', 'paano mag-announce',
+      'gumawa ng post', 'i-post', 'publish balita', 'share announcement',
+      // Contextual
+      'share news', 'announce something', 'tell everyone', 'inform students'
     ],
     weight: 1.2
   },
   FILTER_ANNOUNCEMENTS: {
     patterns: [
-      'filter announcement', 'find announcement', 'search announcement',
-      'specific org', 'organization post', 'filter by', 'sort announcements'
+      // Filter/sort
+      'filter announcement', 'filter announcements', 'sort announcements', 'search announcement',
+      'find announcement', 'filter by', 'sort by', 'filter posts', 'search posts',
+      'organization posts', 'org posts', 'specific org', 'organization post',
+      // Looking for
+      'announcements from', 'posts from', 'news from', 'find posts from',
+      'look for announcement', 'search for announcement', 'looking for post',
+      // Filipino
+      'hanapin anunsyo', 'filter anunsyo', 'specific na org', 'announcement ng org'
     ],
     weight: 1.1
   },
   FIND_ROOM: {
     patterns: [
+      // Room finder
       'find room', 'available room', 'room finder', 'free room', 'vacant room',
-      'classroom available', 'hanap silid', 'bakanteng room', 'room status',
-      'which room', 'where is room', 'building', 'room location', 'empty room',
-      'rooms', 'room', 'silid', 'classroom', 'check room'
+      'empty room', 'available rooms', 'room available', 'which room is free',
+      'open room', 'unused room', 'unoccupied room',
+      // Classroom
+      'classroom available', 'available classroom', 'free classroom', 'empty classroom',
+      'vacant classroom', 'find classroom', 'which classroom',
+      // Status/location
+      'room status', 'where is room', 'room location', 'which room', 'what room',
+      'is room available', 'is room free', 'room occupied', 'is room occupied',
+      // Questions
+      'where can i find room', 'how to find room', 'check room availability',
+      'any available room', 'available room now', 'room available now',
+      'looking for room', 'need room', 'need classroom', 'i need a room',
+      // Building
+      'building', 'hall', 'venue', 'lecture room', 'lab', 'laboratory',
+      // Filipino
+      'hanap silid', 'bakanteng room', 'bakante room', 'available silid',
+      'may bakanteng room ba', 'saan may room', 'room ba available',
+      'silid na bakante', 'may room ba', 'nasaan room', 'san room',
+      // Short
+      'rooms', 'room', 'silid', 'classroom', 'check room', 'room check'
     ],
     weight: 1.1
   },
   BOOK_ROOM: {
     patterns: [
-      'book room', 'reserve room', 'room reservation', 'reserve venue',
-      'ireserba room', 'book venue', 'room booking', 'schedule room'
+      // Booking
+      'book room', 'reserve room', 'room reservation', 'book a room', 'reserve a room',
+      'make reservation', 'booking room', 'reserving room', 'get room', 'rent room',
+      // Venue
+      'reserve venue', 'book venue', 'venue booking', 'venue reservation',
+      'event venue', 'reserve space', 'book space',
+      // How to
+      'how to book', 'how to reserve', 'where to book room', 'can i book',
+      'can i reserve', 'i want to book', 'i need to book', 'room booking',
+      // Filipino
+      'ireserba room', 'mag-book ng room', 'paano mag-book', 'reserve room',
+      'schedule room', 'room para sa event', 'kumuha ng room',
+      // Contextual
+      'need room for event', 'room for meeting', 'room for presentation'
     ],
     weight: 1.2
   },
   JOIN_ORG: {
     patterns: [
-      'join organization', 'join org', 'become member', 'membership',
-      'how to join', 'sumali sa org', 'mag-member', 'apply organization',
-      'join club', 'org membership'
+      // Joining
+      'join organization', 'join org', 'join an org', 'join club', 'join a club',
+      'become member', 'become a member', 'be a member', 'sign up org',
+      'register org', 'membership', 'org membership', 'club membership',
+      // How to
+      'how to join', 'how to join org', 'how can i join', 'where to join',
+      'i want to join', 'interested to join', 'can i join', 'apply organization',
+      'apply to org', 'apply for membership', 'application org',
+      // Specific orgs
+      'join bits', 'join csg', 'join csc', 'member ng bits', 'member ng csc',
+      // Filipino
+      'sumali sa org', 'mag-member', 'paano sumali', 'gusto ko sumali',
+      'maging member', 'paano maging member', 'join sa org', 'sali sa org',
+      'apply sa org', 'member saan', 'maging miyembro'
     ],
     weight: 1.1
   },
   LIST_ORGS: {
     patterns: [
-      'list organizations', 'all organizations', 'what organizations',
-      'campus orgs', 'student orgs', 'ano mga org', 'available orgs',
-      'organizations list', 'clubs list', 'organizations', 'orgs', 'clubs',
-      'what is bits', 'what is csc', 'what is csg', 'about org', 'tell me about'
+      // Listing
+      'list organizations', 'all organizations', 'organizations list', 'available orgs',
+      'list of orgs', 'show orgs', 'show organizations', 'display orgs', 'see orgs',
+      // Questions
+      'what organizations', 'which organizations', 'what orgs', 'what clubs',
+      'campus orgs', 'student orgs', 'student organizations', 'school orgs',
+      'university orgs', 'club list', 'clubs list', 'available clubs',
+      // About specific
+      'what is bits', 'what is csc', 'what is csg', 'what is bms', 'what is chls',
+      'about org', 'tell me about', 'about bits', 'about csc', 'about csg',
+      'ano ang bits', 'ano ang csc', 'about organization',
+      // Filipino
+      'ano mga org', 'mga org', 'mga organization', 'lahat ng org', 'mga club',
+      'listahan ng org', 'ano ano ang org', 'ilan ang org', 'may org ba'
     ],
     weight: 1.0
   },
   EDIT_PROFILE: {
     patterns: [
-      'edit profile', 'update profile', 'change profile', 'profile settings',
-      'account settings', 'my account', 'baguhin profile', 'i-edit profile',
-      'change name', 'update info', 'personal information'
+      // Edit/update
+      'edit profile', 'update profile', 'change profile', 'modify profile',
+      'edit my profile', 'update my profile', 'change my profile',
+      'profile settings', 'profile edit', 'profile update',
+      // Account
+      'account settings', 'my account', 'account info', 'edit account',
+      'update account', 'change account', 'account settings',
+      // Specific changes
+      'change name', 'update name', 'change picture', 'update picture',
+      'change photo', 'update photo', 'change info', 'update info',
+      'change email', 'update email', 'change password',
+      'personal information', 'edit information',
+      // How to
+      'how to edit profile', 'how to change name', 'how to update',
+      'where to edit profile', 'can i change my name', 'i want to edit',
+      // Filipino
+      'baguhin profile', 'i-edit profile', 'palitan profile', 'edit ko profile',
+      'paano mag-edit ng profile', 'paano baguhin pangalan',
+      'i-update profile', 'settings ng account'
     ],
     weight: 1.1
   },
   VIEW_PROFILE: {
     patterns: [
-      'view profile', 'my profile', 'profile info', 'account info',
-      'tingnan profile', 'profile ko', 'see profile'
+      'view profile', 'my profile', 'see profile', 'check profile', 'show profile',
+      'profile info', 'profile information', 'my information', 'my details',
+      'account info', 'my account info', 'display profile', 'open profile',
+      // Filipino
+      'tingnan profile', 'profile ko', 'see my profile', 'look at profile',
+      'ipakita profile', 'impormasyon ko'
     ],
     weight: 1.0
   },
   REQUEST_FACULTY: {
     patterns: [
+      // Request
       'request faculty', 'become faculty', 'faculty role', 'apply faculty',
-      'teacher verification', 'faculty request', 'verify faculty',
-      'how to be faculty', 'gusto maging faculty', 'faculty application'
+      'faculty request', 'request faculty role', 'faculty application',
+      'apply for faculty', 'register as faculty', 'sign up faculty',
+      // Verification
+      'teacher verification', 'verify faculty', 'faculty verification',
+      'verify as teacher', 'teacher role', 'instructor role',
+      // How to
+      'how to be faculty', 'how to become faculty', 'how to apply faculty',
+      'i am a teacher', 'im a faculty', 'i want to be faculty',
+      'can i become faculty', 'faculty account', 'teacher account',
+      // Filipino
+      'gusto maging faculty', 'paano maging faculty', 'apply bilang guro',
+      'maging teacher', 'request guro', 'apply as guro'
     ],
     weight: 1.2
   },
   HELP: {
     patterns: [
-      'help', 'assist', 'support', 'what can you do', 'how to use',
-      'guide', 'tulong', 'paano', 'instructions', 'features', 'capabilities',
-      'ano kaya mo', 'functions'
+      // General help
+      'help', 'help me', 'i need help', 'can you help', 'assist', 'assist me',
+      'support', 'need support', 'assistance', 'need assistance',
+      // Questions about bot
+      'what can you do', 'what do you do', 'what are you', 'who are you',
+      'capabilities', 'features', 'functions', 'your features', 'your functions',
+      // How to use
+      'how to use', 'how does this work', 'how to', 'guide', 'tutorial',
+      'instructions', 'user guide', 'getting started', 'how do i use',
+      // Confused
+      'i dont know', 'im lost', 'im confused', 'confused', 'stuck', 'i dont understand',
+      'what should i do', 'where do i start', 'show me how',
+      // Filipino
+      'tulong', 'tulungan mo ako', 'paano', 'ano kaya mo', 'ano magagawa mo',
+      'paano gamitin', 'pano to', 'pano ba to', 'guide naman',
+      'naguguluhan ako', 'hindi ko alam', 'san mag-start'
     ],
     weight: 0.9
   },
   CLASS_REP: {
     patterns: [
       'class representative', 'class rep', 'become rep', 'class officer',
-      'student rep', 'section rep', 'maging rep'
+      'student rep', 'section rep', 'be a rep', 'representative role',
+      'how to be class rep', 'apply class rep', 'class representative role',
+      // Filipino
+      'maging rep', 'class rep naman', 'representative ng klase',
+      'paano maging rep', 'class officer application'
     ],
     weight: 1.1
   },
   MODERATION: {
     patterns: [
-      'moderation', 'moderate', 'review posts', 'pending approval',
-      'content review', 'approve post', 'reject post'
+      'moderation', 'moderate', 'moderator', 'review posts', 'pending approval',
+      'content review', 'approve post', 'reject post', 'pending posts',
+      'posts to review', 'moderate content', 'approval queue',
+      'how to moderate', 'moderation tools', 'moderator duties'
     ],
     weight: 1.0
   },
   COMPLAINT: {
     patterns: [
-      'not working', 'broken', 'bug', 'error', 'problem', 'issue',
-      'hindi gumagana', 'sira', 'mali', 'help me fix', 'something wrong'
+      // Problems
+      'not working', 'doesnt work', "doesn't work", 'broken', 'bug', 'error',
+      'problem', 'issue', 'glitch', 'crash', 'crashing', 'freezing',
+      'something wrong', 'went wrong', 'malfunctioning', 'malfunction',
+      // Specific issues
+      'cant load', "can't load", 'wont load', "won't load", 'not loading',
+      'cant see', "can't see", 'not showing', 'not displaying', 'missing',
+      'slow', 'lagging', 'laggy', 'stuck', 'frozen', 'blank page',
+      // Help fix
+      'help me fix', 'how to fix', 'fix this', 'please fix', 'need fix',
+      // Filipino
+      'hindi gumagana', 'sira', 'mali', 'may problema', 'ayaw gumana',
+      'error to', 'di gumagana', 'bakit ganito', 'ang bagal',
+      'hindi lumalabas', 'hindi naglo-load'
     ],
     weight: 1.0
   },
   POSITIVE_FEEDBACK: {
     patterns: [
-      'great', 'awesome', 'love it', 'amazing', 'perfect', 'excellent',
-      'maganda', 'galing', 'nice', 'cool', 'wonderful', 'best'
+      'great', 'awesome', 'amazing', 'perfect', 'excellent', 'wonderful',
+      'fantastic', 'brilliant', 'love it', 'love this', 'best', 'superb',
+      'nice', 'cool', 'neat', 'good job', 'well done', 'impressive',
+      'thank you bot', 'youre helpful', "you're helpful", 'very helpful',
+      // Filipino
+      'maganda', 'galing', 'ang galing', 'ang husay', 'nice naman',
+      'bet ko to', 'solid', 'astig', 'thanks bot', 'salamat bot'
     ],
     weight: 0.8
   },
-  // New intents for organization data queries
   ORG_OFFICER: {
     patterns: [
-      'who is the president', 'who is president', 'sino presidente',
-      'who is the vice president', 'vice president of', 'sino vp',
-      'who is the secretary', 'secretary of', 'sino secretary',
-      'who is the treasurer', 'treasurer of', 'sino treasurer',
-      'who is the auditor', 'auditor of', 'sino auditor',
-      'who is the pio', 'pio of', 'public information officer',
-      'who is the adviser', 'adviser of', 'sino adviser', 'advisor of',
-      'who leads', 'leader of', 'head of', 'current president',
-      'current officers', 'officer ng', 'sino ang'
+      // President
+      'who is the president', 'who is president', 'whos the president', "who's the president",
+      'president of', 'sino presidente', 'sino ang president', 'sino pres',
+      'current president', 'present ng', 'president ng',
+      // Vice president
+      'who is the vice president', 'who is vice president', 'vice president of', 'vp of',
+      'sino vp', 'sino vice president', 'sino ang vp',
+      // Secretary
+      'who is the secretary', 'who is secretary', 'secretary of', 'sino secretary',
+      'sino ang secretary', 'sino sec',
+      // Treasurer
+      'who is the treasurer', 'who is treasurer', 'treasurer of', 'sino treasurer',
+      'sino ang treasurer', 'sino treas',
+      // Auditor
+      'who is the auditor', 'who is auditor', 'auditor of', 'sino auditor',
+      'sino ang auditor',
+      // PIO
+      'who is the pio', 'who is pio', 'pio of', 'public information officer',
+      'sino pio', 'sino ang pio',
+      // Adviser
+      'who is the adviser', 'who is adviser', 'adviser of', 'advisor of',
+      'sino adviser', 'sino advisor', 'sino ang adviser',
+      // General
+      'who leads', 'leader of', 'head of', 'current officers', 'officer ng',
+      'sino ang', 'sino yung', 'who is in charge', 'whos in charge'
     ],
     weight: 1.5
   },
   ORG_OFFICERS_LIST: {
     patterns: [
-      'list officers', 'all officers', 'officers of', 'who are the officers',
-      'sino mga officers', 'lahat ng officers', 'show officers',
-      'officers ng', 'officer list', 'team of', 'members of executive'
+      'list officers', 'all officers', 'officers of', 'show officers', 'display officers',
+      'who are the officers', 'officers list', 'officer list', 'view officers',
+      'complete officers', 'full officer list', 'get officers', 'see officers',
+      // Team
+      'team of', 'members of executive', 'executive board', 'exec board',
+      'leadership team', 'org team', 'organization team',
+      // Filipino
+      'sino mga officers', 'lahat ng officers', 'officers ng', 'mga officer ng',
+      'sino sino officers', 'listahan ng officers', 'officers lahat'
     ],
     weight: 1.4
   },
   ORG_COMMITTEE: {
     patterns: [
-      'committee members', 'who is in committee', 'committee of',
-      'internal committee', 'external committee', 'documentation committee',
-      'finance committee', 'logistics committee', 'publicity committee',
-      'ways and means', 'sports committee', 'academics committee',
-      'sino sa committee', 'members ng committee'
+      // Committee general
+      'committee members', 'who is in committee', 'committee of', 'committee list',
+      'show committee', 'display committee', 'view committee',
+      // Specific committees
+      'internal committee', 'internal affairs', 'external committee', 'external affairs',
+      'documentation committee', 'docu committee', 'finance committee', 'finance and sponsorship',
+      'logistics committee', 'publicity committee', 'multimedia committee',
+      'ways and means', 'sports committee', 'academics committee', 'secretariat',
+      'membership committee', 'audits committee',
+      // Filipino
+      'sino sa committee', 'members ng committee', 'committee ng', 'miyembro ng committee',
+      'sino mga nasa', 'sino kasama sa'
     ],
     weight: 1.4
   },
   ROOM_STATS: {
     patterns: [
-      'how many rooms', 'room statistics', 'room count', 'available rooms count',
-      'occupied rooms', 'ilan ang rooms', 'room status overall'
+      'how many rooms', 'room statistics', 'room count', 'total rooms',
+      'available rooms count', 'occupied rooms', 'occupied rooms count',
+      'vacant rooms count', 'room status overall', 'room summary',
+      'room numbers', 'overall room status', 'all rooms status',
+      // Filipino
+      'ilan ang rooms', 'ilan mga room', 'gaano karaming room',
+      'ilang room available', 'ilang room occupied', 'statistics ng room'
     ],
     weight: 1.2
   }
@@ -565,61 +895,86 @@ const analyzeSentiment = (input) => {
 }
 
 // ============================================
-// INTENT RECOGNITION
+// INTENT RECOGNITION (Enhanced with typo tolerance)
 // ============================================
 
 const recognizeIntent = (input) => {
-  const normalizedInput = input.toLowerCase().trim()
+  // Apply typo corrections and normalization first
+  const normalizedInput = normalizeText(input)
+  const originalInput = input.toLowerCase().trim()
+  
   let bestMatch = { intent: null, confidence: 0 }
   
   // First, check for organization + position queries (these are high priority)
-  const orgCode = extractOrganization(normalizedInput)
-  const position = extractPosition(normalizedInput)
+  const orgCode = extractOrganization(originalInput) || extractOrganization(normalizedInput)
+  const position = extractPosition(originalInput) || extractPosition(normalizedInput)
   if (orgCode && position) {
     return { intent: 'ORG_OFFICER', confidence: 1.0 }
   }
-  if (orgCode && (normalizedInput.includes('officer') || normalizedInput.includes('who'))) {
+  if (orgCode && (normalizedInput.includes('officer') || normalizedInput.includes('who') || originalInput.includes('officer') || originalInput.includes('who'))) {
     return { intent: 'ORG_OFFICER', confidence: 0.9 }
   }
   
-  for (const [intentName, intentData] of Object.entries(intents)) {
-    for (const pattern of intentData.patterns) {
-      const patternLower = pattern.toLowerCase()
-      
-      // Exact match (input equals pattern)
-      if (normalizedInput === patternLower) {
-        return { intent: intentName, confidence: 1.0 }
-      }
-      
-      // Pattern is contained in input
-      if (normalizedInput.includes(patternLower)) {
-        // Give higher confidence to longer pattern matches
-        const confidence = Math.min((patternLower.length / Math.max(normalizedInput.length, 1)) * intentData.weight * 1.5, 1)
-        if (confidence > bestMatch.confidence) {
-          bestMatch = { intent: intentName, confidence }
+  // Try matching with both normalized and original input
+  const inputsToCheck = [normalizedInput, originalInput]
+  
+  for (const checkInput of inputsToCheck) {
+    for (const [intentName, intentData] of Object.entries(intents)) {
+      for (const pattern of intentData.patterns) {
+        const patternLower = pattern.toLowerCase()
+        
+        // Exact match (input equals pattern)
+        if (checkInput === patternLower) {
+          return { intent: intentName, confidence: 1.0 }
         }
-      }
-      
-      // Input is contained in pattern (for short queries like "rooms")
-      if (patternLower.includes(normalizedInput) && normalizedInput.length >= 3) {
-        const confidence = 0.6 * intentData.weight
-        if (confidence > bestMatch.confidence) {
-          bestMatch = { intent: intentName, confidence }
+        
+        // Pattern is contained in input
+        if (checkInput.includes(patternLower)) {
+          // Give higher confidence to longer pattern matches
+          const confidence = Math.min((patternLower.length / Math.max(checkInput.length, 1)) * intentData.weight * 1.5, 1)
+          if (confidence > bestMatch.confidence) {
+            bestMatch = { intent: intentName, confidence }
+          }
         }
-      }
-      
-      // Fuzzy match for typos (more lenient threshold)
-      if (fuzzyMatch(normalizedInput, patternLower, 0.65)) {
-        const confidence = 0.7 * intentData.weight
-        if (confidence > bestMatch.confidence) {
-          bestMatch = { intent: intentName, confidence }
+        
+        // Input is contained in pattern (for short queries like "rooms")
+        if (patternLower.includes(checkInput) && checkInput.length >= 3) {
+          const confidence = 0.6 * intentData.weight
+          if (confidence > bestMatch.confidence) {
+            bestMatch = { intent: intentName, confidence }
+          }
+        }
+        
+        // Fuzzy match for typos (more lenient threshold of 0.55)
+        if (fuzzyMatch(checkInput, patternLower, 0.55)) {
+          const confidence = 0.7 * intentData.weight
+          if (confidence > bestMatch.confidence) {
+            bestMatch = { intent: intentName, confidence }
+          }
+        }
+        
+        // Word overlap matching for longer queries
+        const inputWords = new Set(checkInput.split(/\s+/).filter(w => w.length > 2))
+        const patternWords = patternLower.split(/\s+/).filter(w => w.length > 2)
+        
+        if (patternWords.length > 0 && inputWords.size > 0) {
+          const matchedWords = patternWords.filter(pw => 
+            [...inputWords].some(iw => similarity(iw, pw) >= 0.7)
+          )
+          const overlap = matchedWords.length / patternWords.length
+          if (overlap >= 0.6) {
+            const confidence = overlap * intentData.weight * 0.8
+            if (confidence > bestMatch.confidence) {
+              bestMatch = { intent: intentName, confidence }
+            }
+          }
         }
       }
     }
   }
   
   // Lower threshold for matching
-  if (bestMatch.confidence < 0.15) {
+  if (bestMatch.confidence < 0.12) {
     return { intent: 'UNKNOWN', confidence: 0 }
   }
   
@@ -718,29 +1073,45 @@ const responses = {
     "DYNAMIC_ROOM_STATS_RESPONSE"
   ],
   UNKNOWN: [
-    "I'm not quite sure I understand. 🤔 Could you rephrase that?\n\nI can help with:\n• Schedule (view, upload, claim)\n• Announcements (view, create, filter)\n• Rooms (find available)\n• Organizations (list, join)\n• Profile & Settings",
-    "Hmm, I didn't catch that. 🤔\n\nTry asking about:\n📅 Schedule\n📢 Announcements\n🏫 Rooms\n🏛️ Organizations\n\n(Subukan mong magtanong tungkol sa schedule, announcements, o rooms.)"
+    "I'm not quite sure I understand. 🤔 Could you rephrase that?\n\nI can help with:\n• Schedule - \"how to view schedule\", \"upload cor\"\n• Announcements - \"check news\", \"create post\"\n• Rooms - \"find available room\"\n• Organizations - \"who is csc president\", \"officers of bits\"\n• Profile - \"edit profile\", \"account settings\"",
+    "Hmm, I didn't catch that. 🤔\n\nTry asking about:\n📅 \"Where is my schedule?\" or \"saan makita sched ko?\"\n📢 \"Any announcements?\" or \"may balita ba?\"\n🏫 \"Find room\" or \"bakanteng room?\"\n🏛️ \"Who is BITS president?\" or \"sino officers?\"\n\n(Subukan ulit in simpler words!)",
+    "Sorry, I'm not sure what you mean. 😅\n\nHere are some things you can ask me:\n• \"View my schedule\" - See your classes\n• \"Check announcements\" - Latest news\n• \"Room available\" - Find vacant rooms\n• \"CSC officers\" - Organization info\n• \"Help\" - See all features\n\n(Type 'help' to see everything I can do!)",
+    "I couldn't understand that one. 🤖\n\nTry typing:\n• \"sched\" for schedule help\n• \"announce\" for announcements\n• \"room\" for room finder\n• \"org\" for organization info\n• \"help\" for full guide\n\nOr ask me in Taglish - gets ko yan! 💪"
   ]
 }
 
 // ============================================
-// SMART SUGGESTIONS
+// SMART SUGGESTIONS (Expanded)
 // ============================================
 
-const getSuggestions = (intent) => {
+const getSuggestions = (intent, input = '') => {
   const suggestionMap = {
-    VIEW_SCHEDULE: ['How to upload COR?', 'What are schedule codes?', 'View room availability'],
-    UPLOAD_SCHEDULE: ['View my schedule', 'Find available rooms', 'Help with announcements'],
-    VIEW_ANNOUNCEMENTS: ['Create announcement', 'Filter by organization', 'View my schedule'],
-    FIND_ROOM: ['View my schedule', 'Check announcements', 'Organization list'],
-    GREETING: ['View my schedule', 'Check announcements', 'Find available rooms', 'Ask about CSC officers'],
-    HELP: ['View schedule', 'Announcements', 'Room finder', 'Who is CSC president?'],
-    ORG_OFFICER: ['Officers of BITS', 'Officers of CSG', 'Room availability'],
-    ORG_OFFICERS_LIST: ['Who is the president?', 'Committee members', 'Check announcements'],
-    ORG_COMMITTEE: ['List all officers', 'View announcements', 'Find rooms'],
-    ROOM_STATS: ['Find specific room', 'View schedule', 'Check announcements'],
-    LIST_ORGS: ['Officers of CSC', 'Officers of BITS', 'Join organization'],
-    UNKNOWN: ['How to view schedule?', 'Who is CSC president?', 'Help me find rooms']
+    VIEW_SCHEDULE: ['How to upload COR?', 'Faculty schedule?', 'View room availability', 'Check announcements'],
+    UPLOAD_SCHEDULE: ['View my schedule', 'Find available rooms', 'Create announcement', 'List organizations'],
+    FACULTY_SCHEDULE: ['Upload schedule', 'View announcements', 'Find rooms', 'Help'],
+    VIEW_ANNOUNCEMENTS: ['Create announcement', 'Filter by organization', 'View schedule', 'Find rooms'],
+    CREATE_ANNOUNCEMENT: ['View announcements', 'Check schedule', 'Room finder', 'List orgs'],
+    FILTER_ANNOUNCEMENTS: ['All announcements', 'Create post', 'Check schedule', 'Rooms'],
+    FIND_ROOM: ['Book a room', 'View schedule', 'Check announcements', 'Room statistics'],
+    BOOK_ROOM: ['Find available rooms', 'Room stats', 'View schedule', 'Announcements'],
+    JOIN_ORG: ['List organizations', 'CSC officers', 'BITS officers', 'View announcements'],
+    LIST_ORGS: ['CSC officers?', 'BITS officers?', 'CSG officers?', 'How to join org?'],
+    EDIT_PROFILE: ['View my profile', 'Check schedule', 'Announcements', 'Help'],
+    VIEW_PROFILE: ['Edit profile', 'View schedule', 'Check announcements', 'Rooms'],
+    REQUEST_FACULTY: ['View schedule', 'Announcements', 'Help', 'Find rooms'],
+    GREETING: ['View my schedule', 'Check announcements', 'Find rooms', 'CSC officers?'],
+    FAREWELL: ['View schedule', 'Announcements', 'Rooms', 'Organizations'],
+    THANKS: ['Anything else?', 'View schedule', 'Check announcements', 'Find rooms'],
+    HELP: ['View schedule', 'Announcements', 'Room finder', 'CSC president?'],
+    CLASS_REP: ['View announcements', 'Create post', 'Profile settings', 'Help'],
+    MODERATION: ['View announcements', 'Schedule', 'Rooms', 'Help'],
+    COMPLAINT: ['Refresh page', 'Clear cache', 'Contact support', 'Help'],
+    POSITIVE_FEEDBACK: ['View schedule', 'Announcements', 'Rooms', 'Orgs'],
+    ORG_OFFICER: ['All officers of this org?', 'Officers of other orgs?', 'Committee members?', 'How to join?'],
+    ORG_OFFICERS_LIST: ['Specific officer?', 'Committee members?', 'How to join?', 'Announcements'],
+    ORG_COMMITTEE: ['List all officers', 'Other committees?', 'How to join?', 'Announcements'],
+    ROOM_STATS: ['Find specific room', 'Book a room', 'View schedule', 'Announcements'],
+    UNKNOWN: ['How to view schedule?', 'Check announcements', 'Find available rooms', 'Help']
   }
   
   return suggestionMap[intent] || suggestionMap.UNKNOWN

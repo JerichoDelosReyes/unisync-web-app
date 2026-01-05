@@ -26,7 +26,7 @@ import {
   ANNOUNCEMENT_STATUS,
   PRIORITY_LEVELS
 } from '../services/announcementService'
-import { reportAnnouncement } from '../services/reportService'
+import { reportAnnouncement, checkReportSpamProtection } from '../services/reportService'
 import { createLog, LOG_CATEGORIES, LOG_ACTIONS } from '../services/logService'
 import { checkGrammarAndSpelling, autoCorrect } from '../utils/grammarChecker'
 import { validateComment, checkProfanity } from '../services/moderationService'
@@ -96,6 +96,7 @@ export default function Announcements() {
   const [reportModal, setReportModal] = useState({ open: false, announcement: null })
   const [reportReason, setReportReason] = useState('')
   const [reportSubmitting, setReportSubmitting] = useState(false)
+  const [reportSpamCheck, setReportSpamCheck] = useState({ checking: false, blocked: false, reason: null })
   
   // Content warning modal state (for Faculty content moderation)
   const [contentWarningModal, setContentWarningModal] = useState({
@@ -691,6 +692,31 @@ export default function Announcements() {
     await submitAnnouncement(skipReviewQueue)
   }
 
+  // Handle opening report modal with spam check
+  const handleOpenReportModal = async (announcement) => {
+    if (!user) {
+      showToast('You must be logged in to report announcements', 'error')
+      return
+    }
+    
+    // Check spam protection first
+    setReportSpamCheck({ checking: true, blocked: false, reason: null })
+    try {
+      const spamCheck = await checkReportSpamProtection(user.uid, announcement.id)
+      if (!spamCheck.canReport) {
+        setReportSpamCheck({ checking: false, blocked: true, reason: spamCheck.reason })
+        showToast(spamCheck.reason, 'error')
+        return
+      }
+      setReportSpamCheck({ checking: false, blocked: false, reason: null })
+      setReportModal({ open: true, announcement })
+    } catch (err) {
+      setReportSpamCheck({ checking: false, blocked: false, reason: null })
+      // If spam check fails, still allow report
+      setReportModal({ open: true, announcement })
+    }
+  }
+
   // Handle report submission
   const handleSubmitReport = async () => {
     if (!reportModal.announcement) return
@@ -1284,11 +1310,11 @@ export default function Announcements() {
                                 Delete
                               </button>
                               <button
-                                onClick={() => setReportModal({ open: true, announcement })}
-                                className="w-full flex items-center gap-2 px-4 py-2 text-sm text-red-600 hover:bg-red-50 dark:hover:bg-red-900/30 transition-colors border-t border-gray-100 dark:border-gray-700"
+                                onClick={() => handleOpenReportModal(announcement)}
+                                className="w-full flex items-center gap-2 px-4 py-2 text-sm text-orange-600 hover:bg-orange-50 dark:hover:bg-orange-900/30 transition-colors border-t border-gray-100 dark:border-gray-700"
                               >
-                                <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
-                                  <path d="M4 4a1 1 0 011-1h2.586a1 1 0 01.707.293l.707.707H15l.707-.707A1 1 0 0116.414 3H19a1 1 0 011 1v2a1 1 0 01-1 1h-.172l-.293.707A1 1 0 0117.828 8H16v12a1 1 0 01-1 1H9a1 1 0 01-1-1V8H6.172a1 1 0 01-.707-.293L5.172 7H5a1 1 0 01-1-1V4z" />
+                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
                                 </svg>
                                 Report
                               </button>
@@ -1310,11 +1336,11 @@ export default function Announcements() {
                                 </button>
                               )}
                               <button
-                                onClick={() => setReportModal({ open: true, announcement })}
-                                className={`w-full flex items-center gap-2 px-4 py-2 text-sm text-red-600 hover:bg-red-50 dark:hover:bg-red-900/30 transition-colors ${announcement.authorId === userProfile?.uid ? 'border-t border-gray-100 dark:border-gray-700' : ''}`}
+                                onClick={() => handleOpenReportModal(announcement)}
+                                className={`w-full flex items-center gap-2 px-4 py-2 text-sm text-orange-600 hover:bg-orange-50 dark:hover:bg-orange-900/30 transition-colors ${announcement.authorId === userProfile?.uid ? 'border-t border-gray-100 dark:border-gray-700' : ''}`}
                               >
-                                <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
-                                  <path d="M4 4a1 1 0 011-1h2.586a1 1 0 01.707.293l.707.707H15l.707-.707A1 1 0 0116.414 3H19a1 1 0 011 1v2a1 1 0 01-1 1h-.172l-.293.707A1 1 0 0117.828 8H16v12a1 1 0 01-1 1H9a1 1 0 01-1-1V8H6.172a1 1 0 01-.707-.293L5.172 7H5a1 1 0 01-1-1V4z" />
+                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
                                 </svg>
                                 Report
                               </button>
