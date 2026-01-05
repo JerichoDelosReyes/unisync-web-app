@@ -2190,8 +2190,24 @@ export default function Announcements() {
 
       {/* Announcement Detail Modal - Facebook Style */}
       {selectedAnnouncement && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
-          <div className="relative bg-white dark:bg-gray-800 rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+        <div 
+          className="z-[9999] flex items-center justify-center bg-black/40 backdrop-blur-sm"
+          style={{
+            position: 'fixed',
+            top: '-50px',
+            left: 0,
+            right: 0,
+            bottom: '-50px',
+            paddingTop: '50px',
+            paddingBottom: '50px',
+            margin: 0,
+          }}
+          onClick={() => setSelectedAnnouncement(null)}
+        >
+          <div 
+            className="relative bg-white dark:bg-gray-800 rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto mx-4"
+            onClick={(e) => e.stopPropagation()}
+          >
             {/* Header - Compact Facebook Style */}
             <div className="sticky top-0 bg-green-600 text-white px-4 py-3 flex items-center justify-between z-10">
               <span className={`px-3 py-1 text-xs font-bold rounded-full uppercase tracking-wide ${
@@ -2563,9 +2579,24 @@ export default function Announcements() {
 
       {/* Edit Modal */}
       {editModal.open && editModal.announcement && (
-        <div className="fixed inset-0 z-[110] flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
-          <div className="absolute inset-0" onClick={() => setEditModal({ open: false, announcement: null })} />
-          <div className="relative bg-white dark:bg-gray-800 rounded-xl shadow-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+        <div 
+          className="z-[9999] flex items-center justify-center bg-black/40 backdrop-blur-sm"
+          style={{
+            position: 'fixed',
+            top: '-50px',
+            left: 0,
+            right: 0,
+            bottom: '-50px',
+            paddingTop: '50px',
+            paddingBottom: '50px',
+            margin: 0,
+          }}
+          onClick={() => setEditModal({ open: false, announcement: null })}
+        >
+          <div 
+            className="relative bg-white dark:bg-gray-800 rounded-xl shadow-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto mx-4"
+            onClick={(e) => e.stopPropagation()}
+          >
             <div className="sticky top-0 bg-white dark:bg-gray-800 border-b border-gray-100 dark:border-gray-700 px-4 py-3 flex items-center justify-between z-10">
               <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Edit Announcement</h3>
               <button
@@ -2694,8 +2725,24 @@ export default function Announcements() {
 
       {/* Delete Confirmation Modal */}
       {deleteConfirm.open && deleteConfirm.announcement && (
-        <div className="fixed inset-0 z-[120] flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
-          <div className="relative bg-white dark:bg-gray-800 rounded-2xl shadow-2xl w-full max-w-md p-8">
+        <div 
+          className="z-[10000] flex items-center justify-center bg-black/40 backdrop-blur-sm"
+          style={{
+            position: 'fixed',
+            top: '-50px',
+            left: 0,
+            right: 0,
+            bottom: '-50px',
+            paddingTop: '50px',
+            paddingBottom: '50px',
+            margin: 0,
+          }}
+          onClick={() => setDeleteConfirm({ open: false, announcement: null })}
+        >
+          <div 
+            className="relative bg-white dark:bg-gray-800 rounded-2xl shadow-2xl w-full max-w-md p-8 mx-4"
+            onClick={(e) => e.stopPropagation()}
+          >
             <div className="flex items-center gap-4 mb-6">
               <div className="w-14 h-14 rounded-full bg-red-100 dark:bg-red-900/30 flex items-center justify-center flex-shrink-0">
                 <svg className="w-7 h-7 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -2742,8 +2789,27 @@ export default function Announcements() {
 
       {/* Report Modal */}
       {reportModal.open && reportModal.announcement && (
-        <div className="fixed inset-0 z-[120] flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
-          <div className="relative bg-white dark:bg-gray-800 rounded-2xl shadow-2xl w-full max-w-md p-8">
+        <div 
+          className="z-[10000] flex items-center justify-center bg-black/40 backdrop-blur-sm"
+          style={{
+            position: 'fixed',
+            top: '-50px',
+            left: 0,
+            right: 0,
+            bottom: '-50px',
+            paddingTop: '50px',
+            paddingBottom: '50px',
+            margin: 0,
+          }}
+          onClick={() => {
+            setReportModal({ open: false, announcement: null })
+            setReportReason('')
+          }}
+        >
+          <div 
+            className="relative bg-white dark:bg-gray-800 rounded-2xl shadow-2xl w-full max-w-md p-8 mx-4"
+            onClick={(e) => e.stopPropagation()}
+          >
             <div className="flex items-center gap-4 mb-6">
               <div className="w-14 h-14 rounded-full bg-orange-100 dark:bg-orange-900/30 flex items-center justify-center flex-shrink-0">
                 <svg className="w-7 h-7 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
