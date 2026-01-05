@@ -68,6 +68,7 @@ export default function Announcements() {
   const [activeTab, setActiveTab] = useState('all') // 'all', 'important', 'academic', 'general', 'organizations'
   const [toast, setToast] = useState({ show: false, message: '', kind: 'info' })
   const [selectedAnnouncement, setSelectedAnnouncement] = useState(null)
+  const [searchQuery, setSearchQuery] = useState('')
   
   // Media viewer state
   const [mediaViewer, setMediaViewer] = useState({ open: false, media: null, index: 0, allMedia: [] })
@@ -1185,6 +1186,37 @@ export default function Announcements() {
         ))}
       </div>
 
+      {/* Search Bar */}
+      <div className="max-w-2xl mx-auto w-full">
+        <div className="relative">
+          <svg 
+            className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" 
+            fill="none" 
+            stroke="currentColor" 
+            viewBox="0 0 24 24"
+          >
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+          </svg>
+          <input
+            type="text"
+            placeholder="Search announcements..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="w-full pl-10 pr-4 py-2.5 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-xl text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all"
+          />
+          {searchQuery && (
+            <button
+              onClick={() => setSearchQuery('')}
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          )}
+        </div>
+      </div>
+
       {/* Loading State */}
       {loading && (
         <div className="py-12 text-center">
@@ -1218,22 +1250,38 @@ export default function Announcements() {
               filtered = announcements.filter(a => !a.targetTags || a.targetTags.length === 0)
             }
             
+            // Apply search filter
+            if (searchQuery.trim()) {
+              const query = searchQuery.toLowerCase().trim()
+              filtered = filtered.filter(a => 
+                a.title?.toLowerCase().includes(query) ||
+                a.content?.toLowerCase().includes(query) ||
+                a.authorName?.toLowerCase().includes(query) ||
+                a.authorRole?.toLowerCase().includes(query) ||
+                a.targetTags?.some(tag => tag.toLowerCase().includes(query))
+              )
+            }
+            
             if (filtered.length === 0) {
               return (
-                <div className="bg-gradient-to-br from-white to-gray-50 dark:from-gray-800 dark:to-gray-900 rounded-2xl border-2 border-dashed border-gray-300 dark:border-gray-600 p-16 text-center">
+                <div className="bg-gradient-to-br from-white to-gray-50 dark:from-gray-800 dark:to-gray-900 rounded-2xl border-2 border-dashed border-gray-300 dark:border-gray-600 p-16 text-center max-w-2xl mx-auto">
                   <div className="w-20 h-20 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center mx-auto mb-4">
                     <svg className="w-10 h-10 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M11 5.882V19.24a1.76 1.76 0 01-3.417.592l-2.147-6.15M18 13a3 3 0 100-6M5.436 13.683A4.001 4.001 0 017 6h1.832c4.1 0 7.625-1.234 9.168-3v14c-1.543-1.766-5.067-3-9.168-3H7a3.988 3.988 0 01-1.564-.317z" />
+                      {searchQuery ? (
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                      ) : (
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M11 5.882V19.24a1.76 1.76 0 01-3.417.592l-2.147-6.15M18 13a3 3 0 100-6M5.436 13.683A4.001 4.001 0 017 6h1.832c4.1 0 7.625-1.234 9.168-3v14c-1.543-1.766-5.067-3-9.168-3H7a3.988 3.988 0 01-1.564-.317z" />
+                      )}
                     </svg>
                   </div>
-                  <h3 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">No Announcements Yet</h3>
-                  <p className="text-gray-600 dark:text-gray-400">Check back soon for exciting updates and campus news!</p>
+                  <h3 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">{searchQuery ? 'No Results Found' : 'No Announcements Yet'}</h3>
+                  <p className="text-gray-600 dark:text-gray-400">{searchQuery ? `No announcements matching "${searchQuery}". Try a different search term.` : 'Check back soon for exciting updates and campus news!'}</p>
                 </div>
               )
             }
             
             return (
-              <div className="space-y-4 w-full">
+              <div className="space-y-4 w-full max-w-2xl mx-auto">
                 {filtered.map((announcement, idx) => (
                   <div
                     key={announcement.id}
@@ -1400,25 +1448,25 @@ export default function Announcements() {
                     {/* Media Gallery - Full Width */}
                     {announcement.media?.length > 0 && (
                       <div 
-                        className="bg-gray-100 dark:bg-gray-700 cursor-pointer"
+                        className="cursor-pointer px-4 py-2"
                         onClick={() => setSelectedAnnouncement(announcement)}
                       >
                         {announcement.media.length === 1 ? (
-                          <div className="w-full max-h-64 overflow-hidden">
+                          <div className="w-full flex justify-center">
                             {announcement.media[0].type === 'image' ? (
-                              <img src={announcement.media[0].url} alt="" className="w-full h-full object-cover hover:scale-105 transition-transform duration-300" />
+                              <img src={announcement.media[0].url} alt="" className="max-w-full h-auto max-h-[350px] object-contain rounded-lg" />
                             ) : (
-                              <div className="w-full h-48 flex items-center justify-center bg-gray-300">
-                                <svg className="w-12 h-12 text-gray-600" fill="currentColor" viewBox="0 0 24 24">
+                              <div className="w-full max-w-md aspect-video flex items-center justify-center bg-gray-900 rounded-lg">
+                                <svg className="w-16 h-16 text-gray-400" fill="currentColor" viewBox="0 0 24 24">
                                   <path d="M8 5v14l11-7z" />
                                 </svg>
                               </div>
                             )}
                           </div>
                         ) : (
-                          <div className="grid grid-cols-2 gap-1">
+                          <div className="grid grid-cols-2 gap-1 max-w-lg mx-auto">
                             {announcement.media.slice(0, 4).map((media, idx) => (
-                              <div key={idx} className="h-32 overflow-hidden relative bg-gray-300">
+                              <div key={idx} className="aspect-square overflow-hidden relative bg-gray-200 dark:bg-gray-700 rounded-lg">
                                 {media.type === 'image' ? (
                                   <img src={media.url} alt="" className="w-full h-full object-cover hover:scale-105 transition-transform duration-300" />
                                 ) : (
@@ -1531,14 +1579,14 @@ export default function Announcements() {
 
       {!loading && !error && activeTab === 'organizations' && selectedOrganization !== null && (
         <div className="space-y-4">
-          <div className="flex items-center gap-3 mb-6">
+          <div className="flex flex-col sm:flex-row sm:items-center gap-3 mb-6">
             <button
               onClick={() => setSelectedOrganization(null)}
-              className="px-4 py-2 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300 rounded-lg font-medium transition-colors text-sm"
+              className="px-4 py-2 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300 rounded-lg font-medium transition-colors text-sm w-fit"
             >
               ← Back to Organizations
             </button>
-            <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Announcements from {selectedOrganization.name}</h2>
+            <h2 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white">Announcements from {selectedOrganization.name}</h2>
           </div>
           {(() => {
             // Filter by org code in both new format (org:CSC) and legacy format (CSC, Computer Science Clique)
@@ -1569,17 +1617,30 @@ export default function Announcements() {
                 return false
               })
             })
-            if (orgAnnouncements.length === 0) {
+            // Apply search filter to org announcements
+            let filteredOrgAnnouncements = orgAnnouncements
+            if (searchQuery.trim()) {
+              const query = searchQuery.toLowerCase().trim()
+              filteredOrgAnnouncements = orgAnnouncements.filter(a => 
+                a.title?.toLowerCase().includes(query) ||
+                a.content?.toLowerCase().includes(query) ||
+                a.authorName?.toLowerCase().includes(query) ||
+                a.authorRole?.toLowerCase().includes(query) ||
+                a.targetTags?.some(tag => tag.toLowerCase().includes(query))
+              )
+            }
+            
+            if (filteredOrgAnnouncements.length === 0) {
               return (
                 <div className="bg-gray-50 dark:bg-gray-800 rounded-2xl border-2 border-dashed border-gray-300 dark:border-gray-600 p-12 text-center">
-                  <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-2">No Announcements</h3>
-                  <p className="text-gray-600 dark:text-gray-400">This organization hasn't posted any announcements yet.</p>
+                  <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-2">{searchQuery ? 'No Results Found' : 'No Announcements'}</h3>
+                  <p className="text-gray-600 dark:text-gray-400">{searchQuery ? 'Try a different search term.' : "This organization hasn't posted any announcements yet."}</p>
                 </div>
               )
             }
             return (
-              <div className="space-y-4 w-full">
-                {orgAnnouncements.map((announcement, idx) => (
+              <div className="space-y-4 w-full max-w-2xl mx-auto">
+                {filteredOrgAnnouncements.map((announcement, idx) => (
                   <div
                     key={announcement.id}
                     className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 overflow-hidden shadow-sm hover:shadow-md transition-all duration-300"

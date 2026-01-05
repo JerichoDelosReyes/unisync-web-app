@@ -250,11 +250,19 @@ export default function Sidebar({ isOpen, onClose }) {
           {/* User Info at Bottom */}
           <div className="px-4 py-4 border-t border-gray-200 dark:border-gray-700">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-full bg-primary/10 dark:bg-primary/20 flex items-center justify-center">
-                <span className="text-primary font-semibold text-sm">
-                  {userProfile?.givenName?.[0]}{userProfile?.lastName?.[0]}
-                </span>
-              </div>
+              {userProfile?.photoURL ? (
+                <img 
+                  src={userProfile.photoURL} 
+                  alt={userProfile?.displayName || 'User'} 
+                  className="w-10 h-10 rounded-full object-cover"
+                />
+              ) : (
+                <div className="w-10 h-10 rounded-full bg-primary/10 dark:bg-primary/20 flex items-center justify-center">
+                  <span className="text-primary font-semibold text-sm">
+                    {userProfile?.givenName?.[0]}{userProfile?.lastName?.[0]}
+                  </span>
+                </div>
+              )}
               <div className="flex-1 min-w-0">
                 <p className="text-sm font-medium text-gray-900 dark:text-white truncate">
                   {userProfile?.displayName || 'User'}

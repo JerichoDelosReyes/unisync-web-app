@@ -10,17 +10,17 @@ export default defineConfig(({ command }) => ({
     react(),
     VitePWA({
       registerType: 'autoUpdate',
-      includeAssets: ['favicon.png', 'apple-touch-icon.png'],
+      includeAssets: ['favicon.png', 'apple-touch-icon.png', 'cvsu-logo.png'],
       manifest: {
         name: 'UNISYNC - CvSU Imus Campus',
         short_name: 'UNISYNC',
         description: 'Centralized University Management System for CvSU Imus Campus',
         theme_color: '#166534',
-        background_color: '#f0fdf4',
+        background_color: '#166534',
         display: 'standalone',
         orientation: 'portrait',
         scope: '/',
-        start_url: '/',
+        start_url: '/dashboard',
         icons: [
           {
             src: 'pwa-192x192.png',
