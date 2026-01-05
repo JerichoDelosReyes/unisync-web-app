@@ -20,6 +20,7 @@ import {
 } from '../services/reportService'
 import { deleteAnnouncement } from '../services/announcementService'
 import Toast from '../components/ui/Toast'
+import ModalOverlay from '../components/ui/ModalOverlay'
 
 export default function Moderation() {
   const { user, userProfile } = useAuth()
@@ -348,15 +349,14 @@ export default function Moderation() {
 
       {/* Action Modal */}
       {actionModal.open && actionModal.report && (
-        <div 
-          className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4"
-          onClick={() => {
+        <ModalOverlay
+          onClose={() => {
             setActionModal({ open: false, report: null })
             setReviewNotes('')
           }}
         >
           <div 
-            className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl w-full max-w-lg p-6"
+            className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl w-full max-w-lg p-6 mx-4"
             onClick={(e) => e.stopPropagation()}
           >
             <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-4">Review Report</h3>
@@ -423,7 +423,7 @@ export default function Moderation() {
               Cancel
             </button>
           </div>
-        </div>
+        </ModalOverlay>
       )}
     </div>
   )
