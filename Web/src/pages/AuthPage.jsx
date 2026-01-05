@@ -458,6 +458,7 @@ export default function AuthPage() {
                   <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Password</label>
                   <PasswordInput 
                     id="signin-password"
+                    label={false}
                     value={signInPassword}
                     onChange={(e) => setSignInPassword(e.target.value)}
                     className="bg-gray-50 border-gray-200 rounded-xl focus:ring-emerald-500/20 focus:border-emerald-500"
@@ -558,6 +559,7 @@ export default function AuthPage() {
                   <label className="text-xs font-medium text-gray-600 dark:text-gray-400">Password</label>
                   <PasswordInput 
                     id="signup-password"
+                    label={false}
                     value={signUpPassword}
                     onChange={(e) => setSignUpPassword(e.target.value)}
                   />
@@ -568,6 +570,7 @@ export default function AuthPage() {
                   <label className="text-xs font-medium text-gray-600 dark:text-gray-400">Confirm Password</label>
                   <PasswordInput 
                     id="confirm-password"
+                    label={false}
                     value={confirmPassword}
                     onChange={(e) => setConfirmPassword(e.target.value)}
                   />
