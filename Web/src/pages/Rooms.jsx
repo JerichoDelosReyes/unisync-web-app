@@ -794,7 +794,7 @@ export default function Rooms() {
           onClick={() => setSelectedRoom(null)}
         >
           <div 
-            className="bg-white rounded-2xl shadow-2xl w-full max-w-4xl max-h-[90vh] overflow-hidden"
+            className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl w-full max-w-4xl max-h-[90vh] overflow-hidden"
             onClick={(e) => e.stopPropagation()}
           >
             {/* Modal Header */}
@@ -814,15 +814,15 @@ export default function Rooms() {
             </div>
 
             {/* Day Tabs */}
-            <div className="flex border-b border-gray-200 overflow-x-auto">
+            <div className="flex border-b border-gray-200 dark:border-gray-700 overflow-x-auto">
               {DAYS.map(day => (
                 <button
                   key={day}
                   onClick={() => setSelectedDay(day)}
                   className={`flex-1 min-w-[100px] px-4 py-3 text-sm font-medium transition-colors ${
                     selectedDay === day
-                      ? 'bg-primary/10 text-primary border-b-2 border-primary'
-                      : 'text-gray-500 hover:bg-gray-50'
+                      ? 'bg-primary/10 dark:bg-primary/20 text-primary border-b-2 border-primary'
+                      : 'text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700'
                   }`}
                 >
                   {day.slice(0, 3)}
@@ -843,37 +843,37 @@ export default function Rooms() {
                 </div>
               ) : getRoomScheduleForDay(selectedRoom, selectedDay).length === 0 ? (
                 <div className="text-center py-12">
-                  <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-emerald-100 flex items-center justify-center">
+                  <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-emerald-100 dark:bg-emerald-900/30 flex items-center justify-center">
                     <svg className="w-8 h-8 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                     </svg>
                   </div>
-                  <h3 className="text-lg font-semibold text-gray-900">No Classes Scheduled</h3>
-                  <p className="text-gray-500 mt-1">This room is available all day on {selectedDay}.</p>
+                  <h3 className="text-lg font-semibold text-gray-900 dark:text-white">No Classes Scheduled</h3>
+                  <p className="text-gray-500 dark:text-gray-400 mt-1">This room is available all day on {selectedDay}.</p>
                 </div>
               ) : (
                 <div className="space-y-3">
                   {getRoomScheduleForDay(selectedRoom, selectedDay).map((schedule, idx) => (
                     <div 
                       key={idx}
-                      className="bg-gradient-to-r from-primary/5 to-primary/10 border border-primary/20 rounded-xl p-4"
+                      className="bg-gradient-to-r from-primary/5 to-primary/10 dark:from-primary/10 dark:to-primary/20 border border-primary/20 dark:border-primary/30 rounded-xl p-4"
                     >
                       <div className="flex items-start justify-between">
                         <div className="flex-1">
-                          <h4 className="font-bold text-gray-900">{schedule.subject}</h4>
+                          <h4 className="font-bold text-gray-900 dark:text-white">{schedule.subject}</h4>
                           <div className="flex flex-wrap gap-2 mt-2">
                             {schedule.section && (
-                              <span className="px-2 py-1 bg-blue-100 text-blue-700 text-xs font-medium rounded">
+                              <span className="px-2 py-1 bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-300 text-xs font-medium rounded">
                                 {schedule.section}
                               </span>
                             )}
                             {schedule.course && (
-                              <span className="px-2 py-1 bg-purple-100 text-purple-700 text-xs font-medium rounded">
+                              <span className="px-2 py-1 bg-purple-100 dark:bg-purple-900/50 text-purple-700 dark:text-purple-300 text-xs font-medium rounded">
                                 {schedule.course}
                               </span>
                             )}
                             {schedule.professor && (
-                              <span className="px-2 py-1 bg-amber-100 text-amber-700 text-xs font-medium rounded">
+                              <span className="px-2 py-1 bg-amber-100 dark:bg-amber-900/50 text-amber-700 dark:text-amber-300 text-xs font-medium rounded">
                                 {schedule.professor}
                               </span>
                             )}
@@ -883,7 +883,7 @@ export default function Rooms() {
                           <p className="text-lg font-bold text-primary">
                             {formatTime(schedule.startTime)}
                           </p>
-                          <p className="text-sm text-gray-500">
+                          <p className="text-sm text-gray-500 dark:text-gray-400">
                             to {formatTime(schedule.endTime)}
                           </p>
                         </div>
@@ -895,14 +895,14 @@ export default function Rooms() {
 
               {/* Time Grid Visual */}
               {getRoomScheduleForDay(selectedRoom, selectedDay).length > 0 && (
-                <div className="mt-6 pt-6 border-t border-gray-200">
-                  <h4 className="text-sm font-semibold text-gray-700 mb-3">Daily Timeline</h4>
-                  <div className="relative bg-gray-100 rounded-lg h-12 overflow-hidden">
+                <div className="mt-6 pt-6 border-t border-gray-200 dark:border-gray-700">
+                  <h4 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">Daily Timeline</h4>
+                  <div className="relative bg-gray-100 dark:bg-gray-700 rounded-lg h-12 overflow-hidden">
                     {/* Time markers */}
                     <div className="absolute inset-0 flex">
                       {['7AM', '9AM', '11AM', '1PM', '3PM', '5PM', '7PM', '9PM'].map((time, idx) => (
-                        <div key={time} className="flex-1 border-l border-gray-300 first:border-l-0">
-                          <span className="text-[9px] text-gray-400 ml-1">{time}</span>
+                        <div key={time} className="flex-1 border-l border-gray-300 dark:border-gray-600 first:border-l-0">
+                          <span className="text-[9px] text-gray-400 dark:text-gray-500 ml-1">{time}</span>
                         </div>
                       ))}
                     </div>
@@ -934,8 +934,8 @@ export default function Rooms() {
                 if (dayVacancies.length === 0) return null;
                 
                 return (
-                  <div className="mt-6 pt-6 border-t border-gray-200">
-                    <h4 className="text-sm font-semibold text-gray-700 mb-3 flex items-center gap-2">
+                  <div className="mt-6 pt-6 border-t border-gray-200 dark:border-gray-700">
+                    <h4 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3 flex items-center gap-2">
                       <svg className="w-4 h-4 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
                       </svg>
@@ -945,19 +945,19 @@ export default function Rooms() {
                       {dayVacancies.map((vacancy, idx) => (
                         <div 
                           key={idx}
-                          className="flex items-center justify-between bg-emerald-50 border border-emerald-200 rounded-lg p-3"
+                          className="flex items-center justify-between bg-emerald-50 dark:bg-emerald-900/30 border border-emerald-200 dark:border-emerald-700 rounded-lg p-3"
                         >
                           <div className="flex items-center gap-3">
-                            <div className="w-10 h-10 rounded-full bg-emerald-100 flex items-center justify-center">
-                              <svg className="w-5 h-5 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <div className="w-10 h-10 rounded-full bg-emerald-100 dark:bg-emerald-800 flex items-center justify-center">
+                              <svg className="w-5 h-5 text-emerald-600 dark:text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                               </svg>
                             </div>
                             <div>
-                              <p className="font-medium text-gray-900">
+                              <p className="font-medium text-gray-900 dark:text-white">
                                 {vacancy.startTime} - {vacancy.endTime}
                               </p>
-                              <p className="text-sm text-gray-500">
+                              <p className="text-sm text-gray-500 dark:text-gray-400">
                                 {vacancy.subject} • {vacancy.section}
                               </p>
                             </div>
@@ -974,13 +974,13 @@ export default function Rooms() {
             </div>
 
             {/* Modal Footer */}
-            <div className="bg-gray-50 px-6 py-4 border-t border-gray-200 flex justify-between items-center">
-              <div className="text-sm text-gray-500">
+            <div className="bg-gray-50 dark:bg-gray-900 px-6 py-4 border-t border-gray-200 dark:border-gray-700 flex justify-between items-center">
+              <div className="text-sm text-gray-500 dark:text-gray-400">
                 Total: {getRoomSchedule(selectedRoom).length} classes this week
               </div>
               <button
                 onClick={() => setSelectedRoom(null)}
-                className="px-4 py-2 bg-gray-200 hover:bg-gray-300 text-gray-700 font-medium rounded-lg transition-colors"
+                className="px-4 py-2 bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300 font-medium rounded-lg transition-colors"
               >
                 Close
               </button>
