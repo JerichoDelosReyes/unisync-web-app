@@ -69,6 +69,61 @@ const ALLOWED_IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/gif', 'image/webp
 const ALLOWED_VIDEO_TYPES = ['video/mp4', 'video/webm', 'video/quicktime']
 const MAX_FILE_SIZE = 50 * 1024 * 1024 // 50MB
 
+// Profanity warning threshold for auto-rejection
+const PROFANITY_WARNING_THRESHOLD = 3
+
+/**
+ * Get user's profanity warning count
+ * @param {string} userId - User ID
+ * @returns {Promise<number>} - Current warning count
+ */
+export const getUserProfanityWarnings = async (userId) => {
+  try {
+    const userRef = doc(db, 'users', userId)
+    const userSnap = await getDoc(userRef)
+    
+    if (userSnap.exists()) {
+      return userSnap.data().profanityWarningCount || 0
+    }
+    return 0
+  } catch (error) {
+    console.error('Error getting profanity warnings:', error)
+    return 0
+  }
+}
+
+/**
+ * Increment user's profanity warning count
+ * @param {string} userId - User ID
+ * @returns {Promise<number>} - Updated warning count
+ */
+export const incrementProfanityWarning = async (userId) => {
+  try {
+    const userRef = doc(db, 'users', userId)
+    await updateDoc(userRef, {
+      profanityWarningCount: increment(1),
+      lastProfanityWarning: serverTimestamp()
+    })
+    
+    // Return updated count
+    const userSnap = await getDoc(userRef)
+    return userSnap.data().profanityWarningCount || 1
+  } catch (error) {
+    console.error('Error incrementing profanity warning:', error)
+    return 0
+  }
+}
+
+/**
+ * Check if user should be auto-rejected for profanity
+ * @param {string} userId - User ID
+ * @returns {Promise<boolean>} - True if user has reached warning threshold
+ */
+export const shouldAutoRejectForProfanity = async (userId) => {
+  const warningCount = await getUserProfanityWarnings(userId)
+  return warningCount >= PROFANITY_WARNING_THRESHOLD
+}
+
 /**
  * Validate a media file
  */
@@ -156,6 +211,10 @@ export const deleteMedia = async (filePath) => {
  */
 export const createAnnouncement = async (data, files = [], author, skipReviewQueue = false) => {
   try {
+    // Check if user has reached profanity warning threshold (auto-reject)
+    const userWarnings = await getUserProfanityWarnings(author.uid)
+    const isUserBlocked = userWarnings >= PROFANITY_WARNING_THRESHOLD
+    
     // ALWAYS run moderation check - profanity should be caught for ALL users
     const result = moderateContent(data.title, data.content)
     
@@ -172,20 +231,41 @@ export const createAnnouncement = async (data, files = [], author, skipReviewQue
     let status
     const hasProfanity = moderationResult.status === 'rejected' || moderationResult.filterType === 'profanity'
     
+    // AUTO-REJECT: If user has 3+ profanity warnings, automatically reject any new announcements
+    if (isUserBlocked) {
+      status = ANNOUNCEMENT_STATUS.REJECTED
+      moderationResult.autoRejected = true
+      moderationResult.rejectionReason = `User has ${userWarnings} profanity warnings. Announcements are auto-rejected until reviewed by admin.`
+    }
+    // INCREMENT WARNING: If content has profanity, increment user's warning count
+    else if (hasProfanity) {
+      const newWarningCount = await incrementProfanityWarning(author.uid)
+      moderationResult.profanityWarningNumber = newWarningCount
+      
+      // Check if this warning pushes them over the threshold
+      if (newWarningCount >= PROFANITY_WARNING_THRESHOLD) {
+        status = ANNOUNCEMENT_STATUS.REJECTED
+        moderationResult.autoRejected = true
+        moderationResult.rejectionReason = `This is warning ${newWarningCount}. Future announcements will be auto-rejected.`
+      } else if (skipReviewQueue) {
+        // Force approve - user has authority (Faculty/President confirmed warning)
+        status = ANNOUNCEMENT_STATUS.APPROVED
+        moderationResult.warningsRemaining = PROFANITY_WARNING_THRESHOLD - newWarningCount
+      } else {
+        // Route to pending review
+        status = ANNOUNCEMENT_STATUS.PENDING_REVIEW
+        moderationResult.requiresApproval = true
+        moderationResult.approvalReason = `Content flagged for review (Warning ${newWarningCount}/${PROFANITY_WARNING_THRESHOLD})`
+        moderationResult.warningsRemaining = PROFANITY_WARNING_THRESHOLD - newWarningCount
+      }
+    }
     // NEW ROLE-BASED LOGIC:
     // 1. skipReviewQueue = true: Force approve (Faculty/President confirmed warning, or Admin)
     // 2. skipReviewQueue = false + profanity: Route to pending review (Class Rep/non-President officers)
     // 3. No profanity: Approve
-    
-    if (skipReviewQueue) {
+    else if (skipReviewQueue) {
       // Force approve - user has authority (Admin, Faculty who confirmed, Org President who confirmed)
       status = ANNOUNCEMENT_STATUS.APPROVED
-    } else if (hasProfanity) {
-      // User cannot bypass - route to pending review for approval
-      status = ANNOUNCEMENT_STATUS.PENDING_REVIEW
-      // Mark for president/admin approval
-      moderationResult.requiresApproval = true
-      moderationResult.approvalReason = 'Content flagged for review'
     } else if (moderationResult.status === 'approved') {
       status = ANNOUNCEMENT_STATUS.APPROVED
     } else if (moderationResult.status === 'pending_review') {
