@@ -2094,17 +2094,17 @@ function StudentScheduleView() {
       {!isLoading && (
         <>
           {/* Header */}
-          <div className="flex items-start justify-between">
+          <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
             <div>
-              <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Schedule</h1>
-              <p className="text-gray-600 dark:text-gray-400 mt-1">View your class schedule for this semester</p>
+              <h1 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white">Schedule</h1>
+              <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">View your class schedule for this semester</p>
               {userProfile && (
-                <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400 mt-1">
                   Logged in as: {userProfile.firstName} {userProfile.lastName}
                 </p>
               )}
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
               {scheduleData.length > 0 && (
                 <button
                   onClick={handleClearSchedule}
@@ -2116,12 +2116,13 @@ function StudentScheduleView() {
               )}
               <button
                 onClick={() => setIsModalOpen(true)}
-                className="inline-flex items-center gap-2 px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors font-medium text-sm"
+                className="inline-flex items-center justify-center gap-2 px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors font-medium text-sm"
               >
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
                 </svg>
-                Add Registration Form
+                <span className="hidden sm:inline">Add Registration Form</span>
+                <span className="sm:hidden">Add Form</span>
               </button>
             </div>
           </div>

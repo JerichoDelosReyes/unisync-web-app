@@ -146,7 +146,7 @@ export default function Moderation() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6">
       {/* Toast */}
       {toast.show && (
         <Toast
@@ -158,37 +158,37 @@ export default function Moderation() {
 
       {/* Header */}
       <div>
-        <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Moderation</h1>
-        <p className="text-gray-600 dark:text-gray-400 mt-1">
+        <h1 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white">Moderation</h1>
+        <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
           Review reported announcements and take appropriate actions.
         </p>
       </div>
 
       {/* Stats Overview */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
-        <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-4">
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 sm:gap-4">
+        <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-3 sm:p-4">
           <p className="text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wide">Total Reports</p>
-          <p className="text-2xl font-bold text-gray-900 dark:text-white mt-1">{stats.total}</p>
+          <p className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white mt-1">{stats.total}</p>
         </div>
-        <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-4">
+        <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-3 sm:p-4">
           <p className="text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wide">Pending</p>
-          <p className="text-2xl font-bold text-yellow-600 dark:text-yellow-400 mt-1">{stats.pending}</p>
+          <p className="text-xl sm:text-2xl font-bold text-yellow-600 dark:text-yellow-400 mt-1">{stats.pending}</p>
         </div>
-        <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-4">
+        <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-3 sm:p-4">
           <p className="text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wide">Reviewed</p>
-          <p className="text-2xl font-bold text-blue-600 dark:text-blue-400 mt-1">{stats.reviewed}</p>
+          <p className="text-xl sm:text-2xl font-bold text-blue-600 dark:text-blue-400 mt-1">{stats.reviewed}</p>
         </div>
-        <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-4">
+        <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-3 sm:p-4">
           <p className="text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wide">Dismissed</p>
-          <p className="text-2xl font-bold text-gray-600 dark:text-gray-400 mt-1">{stats.dismissed}</p>
+          <p className="text-xl sm:text-2xl font-bold text-gray-600 dark:text-gray-400 mt-1">{stats.dismissed}</p>
         </div>
-        <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-4">
+        <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-3 sm:p-4">
           <p className="text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wide">Action Taken</p>
-          <p className="text-2xl font-bold text-red-600 dark:text-red-400 mt-1">{stats.actionTaken}</p>
+          <p className="text-xl sm:text-2xl font-bold text-red-600 dark:text-red-400 mt-1">{stats.actionTaken}</p>
         </div>
-        <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-4">
+        <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-3 sm:p-4">
           <p className="text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wide">Today</p>
-          <p className="text-2xl font-bold text-primary mt-1">{stats.todayCount}</p>
+          <p className="text-xl sm:text-2xl font-bold text-primary mt-1">{stats.todayCount}</p>
         </div>
       </div>
 
@@ -328,20 +328,20 @@ export default function Moderation() {
       </div>
 
       {/* Info Card */}
-      <div className="bg-blue-50 dark:bg-blue-900/20 rounded-xl border border-blue-200 dark:border-blue-800 p-4">
+      <div className="bg-blue-50 dark:bg-blue-900/20 rounded-xl border border-blue-200 dark:border-blue-800 p-4 overflow-hidden">
         <div className="flex items-start gap-3">
           <div className="w-10 h-10 rounded-full bg-blue-100 dark:bg-blue-900/50 flex items-center justify-center flex-shrink-0">
             <svg className="w-5 h-5 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>
           </div>
-          <div>
+          <div className="min-w-0 flex-1">
             <h3 className="font-bold text-blue-900 dark:text-blue-100">Report Review Guidelines</h3>
             <ul className="text-sm text-blue-800 dark:text-blue-200 mt-2 space-y-1">
-              <li>• <strong>Dismiss:</strong> Report is invalid or content doesn't violate policies</li>
-              <li>• <strong>Review:</strong> Content is borderline, issue warning to author</li>
-              <li>• <strong>Delete:</strong> Content clearly violates policies, remove announcement</li>
-              <li>• Reports are only visible to Super Admin and Admin roles</li>
+              <li className="break-words">• <strong>Dismiss:</strong> Report is invalid or content doesn't violate policies</li>
+              <li className="break-words">• <strong>Review:</strong> Content is borderline, issue warning to author</li>
+              <li className="break-words">• <strong>Delete:</strong> Content clearly violates policies, remove announcement</li>
+              <li className="break-words">• Reports are only visible to Super Admin and Admin roles</li>
             </ul>
           </div>
         </div>
