@@ -2541,11 +2541,25 @@ export default function Announcements() {
 
       {/* Media Viewer Modal */}
       {mediaViewer.open && mediaViewer.media && (
-        <div className="fixed inset-0 z-[150] flex items-center justify-center bg-black/90">
+        <div 
+          className="flex items-center justify-center bg-black/50 backdrop-blur-sm"
+          style={{
+            position: 'fixed',
+            top: '-50px',
+            left: 0,
+            right: 0,
+            bottom: '-50px',
+            paddingTop: '50px',
+            paddingBottom: '50px',
+            margin: 0,
+            zIndex: 99999,
+          }}
+          onClick={() => setMediaViewer({ open: false, media: null, index: 0, allMedia: [] })}
+        >
           {/* Close button */}
           <button
             onClick={() => setMediaViewer({ open: false, media: null, index: 0, allMedia: [] })}
-            className="absolute top-4 right-4 z-10 p-2 text-white/80 hover:text-white bg-black/50 rounded-full transition-colors"
+            className="absolute top-[70px] right-4 z-10 p-2 text-white/80 hover:text-white bg-black/50 rounded-full transition-colors"
           >
             <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -2555,7 +2569,7 @@ export default function Announcements() {
           {/* Navigation - Previous */}
           {mediaViewer.allMedia.length > 1 && mediaViewer.index > 0 && (
             <button
-              onClick={() => navigateMedia(-1)}
+              onClick={(e) => { e.stopPropagation(); navigateMedia(-1); }}
               className="absolute left-4 z-10 p-3 text-white/80 hover:text-white bg-black/50 rounded-full transition-colors"
             >
               <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -2567,7 +2581,7 @@ export default function Announcements() {
           {/* Navigation - Next */}
           {mediaViewer.allMedia.length > 1 && mediaViewer.index < mediaViewer.allMedia.length - 1 && (
             <button
-              onClick={() => navigateMedia(1)}
+              onClick={(e) => { e.stopPropagation(); navigateMedia(1); }}
               className="absolute right-4 z-10 p-3 text-white/80 hover:text-white bg-black/50 rounded-full transition-colors"
             >
               <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -2576,27 +2590,30 @@ export default function Announcements() {
             </button>
           )}
           
-          {/* Media content */}
-          <div className="max-w-[90vw] max-h-[90vh] flex items-center justify-center">
+          {/* Media content - Full size, not cropped */}
+          <div 
+            className="flex items-center justify-center p-4"
+            onClick={(e) => e.stopPropagation()}
+          >
             {mediaViewer.media.type === 'image' ? (
               <img 
                 src={mediaViewer.media.url} 
                 alt="" 
-                className="max-w-full max-h-[90vh] object-contain rounded-lg"
+                className="max-w-[95vw] max-h-[85vh] object-contain rounded-lg shadow-2xl"
               />
             ) : (
               <video 
                 src={mediaViewer.media.url} 
                 controls 
                 autoPlay
-                className="max-w-full max-h-[90vh] rounded-lg"
+                className="max-w-[95vw] max-h-[85vh] rounded-lg shadow-2xl"
               />
             )}
           </div>
           
           {/* Counter */}
           {mediaViewer.allMedia.length > 1 && (
-            <div className="absolute bottom-4 left-1/2 -translate-x-1/2 px-4 py-2 bg-black/50 text-white text-sm rounded-full">
+            <div className="absolute bottom-[70px] left-1/2 -translate-x-1/2 px-4 py-2 bg-black/50 text-white text-sm rounded-full">
               {mediaViewer.index + 1} / {mediaViewer.allMedia.length}
             </div>
           )}
