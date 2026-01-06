@@ -709,26 +709,40 @@ export const getFCMToken = async (userId) => {
       return null;
     }
 
-    // Register service worker
+    // Register service worker with correct scope
     if ('serviceWorker' in navigator) {
-      const registration = await navigator.serviceWorker.register('/firebase-messaging-sw.js');
-      console.log('Service Worker registered:', registration);
+      // First, check if service worker is already registered
+      let registration = await navigator.serviceWorker.getRegistration('/firebase-messaging-sw.js');
+      
+      if (!registration) {
+        // Register the service worker
+        registration = await navigator.serviceWorker.register('/firebase-messaging-sw.js', {
+          scope: '/'
+        });
+        console.log('Service Worker registered:', registration.scope);
+      } else {
+        console.log('Service Worker already registered:', registration.scope);
+      }
+      
+      // Wait for service worker to be ready
+      await navigator.serviceWorker.ready;
+      console.log('Service Worker ready');
 
-      // Get FCM token
+      // Get FCM token with explicit VAPID key
       const token = await getToken(messaging, {
         vapidKey: VAPID_KEY,
         serviceWorkerRegistration: registration
       });
 
       if (token) {
-        console.log('FCM Token obtained');
+        console.log('FCM Token obtained:', token.substring(0, 20) + '...');
         
         // Save token to user profile
         await saveFCMToken(userId, token);
         
         return token;
       } else {
-        console.log('No registration token available');
+        console.log('No registration token available. Check VAPID key and permissions.');
         return null;
       }
     }
@@ -736,6 +750,12 @@ export const getFCMToken = async (userId) => {
     return null;
   } catch (error) {
     console.error('Error getting FCM token:', error);
+    // Provide more specific error info
+    if (error.code === 'messaging/permission-blocked') {
+      console.error('Notifications blocked by user');
+    } else if (error.code === 'messaging/unsupported-browser') {
+      console.error('Browser does not support messaging');
+    }
     return null;
   }
 };
@@ -755,21 +775,44 @@ export const saveFCMToken = async (userId, token) => {
       return;
     }
     
-    const deviceId = `web_${Date.now()}`;
     const existingTokens = userDoc.data().fcmTokens || {};
     
-    await updateDoc(userRef, {
-      [`fcmTokens.${deviceId}`]: {
-        token: token,
-        lastUpdated: new Date().toISOString(),
-        platform: 'web',
-        userAgent: navigator.userAgent.substring(0, 200)
-      },
-      notificationsEnabled: true,
-      lastTokenUpdate: new Date().toISOString()
-    });
+    // Check if token already exists (avoid duplicates)
+    const tokenExists = Object.values(existingTokens).some(
+      t => t && t.token === token && !t.revoked
+    );
     
-    console.log('FCM token saved to Firestore');
+    if (tokenExists) {
+      console.log('FCM token already saved, updating timestamp');
+      // Update the existing token's timestamp
+      for (const [key, value] of Object.entries(existingTokens)) {
+        if (value && value.token === token) {
+          await updateDoc(userRef, {
+            [`fcmTokens.${key}.lastUpdated`]: new Date().toISOString(),
+            notificationsEnabled: true
+          });
+          break;
+        }
+      }
+    } else {
+      // Create new token entry with domain info
+      const deviceId = `web_${window.location.hostname}_${Date.now()}`;
+      
+      await updateDoc(userRef, {
+        [`fcmTokens.${deviceId}`]: {
+          token: token,
+          lastUpdated: new Date().toISOString(),
+          platform: 'web',
+          domain: window.location.hostname,
+          userAgent: navigator.userAgent.substring(0, 200),
+          revoked: false
+        },
+        notificationsEnabled: true,
+        lastTokenUpdate: new Date().toISOString()
+      });
+      
+      console.log('New FCM token saved to Firestore for domain:', window.location.hostname);
+    }
   } catch (error) {
     console.error('Error saving FCM token:', error);
     throw error;
