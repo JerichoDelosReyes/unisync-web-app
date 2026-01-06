@@ -186,48 +186,38 @@ export const getUserNotifications = async (userId, options = {}) => {
 
 /**
  * Show a browser push notification
+ * Uses the same approach as the working test notification
  * @param {Object} notification - Notification object
  */
 const showBrowserPushNotification = async (notification) => {
   try {
     // Check if we have permission
     if (Notification.permission !== 'granted') {
+      console.log('Notification permission not granted');
       return;
     }
 
-    // Check if the page is currently visible - don't show if user is actively viewing
-    if (document.visibilityState === 'visible') {
-      console.log('Page is visible, skipping browser push notification');
-      return;
-    }
+    console.log('Attempting to show browser push notification:', notification);
 
-    // Try to use service worker for better PWA support
-    if ('serviceWorker' in navigator && navigator.serviceWorker.controller) {
-      const registration = await navigator.serviceWorker.ready;
-      await registration.showNotification(notification.title || 'UniSync Notification', {
-        body: notification.message || notification.body || '',
-        icon: '/pwa-192x192.png',
-        badge: '/pwa-192x192.png',
-        tag: notification.id, // Prevent duplicate notifications
-        data: {
-          notificationId: notification.id,
-          type: notification.type,
-          relatedId: notification.relatedId,
-          url: getNotificationUrl(notification)
-        },
-        vibrate: [200, 100, 200],
-        requireInteraction: notification.type === 'announcement_urgent'
-      });
-      console.log('Browser push notification shown via service worker:', notification.title);
-    } else {
-      // Fallback to Notification API directly
-      new Notification(notification.title || 'UniSync Notification', {
-        body: notification.message || notification.body || '',
-        icon: '/pwa-192x192.png',
-        tag: notification.id
-      });
-      console.log('Browser push notification shown via Notification API:', notification.title);
-    }
+    // Use the Notification API directly (same as working test notification)
+    const browserNotification = new Notification(notification.title || 'UniSync Notification', {
+      body: notification.message || notification.body || '',
+      icon: '/pwa-192x192.png',
+      tag: notification.id, // Prevent duplicates
+      requireInteraction: notification.type === 'announcement_urgent'
+    });
+
+    // Handle notification click
+    browserNotification.onclick = () => {
+      window.focus();
+      const url = getNotificationUrl(notification);
+      if (url) {
+        window.location.href = url;
+      }
+      browserNotification.close();
+    };
+
+    console.log('Browser push notification shown:', notification.title);
   } catch (error) {
     console.error('Error showing browser push notification:', error);
   }
