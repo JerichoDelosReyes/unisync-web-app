@@ -19,6 +19,7 @@
 
 import { db } from '../config/firebase'
 import { collection, getDocs, addDoc, updateDoc, doc, getDoc } from 'firebase/firestore'
+import { notifyRoomBookingConfirmed } from './notificationService'
 
 /**
  * Room types for facility matching
@@ -449,6 +450,22 @@ export const createInstantBooking = async (bookingData) => {
       bookedByName,
       department
     })
+    
+    // Send notification to the user who booked
+    try {
+      await notifyRoomBookingConfirmed(bookedBy, {
+        bookingId: docRef.id,
+        roomId,
+        roomName,
+        day,
+        startTime,
+        endTime,
+        purpose
+      })
+    } catch (notifyError) {
+      console.error('Error sending room booking notification:', notifyError)
+      // Don't fail the booking if notification fails
+    }
     
     return docRef.id
   } catch (error) {

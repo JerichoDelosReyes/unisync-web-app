@@ -530,6 +530,35 @@ export const notifyScheduleCodeClaimed = async (studentIds, claimInfo) => {
 };
 
 // ============================================
+// ROOM BOOKING NOTIFICATIONS
+// ============================================
+
+/**
+ * Notify user when their room booking is confirmed
+ * @param {string} userId - User ID of the person who booked
+ * @param {Object} bookingInfo - Booking details
+ * @returns {Promise<string>} Created notification ID
+ */
+export const notifyRoomBookingConfirmed = async (userId, bookingInfo) => {
+  const notification = {
+    type: 'room_booking_confirmed',
+    title: 'Room Booking Confirmed',
+    message: `Your booking for ${bookingInfo.roomName} on ${bookingInfo.day} (${bookingInfo.startTime} - ${bookingInfo.endTime}) has been confirmed.`,
+    data: {
+      bookingId: bookingInfo.bookingId,
+      roomName: bookingInfo.roomName,
+      roomId: bookingInfo.roomId,
+      day: bookingInfo.day,
+      startTime: bookingInfo.startTime,
+      endTime: bookingInfo.endTime,
+      purpose: bookingInfo.purpose
+    }
+  };
+  
+  return await createNotification(userId, notification);
+};
+
+// ============================================
 // FACULTY REQUEST NOTIFICATIONS
 // ============================================
 
@@ -656,6 +685,8 @@ export default {
   // Schedule notifications
   notifyNewStudentEnrolled,
   notifyScheduleCodeClaimed,
+  // Room booking notifications
+  notifyRoomBookingConfirmed,
   // Faculty request notifications
   notifyFacultyRequestApproved,
   notifyFacultyRequestRejected,

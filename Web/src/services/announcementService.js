@@ -40,6 +40,7 @@ import {
   notifyAnnouncementApproved, 
   notifyAnnouncementRejected,
   notifyUrgentAnnouncement,
+  notifyNewAnnouncement,
   notifyAnnouncementReaction,
   notifyAnnouncementComment
 } from './notificationService'
@@ -346,6 +347,42 @@ export const createAnnouncement = async (data, files = [], author, skipReviewQue
         }
       } catch (notifyError) {
         console.error('Error sending urgent announcement notifications:', notifyError)
+        // Don't fail the announcement creation if notifications fail
+      }
+    }
+    // Send regular announcement notifications to targeted users
+    else if (status === ANNOUNCEMENT_STATUS.APPROVED) {
+      try {
+        // Get users who match the target audience
+        const usersSnapshot = await getDocs(collection(db, 'users'))
+        const targetedUserIds = usersSnapshot.docs
+          .filter(userDoc => {
+            const userData = userDoc.data()
+            // Don't notify the author
+            if (userDoc.id === author.uid) return false
+            
+            // Campus-wide announcements (no target tags) notify everyone
+            if (!data.targetTags || data.targetTags.length === 0) {
+              return true
+            }
+            
+            // Check if user matches target audience
+            const userTags = userData.tags || []
+            return matchesTargetAudience(userTags, data.targetTags)
+          })
+          .map(doc => doc.id)
+        
+        if (targetedUserIds.length > 0) {
+          await notifyNewAnnouncement(targetedUserIds, {
+            id: announcementId,
+            title: data.title,
+            authorName: author.name,
+            priority: data.priority
+          })
+          console.log(`Notified ${targetedUserIds.length} users about new announcement`)
+        }
+      } catch (notifyError) {
+        console.error('Error sending announcement notifications:', notifyError)
         // Don't fail the announcement creation if notifications fail
       }
     }
