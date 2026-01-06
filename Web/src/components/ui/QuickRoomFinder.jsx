@@ -18,7 +18,7 @@ import { useAuth } from '../../contexts/AuthContext'
 import {
   findBestFitRoom,
   getAllRoomsForBestFit,
-  createQuickBookingRequest,
+  createInstantBooking,
   calculateEndTime,
   formatTimeDisplay,
   ROOM_TYPES,
@@ -51,6 +51,40 @@ const BUILDING_OPTIONS = [
   { value: 'old', label: 'Old Building' },
   { value: 'new', label: 'New Building' }
 ]
+
+/**
+ * Check if user has permission to book rooms
+ * Authorized: Faculty, Admin, Super Admin, Class Reps, Org Officers
+ * Blocked: Regular Students (no special tags)
+ */
+const canBookRoom = (userProfile) => {
+  if (!userProfile) return false
+  
+  const role = userProfile.role
+  
+  // Faculty and Admins always allowed
+  if (role === 'faculty' || role === 'admin' || role === 'super_admin') {
+    return true
+  }
+  
+  // Class Representatives allowed (Student with isClassRep flag)
+  if (role === 'class_rep' || userProfile.isClassRep === true) {
+    return true
+  }
+  
+  // Organization Officers allowed (Student with officerOf object)
+  if (userProfile.officerOf && Object.keys(userProfile.officerOf).length > 0) {
+    return true
+  }
+  
+  // Regular students blocked
+  if (role === 'student') {
+    return false
+  }
+  
+  // Default: allow (for backward compatibility)
+  return true
+}
 
 export default function QuickRoomFinder({ isOpen, onClose }) {
   const { user, userProfile } = useAuth()
@@ -126,8 +160,14 @@ export default function QuickRoomFinder({ isOpen, onClose }) {
     }
   }
   
-  // Book the selected room
+  // Book the selected room (Instant Confirmation)
   const handleBookRoom = async (room) => {
+    // Check permissions first
+    if (!canBookRoom(userProfile)) {
+      setError('You do not have permission to book rooms. Only Faculty, Admins, Class Representatives, and Organization Officers can book rooms.')
+      return
+    }
+    
     setBooking(true)
     setError(null)
     
@@ -140,7 +180,8 @@ export default function QuickRoomFinder({ isOpen, onClose }) {
                          ? `${userProfile.givenName} ${userProfile.lastName}` 
                          : user.email?.split('@')[0] || 'Unknown User')
       
-      await createQuickBookingRequest({
+      // Create INSTANT CONFIRMED booking (no approval needed - algorithm is the approval)
+      await createInstantBooking({
         roomId: room.id,
         roomName: room.name,
         day: formData.day,
@@ -148,16 +189,19 @@ export default function QuickRoomFinder({ isOpen, onClose }) {
         endTime: endTime,
         requiredCapacity: formData.studentCount,
         purpose: formData.purpose || 'Make-up Class',
-        requestedBy: user.uid,
-        requestedByName: fullName,
-        requestedByEmail: user.email,
-        department: userProfile?.department || 'General'
+        bookedBy: user.uid,
+        bookedByName: fullName,
+        bookedByEmail: user.email,
+        department: userProfile?.department || 'General',
+        roomCapacity: room.capacity,
+        roomType: room.type,
+        roomBuilding: room.building
       })
       
       setBookingSuccess(true)
     } catch (err) {
       console.error('Error booking room:', err)
-      setError(err.message || 'Failed to submit booking request. Please try again.')
+      setError(err.message || 'Failed to create booking. Please try again.')
     } finally {
       setBooking(false)
     }
@@ -186,9 +230,23 @@ export default function QuickRoomFinder({ isOpen, onClose }) {
   
   if (!isOpen) return null
   
+  // Check if user has permission
+  const hasPermission = canBookRoom(userProfile)
+  
   return (
-    <div className="fixed inset-0 bg-black/60 backdrop-blur-md flex items-center justify-center z-50 p-4" style={{ minHeight: '100vh', minWidth: '100vw' }}>
-      <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl w-full max-w-2xl max-h-[95vh] overflow-hidden">
+    <div 
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm"
+      style={{ 
+        position: 'fixed',
+        top: '-50px',
+        left: 0,
+        right: 0,
+        bottom: '-50px',
+        paddingTop: '50px',
+        paddingBottom: '50px'
+      }}
+    >
+      <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-hidden">
         {/* Header */}
         <div className="bg-gradient-to-r from-primary to-emerald-600 px-6 py-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
@@ -199,7 +257,7 @@ export default function QuickRoomFinder({ isOpen, onClose }) {
             </div>
             <div>
               <h2 className="text-lg font-bold text-white">Quick Room Finder</h2>
-              <p className="text-white/80 text-sm">Best-Fit Algorithm</p>
+              <p className="text-white/80 text-sm">Best-Fit Algorithm • Instant Booking</p>
             </div>
           </div>
           <button
@@ -213,18 +271,45 @@ export default function QuickRoomFinder({ isOpen, onClose }) {
         </div>
         
         <div className="overflow-y-auto max-h-[calc(90vh-80px)]">
-          {/* Success State */}
-          {bookingSuccess ? (
+          {/* Permission Check - Show message for regular students */}
+          {!hasPermission ? (
+            <div className="p-8 text-center">
+              <div className="w-16 h-16 bg-amber-100 dark:bg-amber-900/30 rounded-full flex items-center justify-center mx-auto mb-4">
+                <svg className="w-8 h-8 text-amber-600 dark:text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                </svg>
+              </div>
+              <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2">Access Restricted</h3>
+              <p className="text-gray-600 dark:text-gray-400 mb-4">
+                This feature is available to Faculty, Admins, Class Representatives, and Organization Officers only.
+              </p>
+              <div className="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-4 text-sm text-left">
+                <p className="font-medium text-gray-700 dark:text-gray-300 mb-2">Who can book rooms:</p>
+                <ul className="text-gray-600 dark:text-gray-400 space-y-1">
+                  <li>✓ Faculty Members</li>
+                  <li>✓ Administrators</li>
+                  <li>✓ Class Representatives</li>
+                  <li>✓ Organization Officers</li>
+                </ul>
+              </div>
+              <button
+                onClick={onClose}
+                className="mt-6 px-6 py-2 bg-gray-200 hover:bg-gray-300 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300 rounded-lg transition-colors"
+              >
+                Close
+              </button>
+            </div>
+          ) : bookingSuccess ? (
             <div className="p-8 text-center">
               <div className="w-16 h-16 bg-green-100 dark:bg-green-900/30 rounded-full flex items-center justify-center mx-auto mb-4">
                 <svg className="w-8 h-8 text-green-600 dark:text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                 </svg>
               </div>
-              <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2">Booking Request Submitted!</h3>
+              <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2">Room Booked Successfully!</h3>
               <p className="text-gray-600 dark:text-gray-400 mb-6">
-                Your room booking request has been submitted for admin approval.
-                You'll be notified once it's confirmed.
+                Your room has been instantly confirmed and added to the schedule.
+                The Best-Fit Algorithm has guaranteed availability.
               </p>
               <button
                 onClick={onClose}
@@ -511,22 +596,33 @@ export default function QuickRoomFinder({ isOpen, onClose }) {
                   ) : (
                     /* No Results */
                     <div className="text-center py-8">
-                      <div className="w-16 h-16 bg-gray-100 dark:bg-gray-700 rounded-full flex items-center justify-center mx-auto mb-4">
-                        <svg className="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      <div className="w-16 h-16 bg-red-100 dark:bg-red-900/30 rounded-full flex items-center justify-center mx-auto mb-4">
+                        <svg className="w-8 h-8 text-red-600 dark:text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                         </svg>
                       </div>
-                      <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">No Rooms Available</h3>
-                      <p className="text-gray-600 dark:text-gray-400 text-sm mb-4">{results.message}</p>
+                      <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">No Suitable Rooms Available</h3>
+                      <p className="text-gray-600 dark:text-gray-400 text-sm mb-1">
+                        No rooms available for this specific time and capacity.
+                      </p>
+                      <p className="text-gray-500 dark:text-gray-500 text-xs mb-4">
+                        The campus may be fully booked or no facility matches your needs.
+                      </p>
                       
                       {/* Suggestions */}
-                      <div className="text-left bg-gray-50 dark:bg-gray-700/50 rounded-lg p-4 text-sm">
-                        <p className="font-medium text-gray-700 dark:text-gray-300 mb-2">Try adjusting:</p>
-                        <ul className="text-gray-600 dark:text-gray-400 space-y-1">
-                          <li>• Different time slot</li>
-                          <li>• Smaller student count</li>
-                          <li>• Different day</li>
-                          <li>• "Any Room Type" for more options</li>
+                      <div className="text-left bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg p-4 text-sm">
+                        <p className="font-medium text-amber-800 dark:text-amber-300 mb-2 flex items-center gap-2">
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                          </svg>
+                          Please adjust your search criteria:
+                        </p>
+                        <ul className="text-gray-700 dark:text-gray-400 space-y-1.5 ml-6">
+                          <li>• Try a different <strong>time slot</strong> (earlier or later)</li>
+                          <li>• Reduce the <strong>number of students</strong></li>
+                          <li>• Select a different <strong>day of the week</strong></li>
+                          <li>• Choose "<strong>Any Room Type</strong>" for more options</li>
+                          <li>• Shorten the <strong>duration</strong> if possible</li>
                         </ul>
                       </div>
                     </div>

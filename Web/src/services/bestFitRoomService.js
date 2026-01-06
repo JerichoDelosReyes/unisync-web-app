@@ -18,7 +18,7 @@
  */
 
 import { db } from '../config/firebase'
-import { collection, getDocs, addDoc } from 'firebase/firestore'
+import { collection, getDocs, addDoc, updateDoc, doc, getDoc } from 'firebase/firestore'
 
 /**
  * Room types for facility matching
@@ -386,7 +386,122 @@ export const getAllRoomsForBestFit = async () => {
 }
 
 /**
- * Create a quick room booking request
+ * Create an instant confirmed booking (Auto-Approval Workflow)
+ * Since the Best-Fit Algorithm mathematically guarantees vacancy,
+ * bookings are instantly confirmed without manual approval.
+ * 
+ * @param {object} bookingData - Booking data
+ * @returns {Promise<string>} Booking document ID
+ */
+export const createInstantBooking = async (bookingData) => {
+  const {
+    roomId,
+    roomName,
+    day,
+    startTime,
+    endTime,
+    requiredCapacity,
+    purpose,
+    bookedBy,
+    bookedByName,
+    bookedByEmail,
+    department,
+    roomCapacity,
+    roomType,
+    roomBuilding
+  } = bookingData
+  
+  try {
+    const now = new Date().toISOString()
+    
+    // Create instant confirmed booking
+    const bookingDoc = {
+      type: 'instant_booking',
+      roomId,
+      roomName,
+      day,
+      startTime,
+      endTime,
+      requiredCapacity,
+      roomCapacity,
+      roomType,
+      roomBuilding,
+      purpose: purpose || 'Make-up Class',
+      bookedBy,
+      bookedByName,
+      bookedByEmail,
+      department,
+      status: 'confirmed', // INSTANT CONFIRMATION - No approval needed
+      bookingMethod: 'best_fit_algorithm',
+      createdAt: now,
+      updatedAt: now,
+      confirmedAt: now
+    }
+    
+    console.log('Creating instant booking:', bookingDoc)
+    const docRef = await addDoc(collection(db, 'room_bookings'), bookingDoc)
+    console.log('Instant booking created successfully:', docRef.id)
+    
+    // Update the room's occupancy periods to reflect the new booking
+    await updateRoomOccupancy(roomId, day, startTime, endTime, {
+      bookingId: docRef.id,
+      purpose,
+      bookedByName,
+      department
+    })
+    
+    return docRef.id
+  } catch (error) {
+    console.error('Error creating instant booking:', error)
+    console.error('Error details:', error.message, error.code)
+    throw new Error(`Failed to create instant booking: ${error.message}`)
+  }
+}
+
+/**
+ * Update room's occupancy periods with new booking
+ * @param {string} roomId - Room document ID
+ * @param {string} day - Day of the week
+ * @param {string} startTime - Start time
+ * @param {string} endTime - End time
+ * @param {object} bookingInfo - Booking metadata
+ */
+const updateRoomOccupancy = async (roomId, day, startTime, endTime, bookingInfo) => {
+  try {
+    const roomRef = doc(db, 'rooms', roomId)
+    
+    // Get current room data
+    const roomSnapshot = await getDoc(roomRef)
+    
+    if (!roomSnapshot.exists()) {
+      console.warn('Room not found:', roomId)
+      return
+    }
+    
+    const currentOccupancy = roomSnapshot.data().occupancyPeriods || []
+    
+    // Add new occupancy period
+    const newPeriod = {
+      day,
+      startTime,
+      endTime,
+      ...bookingInfo
+    }
+    
+    await updateDoc(roomRef, {
+      occupancyPeriods: [...currentOccupancy, newPeriod],
+      lastUpdated: new Date().toISOString()
+    })
+    
+    console.log('Room occupancy updated:', roomId)
+  } catch (error) {
+    console.error('Error updating room occupancy:', error)
+    // Don't throw - booking is already created
+  }
+}
+
+/**
+ * Create a quick room booking request (DEPRECATED - Use createInstantBooking instead)
  * This creates a room_requests document for admin approval
  * @param {object} bookingData - Booking request data
  * @returns {Promise<string>} Request document ID

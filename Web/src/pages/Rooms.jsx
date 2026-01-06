@@ -285,6 +285,7 @@ export default function Rooms() {
 
     setLoadingSchedules(true)
     
+    // Subscribe to student schedules
     const unsubscribeSchedules = onSnapshot(
       collection(db, 'schedules'),
       (snapshot) => {
@@ -387,8 +388,59 @@ export default function Rooms() {
           schedulesByRoom[room].sort((a, b) => a.startTime.localeCompare(b.startTime))
         })
         
-        setRoomSchedules(schedulesByRoom)
-        setLoadingSchedules(false)
+        // Now fetch and merge room bookings
+        const unsubscribeBookings = onSnapshot(
+          collection(db, 'room_bookings'),
+          (bookingsSnapshot) => {
+            // Add bookings to the schedules
+            bookingsSnapshot.forEach(bookingDoc => {
+              const booking = bookingDoc.data()
+              
+              // Only include confirmed bookings
+              if (booking.status !== 'confirmed') return
+              
+              const roomName = booking.roomName?.toUpperCase().trim()
+              if (!roomName) return
+              
+              // Find the matching room in our lookup
+              let matchedRoomCode = roomLookup[roomName]
+              
+              if (matchedRoomCode) {
+                if (!schedulesByRoom[matchedRoomCode]) {
+                  schedulesByRoom[matchedRoomCode] = []
+                }
+                
+                // Add booking as a schedule entry
+                schedulesByRoom[matchedRoomCode].push({
+                  subject: booking.purpose || 'Quick Booking',
+                  day: booking.day,
+                  startTime: booking.startTime,
+                  endTime: booking.endTime,
+                  section: booking.department || '',
+                  course: '',
+                  professor: booking.bookedByName || '',
+                  isBooking: true, // Flag to distinguish bookings from regular schedules
+                  bookingId: bookingDoc.id
+                })
+                
+                // Re-sort after adding booking
+                schedulesByRoom[matchedRoomCode].sort((a, b) => a.startTime.localeCompare(b.startTime))
+              }
+            })
+            
+            setRoomSchedules(schedulesByRoom)
+            setLoadingSchedules(false)
+          },
+          (error) => {
+            console.error('Error fetching bookings:', error)
+            // Still set schedules even if bookings fail
+            setRoomSchedules(schedulesByRoom)
+            setLoadingSchedules(false)
+          }
+        )
+        
+        // Return cleanup for bookings subscription
+        return () => unsubscribeBookings()
       },
       (error) => {
         console.error('Error fetching schedules:', error)
@@ -396,7 +448,9 @@ export default function Rooms() {
       }
     )
 
-    return () => unsubscribeSchedules()
+    return () => {
+      unsubscribeSchedules()
+    }
   }, [userProfile, rooms]) // Re-run when rooms change to update lookup
 
   // Toggle room status (update room document directly)
@@ -971,14 +1025,29 @@ export default function Rooms() {
                   {getRoomScheduleForDay(selectedRoom, selectedDay).map((schedule, idx) => (
                     <div 
                       key={idx}
-                      className="bg-gradient-to-r from-primary/5 to-primary/10 dark:from-primary/10 dark:to-primary/20 border border-primary/20 dark:border-primary/30 rounded-xl p-4"
+                      className={`${
+                        schedule.isBooking 
+                          ? 'bg-gradient-to-r from-emerald-50 to-emerald-100/50 dark:from-emerald-900/20 dark:to-emerald-800/10 border border-emerald-300 dark:border-emerald-700' 
+                          : 'bg-gradient-to-r from-primary/5 to-primary/10 dark:from-primary/10 dark:to-primary/20 border border-primary/20 dark:border-primary/30'
+                      } rounded-xl p-4`}
                     >
                       <div className="flex items-start justify-between">
                         <div className="flex-1">
+                          <div className="flex items-center gap-2 mb-1">
+                            {schedule.isBooking && (
+                              <span className="px-2 py-0.5 bg-emerald-500 text-white text-[10px] font-bold uppercase rounded">
+                                ⚡ Quick Booking
+                              </span>
+                            )}
+                          </div>
                           <h4 className="font-bold text-gray-900 dark:text-white">{schedule.subject}</h4>
                           <div className="flex flex-wrap gap-2 mt-2">
                             {schedule.section && (
-                              <span className="px-2 py-1 bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-300 text-xs font-medium rounded">
+                              <span className={`px-2 py-1 text-xs font-medium rounded ${
+                                schedule.isBooking 
+                                  ? 'bg-emerald-100 dark:bg-emerald-900/50 text-emerald-700 dark:text-emerald-300'
+                                  : 'bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-300'
+                              }`}>
                                 {schedule.section}
                               </span>
                             )}
@@ -988,8 +1057,12 @@ export default function Rooms() {
                               </span>
                             )}
                             {schedule.professor && (
-                              <span className="px-2 py-1 bg-amber-100 dark:bg-amber-900/50 text-amber-700 dark:text-amber-300 text-xs font-medium rounded">
-                                {schedule.professor}
+                              <span className={`px-2 py-1 text-xs font-medium rounded ${
+                                schedule.isBooking
+                                  ? 'bg-emerald-100 dark:bg-emerald-900/50 text-emerald-700 dark:text-emerald-300'
+                                  : 'bg-amber-100 dark:bg-amber-900/50 text-amber-700 dark:text-amber-300'
+                              }`}>
+                                {schedule.isBooking ? `Booked by: ${schedule.professor}` : schedule.professor}
                               </span>
                             )}
                           </div>

@@ -454,32 +454,30 @@ service cloud.firestore {
     }
     
     // ==========================================
-    // ROOM BOOKINGS (Quick Room Finder)
+    // ROOM BOOKINGS (Quick Room Finder - Instant Booking)
     // ==========================================
-    // Faculty and above can request room bookings
-    // Admins approve/reject booking requests
+    // Auto-approved bookings via Best-Fit Algorithm
+    // Authorized: Faculty, Admin, Class Reps, Org Officers
+    // Blocked: Regular Students
     match /room_bookings/{bookingId} {
       // Everyone can read bookings (to see room availability)
       allow read: if isAuthenticated();
       
-      // Faculty and above can create booking requests
+      // Authorized users can create instant confirmed bookings
+      // Algorithm guarantees vacancy = no manual approval needed
       allow create: if isAuthenticated()
-        && isClassRepOrAbove()
-        && request.resource.data.requestedBy == request.auth.uid
-        && request.resource.data.status == 'pending'
-        && isReasonableSize();
+        && request.resource.data.bookedBy == request.auth.uid
+        && (request.resource.data.status == 'confirmed' || request.resource.data.status == 'pending');
       
-      // Admins can update (approve/reject)
-      // Users can only update their own pending bookings
+      // Admins can update/cancel any booking
+      // Users can only update their own bookings
       allow update: if isAuthenticated()
-        && (isAdminOrAbove() || 
-            (resource.data.requestedBy == request.auth.uid && resource.data.status == 'pending'))
-        && isReasonableSize();
+        && (isAdminOrAbove() || resource.data.bookedBy == request.auth.uid);
       
-      // Admins can delete, or users can delete their own pending bookings
+      // Admins can delete any booking
+      // Users can delete their own bookings
       allow delete: if isAuthenticated()
-        && (isAdminOrAbove() || 
-            (resource.data.requestedBy == request.auth.uid && resource.data.status == 'pending'));
+        && (isAdminOrAbove() || resource.data.bookedBy == request.auth.uid);
     }
 
     // ==========================================
