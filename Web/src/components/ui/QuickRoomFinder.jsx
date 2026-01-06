@@ -245,8 +245,12 @@ export default function QuickRoomFinder({ isOpen, onClose }) {
         paddingTop: '50px',
         paddingBottom: '50px'
       }}
+      onClick={onClose}
     >
-      <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-hidden">
+      <div
+        className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-hidden"
+        onClick={(e) => e.stopPropagation()}
+      >
         {/* Header */}
         <div className="bg-gradient-to-r from-primary to-emerald-600 px-6 py-4 flex items-center justify-between">
           <div className="flex items-center gap-3">

@@ -337,8 +337,17 @@ export default function FacultyRequests() {
 
       {/* Approval Modal */}
       {actionModal.show && actionModal.type === 'approve' && selectedRequest && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[100] p-4">
-          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-w-md w-full overflow-hidden animate-in fade-in zoom-in duration-200">
+        <div
+          className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[100] p-4"
+          onClick={() => {
+            setActionModal({ show: false, type: null })
+            setSelectedRequest(null)
+          }}
+        >
+          <div
+            className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-w-md w-full overflow-hidden animate-in fade-in zoom-in duration-200"
+            onClick={(e) => e.stopPropagation()}
+          >
             <div className="bg-green-600 px-6 py-4">
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 rounded-full bg-white/20 flex items-center justify-center">
@@ -403,8 +412,17 @@ export default function FacultyRequests() {
 
       {/* Rejection Modal */}
       {actionModal.show && actionModal.type === 'reject' && selectedRequest && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[100] p-4">
-          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-w-md w-full overflow-hidden animate-in fade-in zoom-in duration-200">
+        <div
+          className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[100] p-4"
+          onClick={() => {
+            setActionModal({ show: false, type: null })
+            setSelectedRequest(null)
+          }}
+        >
+          <div
+            className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-w-md w-full overflow-hidden animate-in fade-in zoom-in duration-200"
+            onClick={(e) => e.stopPropagation()}
+          >
             <div className="bg-red-600 px-6 py-4">
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 rounded-full bg-white/20 flex items-center justify-center">

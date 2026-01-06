@@ -116,11 +116,20 @@ export default function VerificationWaitingModal({
   return (
     <>
       {/* Backdrop with blur */}
-      <div className="fixed inset-0 z-[99] backdrop-blur-md bg-black/20" />
+      <div
+        className="fixed inset-0 z-[99] backdrop-blur-md bg-black/20"
+        onClick={onClose}
+      />
       
       {/* Modal Container */}
-      <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
-        <div className="relative bg-white rounded-3xl shadow-2xl w-full max-w-2xl overflow-hidden transform transition-all">
+      <div
+        className="fixed inset-0 z-[100] flex items-center justify-center p-4"
+        onClick={onClose}
+      >
+        <div
+          className="relative bg-white rounded-3xl shadow-2xl w-full max-w-2xl overflow-hidden transform transition-all"
+          onClick={(e) => e.stopPropagation()}
+        >
           
           {isProcessing ? (
             /* Processing State - Success */

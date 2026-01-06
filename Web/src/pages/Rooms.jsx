@@ -1278,8 +1278,14 @@ export default function Rooms() {
 
       {/* Room Requests Modal */}
       {showRoomRequests && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xl w-full max-w-lg max-h-[80vh] overflow-hidden">
+        <div
+          className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"
+          onClick={() => setShowRoomRequests(false)}
+        >
+          <div
+            className="bg-white dark:bg-gray-800 rounded-xl shadow-xl w-full max-w-lg max-h-[80vh] overflow-hidden"
+            onClick={(e) => e.stopPropagation()}
+          >
             <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center">
               <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
                 Room Requests ({roomRequests.length})

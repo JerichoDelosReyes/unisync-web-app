@@ -1795,7 +1795,7 @@ export default function Announcements() {
               </div>
             )
           })()}
-        </div>
+      </div>
       )}
 
       {/* Create Announcement Modal */}
@@ -2385,7 +2385,7 @@ export default function Announcements() {
             className="relative bg-white dark:bg-gray-800 rounded-2xl shadow-2xl w-full max-w-3xl max-h-[90vh] overflow-y-auto mx-4"
             onClick={(e) => e.stopPropagation()}
           >
-            {/* Header - Compact Facebook Style */}}
+            {/* Header - Compact Facebook Style */}
             <div className="sticky top-0 bg-green-600 text-white px-4 py-3 flex items-center justify-between z-10">
               <span className={`px-3 py-1 text-xs font-bold rounded-full uppercase tracking-wide ${
                 selectedAnnouncement.priority === PRIORITY_LEVELS.URGENT ? 'bg-red-500' :
