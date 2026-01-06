@@ -18,73 +18,6 @@
     
     <title>UNISYNC</title>
     
-    <!-- Splash Screen Styles -->
-    <style>
-      #splash-screen {
-        position: fixed;
-        top: 0;
-        left: 0;
-        right: 0;
-        bottom: 0;
-        background: linear-gradient(135deg, #166534 0%, #15803d 50%, #22c55e 100%);
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        justify-content: center;
-        z-index: 9999;
-        transition: opacity 0.3s ease-out;
-      }
-      #splash-screen.hidden {
-        opacity: 0;
-        pointer-events: none;
-      }
-      #splash-logo {
-        width: 120px;
-        height: 120px;
-        border-radius: 24px;
-        background: white;
-        padding: 16px;
-        box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
-        animation: pulse 2s ease-in-out infinite;
-      }
-      #splash-logo img {
-        width: 100%;
-        height: 100%;
-        object-fit: contain;
-      }
-      #splash-title {
-        margin-top: 24px;
-        font-family: system-ui, -apple-system, sans-serif;
-        font-size: 28px;
-        font-weight: 700;
-        color: white;
-        letter-spacing: 4px;
-      }
-      #splash-subtitle {
-        margin-top: 8px;
-        font-family: system-ui, -apple-system, sans-serif;
-        font-size: 12px;
-        color: rgba(255, 255, 255, 0.8);
-        letter-spacing: 1px;
-      }
-      #splash-loader {
-        margin-top: 40px;
-        width: 40px;
-        height: 40px;
-        border: 3px solid rgba(255, 255, 255, 0.3);
-        border-top-color: white;
-        border-radius: 50%;
-        animation: spin 1s linear infinite;
-      }
-      @keyframes pulse {
-        0%, 100% { transform: scale(1); }
-        50% { transform: scale(1.05); }
-      }
-      @keyframes spin {
-        to { transform: rotate(360deg); }
-      }
-    </style>
-    
     <!-- GitHub Pages SPA redirect handler -->
     <script type="text/javascript">
       (function(l) {
@@ -100,32 +33,7 @@
     </script>
   </head>
   <body class="bg-bg text-text">
-    <!-- Splash Screen -->
-    <div id="splash-screen">
-      <div id="splash-logo">
-        <img src="/cvsu-logo.png" alt="CvSU Logo" />
-      </div>
-      <div id="splash-title">UNISYNC</div>
-      <div id="splash-subtitle">CvSU Imus Campus</div>
-      <div id="splash-loader"></div>
-    </div>
-    
     <div id="root"></div>
     <script type="module" src="/src/main.jsx"></script>
-    
-    <!-- Hide splash screen when app is ready -->
-    <script>
-      window.addEventListener('load', function() {
-        setTimeout(function() {
-          var splash = document.getElementById('splash-screen');
-          if (splash) {
-            splash.classList.add('hidden');
-            setTimeout(function() {
-              splash.remove();
-            }, 300);
-          }
-        }, 500);
-      });
-    </script>
   </body>
 </html>
