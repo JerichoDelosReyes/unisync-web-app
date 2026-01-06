@@ -1,4 +1,4 @@
-`<div align="center">
+<div align="center">
   <img src="Web/src/assets/cvsu-logo.png" alt="UNISYNC Logo" width="100" height="100">
   
   # UNISYNC
