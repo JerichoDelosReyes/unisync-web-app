@@ -137,11 +137,28 @@ export default function Rooms() {
       }
       floorMap[floor].push(room)
     })
-    // Convert to array format
-    return Object.entries(floorMap).map(([name, roomList]) => ({
-      name,
-      rooms: roomList.sort((a, b) => a.name.localeCompare(b.name))
-    }))
+    
+    // Define floor order for sorting
+    const floorOrder = (floorName) => {
+      // Extract floor number if it exists (e.g., "1st Floor" -> 1, "2nd Floor" -> 2)
+      const match = floorName.match(/(\d+)/);
+      if (match) {
+        return parseInt(match[1], 10);
+      }
+      // Put special floors at the end
+      if (floorName === 'Computer Labs') return 100;
+      if (floorName === 'Regular Rooms') return 101;
+      if (floorName === 'General') return 102;
+      return 99;
+    }
+    
+    // Convert to array format and sort by floor order
+    return Object.entries(floorMap)
+      .map(([name, roomList]) => ({
+        name,
+        rooms: roomList.sort((a, b) => a.name.localeCompare(b.name))
+      }))
+      .sort((a, b) => floorOrder(a.name) - floorOrder(b.name))
   }
 
   // Reset rooms collection (super_admin only) - clears all scheduled classes from rooms

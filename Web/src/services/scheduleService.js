@@ -305,6 +305,8 @@ export const getFacultySchedule = async (facultyUserId, options = {}) => {
     
     // Map to aggregate classes by subject + day + time combination
     const classMap = new Map();
+    // Set to track unique enrolled students across all classes
+    const allEnrolledStudentIds = new Set();
     
     for (const docSnapshot of classSectionsSnapshot.docs) {
       const data = docSnapshot.data();
@@ -312,6 +314,11 @@ export const getFacultySchedule = async (facultyUserId, options = {}) => {
       // Get student count from enrolledStudents array or studentCount field
       const studentCount = data.enrolledStudents?.length || data.studentCount || 0;
       const section = data.section || 'Unknown';
+      
+      // Track all unique enrolled students
+      if (data.enrolledStudents && Array.isArray(data.enrolledStudents)) {
+        data.enrolledStudents.forEach(studentId => allEnrolledStudentIds.add(studentId));
+      }
       
       // Check if this class section has multiple time slots
       const timeSlots = data.timeSlots || [];
@@ -408,7 +415,8 @@ export const getFacultySchedule = async (facultyUserId, options = {}) => {
     
     // Calculate statistics
     const totalClasses = derivedSchedule.length;
-    const totalStudents = derivedSchedule.reduce((sum, c) => sum + c.studentCount, 0);
+    // Use unique student count instead of summing all studentCounts
+    const totalStudents = allEnrolledStudentIds.size;
     const uniqueSections = [...new Set(derivedSchedule.flatMap(c => c.sections))];
     const uniqueSubjects = [...new Set(derivedSchedule.map(c => c.subject))];
     
@@ -486,6 +494,61 @@ export const getFacultyStudents = async (facultyUserId) => {
     return students;
   } catch (error) {
     console.error('Error getting faculty students:', error);
+    throw error;
+  }
+};
+
+/**
+ * Get enrolled students for a specific class schedule
+ * @param {Array} scheduleCodes - Array of class section document IDs
+ * @returns {Promise<Array>} - Array of student info objects with names
+ */
+export const getEnrolledStudentsForClass = async (scheduleCodes) => {
+  try {
+    if (!scheduleCodes || scheduleCodes.length === 0) {
+      return [];
+    }
+
+    const CLASS_SECTIONS_COLLECTION = 'class_sections';
+    const students = [];
+    const processedStudentIds = new Set();
+
+    // Get all class sections and their enrolled students
+    for (const scheduleCode of scheduleCodes) {
+      const classSectionDoc = await getDoc(doc(db, CLASS_SECTIONS_COLLECTION, scheduleCode));
+      if (!classSectionDoc.exists()) continue;
+
+      const data = classSectionDoc.data();
+      const enrolledStudentIds = data.enrolledStudents || [];
+
+      // Get student details for each enrolled student
+      for (const studentId of enrolledStudentIds) {
+        if (processedStudentIds.has(studentId)) continue;
+        processedStudentIds.add(studentId);
+
+        try {
+          const userDoc = await getDoc(doc(db, USERS_COLLECTION, studentId));
+          if (userDoc.exists()) {
+            const userData = userDoc.data();
+            students.push({
+              id: studentId,
+              name: `${userData.lastName || ''}, ${userData.givenName || userData.firstName || ''}`.trim() || 'Unknown',
+              studentId: userData.studentId || 'N/A',
+              section: data.section || 'N/A',
+              email: userData.email || ''
+            });
+          }
+        } catch (err) {
+          console.warn('Could not fetch student details:', studentId, err);
+        }
+      }
+    }
+
+    // Sort by name
+    students.sort((a, b) => a.name.localeCompare(b.name));
+    return students;
+  } catch (error) {
+    console.error('Error getting enrolled students:', error);
     throw error;
   }
 };

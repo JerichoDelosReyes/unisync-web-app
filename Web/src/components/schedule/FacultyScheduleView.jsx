@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useAuth } from '../../contexts/AuthContext'
-import { getFacultySchedule } from '../../services/scheduleService'
+import { getFacultySchedule, getEnrolledStudentsForClass } from '../../services/scheduleService'
 import { updateRoomStatus, subscribeToRooms, isScheduleSlotVacant, isRoomCurrentlyVacant } from '../../services/roomService'
 import { subscribeToProfessorClasses } from '../../services/classSectionService'
 import ProfessorClasses from './ProfessorClasses'
@@ -87,6 +87,32 @@ const FacultyScheduleCard = ({ schedule, onClick, style }) => {
 // Schedule Detail Modal for Faculty
 const FacultyScheduleDetailModal = ({ schedule, isOpen, onClose, roomsMap = {}, userId = null }) => {
   const [isTogglingRoom, setIsTogglingRoom] = useState(false)
+  const [enrolledStudents, setEnrolledStudents] = useState([])
+  const [loadingStudents, setLoadingStudents] = useState(false)
+  const [showStudentList, setShowStudentList] = useState(false)
+  
+  // Fetch enrolled students when modal opens
+  useEffect(() => {
+    const fetchStudents = async () => {
+      if (isOpen && schedule?.scheduleCodes?.length > 0) {
+        setLoadingStudents(true)
+        try {
+          const students = await getEnrolledStudentsForClass(schedule.scheduleCodes)
+          setEnrolledStudents(students)
+        } catch (error) {
+          console.error('Error fetching enrolled students:', error)
+          setEnrolledStudents([])
+        } finally {
+          setLoadingStudents(false)
+        }
+      }
+    }
+    
+    if (isOpen) {
+      fetchStudents()
+      setShowStudentList(false)
+    }
+  }, [isOpen, schedule?.scheduleCodes])
   
   if (!isOpen || !schedule) return null
 
@@ -268,19 +294,64 @@ const FacultyScheduleDetailModal = ({ schedule, isOpen, onClose, roomsMap = {}, 
             )
           )}
 
-          {/* Student Count */}
+          {/* Student Count & List */}
           <div className="bg-primary/5 dark:bg-primary/10 border border-primary/20 dark:border-primary/30 rounded-xl p-4 mb-6">
-            <div className="flex items-center gap-3">
+            <div 
+              className="flex items-center gap-3 cursor-pointer"
+              onClick={() => setShowStudentList(!showStudentList)}
+            >
               <div className="w-12 h-12 bg-primary/10 dark:bg-primary/20 rounded-full flex items-center justify-center">
                 <svg className="w-6 h-6 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
                 </svg>
               </div>
-              <div>
+              <div className="flex-1">
                 <p className="text-2xl font-bold text-primary">{schedule.studentCount}</p>
                 <p className="text-sm text-gray-600 dark:text-gray-400">Enrolled Student{schedule.studentCount !== 1 ? 's' : ''}</p>
               </div>
+              <svg 
+                className={`w-5 h-5 text-gray-500 transition-transform ${showStudentList ? 'rotate-180' : ''}`} 
+                fill="none" 
+                stroke="currentColor" 
+                viewBox="0 0 24 24"
+              >
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+              </svg>
             </div>
+            
+            {/* Student List */}
+            {showStudentList && (
+              <div className="mt-4 border-t border-primary/20 pt-4">
+                {loadingStudents ? (
+                  <div className="flex items-center justify-center py-4">
+                    <svg className="w-5 h-5 animate-spin text-primary" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                    <span className="ml-2 text-sm text-gray-500">Loading students...</span>
+                  </div>
+                ) : enrolledStudents.length === 0 ? (
+                  <p className="text-sm text-gray-500 dark:text-gray-400 text-center py-2">No student details available</p>
+                ) : (
+                  <div className="max-h-48 overflow-y-auto space-y-2">
+                    {enrolledStudents.map((student, idx) => (
+                      <div 
+                        key={student.id || idx}
+                        className="flex items-center gap-3 p-2 bg-white dark:bg-gray-700 rounded-lg"
+                      >
+                        <div className="w-8 h-8 bg-primary/20 rounded-full flex items-center justify-center text-primary font-semibold text-sm">
+                          {student.name?.charAt(0) || '?'}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-medium text-gray-900 dark:text-white truncate">{student.name}</p>
+                          <p className="text-xs text-gray-500 dark:text-gray-400">{student.studentId} • {student.section}</p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
           </div>
 
           {/* Sections */}
@@ -782,7 +853,7 @@ export default function FacultyScheduleView() {
           {/* Subject List */}
           <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-6">
             <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Subjects Overview</h3>
-            <div className="grid gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
               {statistics?.subjects.map((subject, idx) => {
                 const subjectSchedules = scheduleData.filter(s => s.subject === subject)
                 const totalStudents = subjectSchedules.reduce((sum, s) => sum + s.studentCount, 0)
@@ -791,27 +862,18 @@ export default function FacultyScheduleView() {
                 return (
                   <div 
                     key={idx}
-                    className={`${getSubjectColor(subject, idx)} rounded-xl p-4 text-white`}
+                    className={`${getSubjectColor(subject, idx)} rounded-xl p-3 text-white`}
                   >
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <h4 className="font-semibold">{subject}</h4>
-                        <p className="text-white/80 text-sm mt-1">
-                          {subjectSchedules.length} class slot{subjectSchedules.length !== 1 ? 's' : ''} • {totalStudents} student{totalStudents !== 1 ? 's' : ''}
-                        </p>
+                    <div className="flex flex-col gap-2">
+                      <div className="flex items-start justify-between gap-2">
+                        <h4 className="font-semibold text-sm leading-tight line-clamp-2">{subject}</h4>
+                        <span className="px-2 py-0.5 bg-white/20 rounded text-xs whitespace-nowrap flex-shrink-0">
+                          {sections[0] || 'N/A'}
+                        </span>
                       </div>
-                      <div className="flex flex-wrap gap-1 justify-end max-w-[200px]">
-                        {sections.slice(0, 3).map((section, sIdx) => (
-                          <span key={sIdx} className="px-2 py-0.5 bg-white/20 rounded text-xs">
-                            {section}
-                          </span>
-                        ))}
-                        {sections.length > 3 && (
-                          <span className="px-2 py-0.5 bg-white/20 rounded text-xs">
-                            +{sections.length - 3}
-                          </span>
-                        )}
-                      </div>
+                      <p className="text-white/80 text-xs">
+                        {subjectSchedules.length} slot{subjectSchedules.length !== 1 ? 's' : ''} • {totalStudents} student{totalStudents !== 1 ? 's' : ''}
+                      </p>
                     </div>
                   </div>
                 )

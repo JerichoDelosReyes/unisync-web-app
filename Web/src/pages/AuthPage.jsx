@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { signOut } from 'firebase/auth'
 import { auth } from '../config/firebase'
+import { useAuth } from '../contexts/AuthContext'
 import BrandLogo from '../components/BrandLogo.jsx'
 import TextInput from '../components/forms/TextInput.jsx'
 import PasswordInput from '../components/forms/PasswordInput.jsx'
@@ -20,9 +21,18 @@ import {
 } from '../services/authService.js'
 
 export default function AuthPage() {
+  const { user, userProfile, loading, isEmailVerified } = useAuth()
   const [activeTab, setActiveTab] = useState('signin')
   const [roleMessageIndex, setRoleMessageIndex] = useState(0)
   const navigate = useNavigate()
+  
+  // Redirect logged-in users to dashboard
+  useEffect(() => {
+    if (!loading && user && isEmailVerified && userProfile) {
+      console.log('✅ User already logged in, redirecting to dashboard')
+      navigate('/dashboard', { replace: true })
+    }
+  }, [user, userProfile, loading, isEmailVerified, navigate])
   
   // Role-specific messages for the hero section
   const roleMessages = [
@@ -299,6 +309,32 @@ export default function AuthPage() {
     } else {
       showToast(result.error, 'warning')
     }
+  }
+
+  // Show loading while checking auth state
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-emerald-700 via-emerald-800 to-emerald-900">
+        <div className="flex flex-col items-center gap-4">
+          <img src={logo} alt="CvSU Logo" className="w-20 h-20 rounded-xl bg-white p-2" />
+          <div className="w-8 h-8 border-3 border-white border-t-transparent rounded-full animate-spin"></div>
+          <p className="text-white/80 text-sm">Loading...</p>
+        </div>
+      </div>
+    )
+  }
+
+  // If user is logged in, don't render login form (redirect will happen in useEffect)
+  if (user && isEmailVerified && userProfile) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-emerald-700 via-emerald-800 to-emerald-900">
+        <div className="flex flex-col items-center gap-4">
+          <img src={logo} alt="CvSU Logo" className="w-20 h-20 rounded-xl bg-white p-2" />
+          <div className="w-8 h-8 border-3 border-white border-t-transparent rounded-full animate-spin"></div>
+          <p className="text-white/80 text-sm">Redirecting to dashboard...</p>
+        </div>
+      </div>
+    )
   }
 
   return (
