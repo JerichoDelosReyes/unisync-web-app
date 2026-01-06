@@ -24,6 +24,8 @@ import {
   addComment,
   getComments,
   deleteComment,
+  subscribeToAnnouncements,
+  subscribeToComments,
   ANNOUNCEMENT_STATUS,
   PRIORITY_LEVELS
 } from '../services/announcementService'
@@ -215,26 +217,29 @@ export default function Announcements() {
     setTimeout(() => setToast({ show: false, message: '', kind: 'info' }), 4000)
   }
 
-  // Fetch announcements
+  // Real-time announcements subscription
   useEffect(() => {
-    const fetchAnnouncements = async () => {
-      try {
-        setLoading(true)
-        setError(null)
-        
-        const userTags = userProfile?.tags || []
-        // Pass userId so authors can always see their own announcements
-        const data = await getAnnouncementsForUser(userTags, { userId: user?.uid })
-        setAnnouncements(data)
-      } catch (err) {
-        console.error('Error fetching announcements:', err)
-        setError('Failed to load announcements')
-      } finally {
-        setLoading(false)
-      }
-    }
+    if (!userProfile || !user) return
 
-    fetchAnnouncements()
+    setLoading(true)
+    setError(null)
+    
+    const userTags = userProfile.tags || []
+    
+    // Subscribe to real-time announcements
+    const unsubscribe = subscribeToAnnouncements(
+      userTags,
+      (newAnnouncements) => {
+        setAnnouncements(newAnnouncements)
+        setLoading(false)
+      },
+      { userId: user.uid }
+    )
+
+    // Cleanup subscription on unmount
+    return () => {
+      unsubscribe()
+    }
   }, [userProfile, user])
 
   // Handle navigation state to open specific announcement (only once on initial load)
@@ -251,34 +256,37 @@ export default function Announcements() {
     }
   }, [location.state?.selectedAnnouncementId, announcements, loading])
 
-  // Fetch comments when announcement is selected
+  // Real-time comments subscription when announcement is selected
   useEffect(() => {
-    if (selectedAnnouncement) {
-      const fetchCommentsData = async () => {
-        try {
-          setLoadingComments(true)
-          const data = await getComments(selectedAnnouncement.id)
-          setComments(data)
-          
-          // Set initial reactions from announcement
-          if (selectedAnnouncement.reactions) {
-            const counts = getReactionCounts(selectedAnnouncement.reactions)
-            setReactions(counts)
-          } else {
-            setReactions({})
-          }
-        } catch (err) {
-          console.error('Error fetching comments:', err)
-        } finally {
-          setLoadingComments(false)
-        }
-      }
-      
-      fetchCommentsData()
-      setCommentText('')
-      setReplyingTo(null)
+    if (!selectedAnnouncement) return
+
+    setLoadingComments(true)
+    
+    // Set initial reactions from announcement
+    if (selectedAnnouncement.reactions) {
+      const counts = getReactionCounts(selectedAnnouncement.reactions)
+      setReactions(counts)
+    } else {
+      setReactions({})
     }
-  }, [selectedAnnouncement])
+    
+    // Subscribe to real-time comments
+    const unsubscribe = subscribeToComments(
+      selectedAnnouncement.id,
+      (newComments) => {
+        setComments(newComments)
+        setLoadingComments(false)
+      }
+    )
+    
+    setCommentText('')
+    setReplyingTo(null)
+
+    // Cleanup subscription on unmount or when announcement changes
+    return () => {
+      unsubscribe()
+    }
+  }, [selectedAnnouncement?.id])
 
   // Handle grammar check
   const handleGrammarCheck = () => {
@@ -546,9 +554,9 @@ export default function Announcements() {
         shouldSkipReview
       )
       
+      // Real-time listener will add announcement to list automatically
       if (result.status === ANNOUNCEMENT_STATUS.APPROVED) {
         showToast('Announcement published successfully!', 'success')
-        setAnnouncements(prev => [result, ...prev])
       } else if (result.status === ANNOUNCEMENT_STATUS.PENDING_REVIEW) {
         showToast('Announcement submitted for review. An admin will review it shortly.', 'info')
       } else {
@@ -914,15 +922,13 @@ export default function Announcements() {
         showToast('Your comment contains inappropriate content and cannot be posted.', 'error')
       } else if (newComment.status === 'pending_review') {
         showToast('Your comment is being reviewed by moderators.', 'warning')
-        setComments(prev => [...prev, newComment])
-        setCommentText('')
-        setReplyingTo(null)
       } else {
-        setComments(prev => [...prev, newComment])
-        setCommentText('')
-        setReplyingTo(null)
         showToast(replyingTo ? 'Reply added successfully!' : 'Comment added successfully!', 'success')
       }
+      
+      // Clear form - real-time listener will update comments list
+      setCommentText('')
+      setReplyingTo(null)
     } catch (err) {
       console.error('Error adding comment:', err)
       showToast(err.message || 'Failed to add comment', 'error')
@@ -939,11 +945,7 @@ export default function Announcements() {
       setDeletingComment(true)
       await deleteComment(selectedAnnouncement.id, deleteCommentConfirm.comment.id)
       
-      // Remove comment and its replies from state
-      setComments(prev => prev.filter(c => 
-        c.id !== deleteCommentConfirm.comment.id && c.parentId !== deleteCommentConfirm.comment.id
-      ))
-      
+      // Real-time listener will update comments list automatically
       showToast('Comment deleted successfully', 'success')
       setDeleteCommentConfirm({ open: false, comment: null })
     } catch (err) {

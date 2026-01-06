@@ -1122,3 +1122,138 @@ export const toggleCommentLike = async (announcementId, commentId, userId) => {
     throw error
   }
 }
+
+/**
+ * Subscribe to real-time announcements updates
+ * @param {Array} userTags - User's tags for filtering
+ * @param {Function} callback - Callback function (announcements) => void
+ * @param {Object} options - Options { userId, status }
+ * @returns {Function} Unsubscribe function
+ */
+export const subscribeToAnnouncements = (userTags = [], callback, options = {}) => {
+  const statusFilter = options.status || ANNOUNCEMENT_STATUS.APPROVED
+  const q = query(
+    collection(db, COLLECTION_NAME),
+    where('status', '==', statusFilter)
+  )
+  
+  return onSnapshot(q, async (snapshot) => {
+    try {
+      // Filter by tags on client side
+      let announcements = snapshot.docs
+        .map(doc => ({ id: doc.id, ...doc.data() }))
+        .filter(announcement => {
+          // Authors can always see their own announcements
+          if (options.userId && announcement.authorId === options.userId) {
+            return true
+          }
+          // Campus-wide announcements (no target tags) are visible to everyone
+          if (!announcement.targetTags || announcement.targetTags.length === 0) {
+            return true
+          }
+          // Use sophisticated matching logic for targeted announcements
+          return matchesTargetAudience(userTags, announcement.targetTags)
+        })
+      
+      // Fetch comments count for each announcement
+      announcements = await Promise.all(
+        announcements.map(async (announcement) => {
+          try {
+            const commentsRef = collection(db, COLLECTION_NAME, announcement.id, 'comments')
+            const commentsSnapshot = await getDocs(commentsRef)
+            return {
+              ...announcement,
+              comments: commentsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }))
+            }
+          } catch (error) {
+            console.error('Error fetching comments for announcement:', announcement.id, error)
+            return { ...announcement, comments: [] }
+          }
+        })
+      )
+      
+      // Sort by priority
+      const priorityOrder = { urgent: 0, high: 1, normal: 2, low: 3 }
+      announcements.sort((a, b) => {
+        const priorityDiff = (priorityOrder[a.priority] || 2) - (priorityOrder[b.priority] || 2)
+        if (priorityDiff !== 0) return priorityDiff
+        // Same priority: sort by date
+        const dateA = a.createdAt?.toDate?.() || new Date(0)
+        const dateB = b.createdAt?.toDate?.() || new Date(0)
+        return dateB - dateA
+      })
+      
+      callback(announcements)
+    } catch (error) {
+      console.error('Error in announcements subscription:', error)
+    }
+  }, (error) => {
+    console.error('Announcements subscription error:', error)
+  })
+}
+
+/**
+ * Subscribe to real-time comments updates for an announcement
+ * @param {string} announcementId - Announcement ID
+ * @param {Function} callback - Callback function (comments) => void
+ * @param {boolean} includeAll - Include pending/rejected comments (for admins)
+ * @returns {Function} Unsubscribe function
+ */
+export const subscribeToComments = (announcementId, callback, includeAll = false) => {
+  const commentsRef = collection(db, COLLECTION_NAME, announcementId, 'comments')
+  
+  let q
+  if (includeAll) {
+    q = query(commentsRef)
+  } else {
+    q = query(commentsRef, where('status', '==', COMMENT_STATUS.APPROVED))
+  }
+  
+  return onSnapshot(q, async (snapshot) => {
+    try {
+      const comments = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }))
+      
+      // Fetch latest user profiles to get current profile pictures
+      const uniqueAuthorIds = [...new Set(comments.map(c => c.authorId).filter(Boolean))]
+      const userProfiles = {}
+      
+      // Batch fetch user profiles
+      for (const authorId of uniqueAuthorIds) {
+        try {
+          const userDoc = await getDoc(doc(db, 'users', authorId))
+          if (userDoc.exists()) {
+            userProfiles[authorId] = userDoc.data()
+          }
+        } catch (err) {
+          console.warn(`Could not fetch profile for user ${authorId}:`, err)
+        }
+      }
+      
+      // Update comments with latest profile data
+      const commentsWithCurrentProfiles = comments.map(comment => {
+        const profile = userProfiles[comment.authorId]
+        if (profile) {
+          return {
+            ...comment,
+            authorPhotoURL: profile.photoURL || null,
+            authorName: profile.displayName || `${profile.givenName || ''} ${profile.lastName || ''}`.trim() || comment.authorName
+          }
+        }
+        return comment
+      })
+      
+      // Sort by date client-side
+      commentsWithCurrentProfiles.sort((a, b) => {
+        const dateA = a.createdAt?.toDate?.() || new Date(0)
+        const dateB = b.createdAt?.toDate?.() || new Date(0)
+        return dateA - dateB
+      })
+      
+      callback(commentsWithCurrentProfiles)
+    } catch (error) {
+      console.error('Error in comments subscription:', error)
+    }
+  }, (error) => {
+    console.error('Comments subscription error:', error)
+  })
+}

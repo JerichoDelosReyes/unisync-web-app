@@ -7,15 +7,15 @@
 importScripts('https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js');
 importScripts('https://www.gstatic.com/firebasejs/10.7.1/firebase-messaging-compat.js');
 
-// Firebase configuration
+// Firebase configuration - MUST match main app config
 const firebaseConfig = {
   apiKey: "AIzaSyBtB3kb_mN3ZdUAyf4xsp1wCK8spQnNtkc",
   authDomain: "unisync-web-app-ac1fd.firebaseapp.com",
   projectId: "unisync-web-app-ac1fd",
   storageBucket: "unisync-web-app-ac1fd.firebasestorage.app",
   messagingSenderId: "25644861146",
-  appId: "1:25644861146:web:d42f73a0d98a4ff0d7c8ad",
-  measurementId: "G-S7QR5KMLNG"
+  appId: "1:25644861146:web:8fbc17eb8aa666bf60c7e3",
+  measurementId: "G-5SQJ2F6E5V"
 };
 
 // Initialize Firebase
