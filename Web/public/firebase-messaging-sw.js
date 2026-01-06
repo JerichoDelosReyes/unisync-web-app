@@ -1,6 +1,7 @@
 /**
  * Firebase Cloud Messaging Service Worker
  * Handles background notifications for UNISYNC PWA
+ * Works with both Chrome (FCM) and Safari (Web Push)
  */
 
 // Import Firebase scripts for service worker
@@ -24,7 +25,7 @@ firebase.initializeApp(firebaseConfig);
 // Initialize Firebase Cloud Messaging
 const messaging = firebase.messaging();
 
-// Handle background messages
+// Handle background messages from Firebase (Chrome/Android)
 messaging.onBackgroundMessage((payload) => {
   console.log('[firebase-messaging-sw.js] Received background message:', payload);
   
@@ -43,6 +44,45 @@ messaging.onBackgroundMessage((payload) => {
   return self.registration.showNotification(notificationTitle, notificationOptions);
 });
 
+// Standard Web Push handler - works for Safari and other browsers
+self.addEventListener('push', (event) => {
+  console.log('[Service Worker] Push received:', event);
+  
+  let data = {};
+  let title = 'UNISYNC Notification';
+  let body = '';
+  
+  try {
+    if (event.data) {
+      data = event.data.json();
+      console.log('[Service Worker] Push data:', data);
+      
+      // Handle both FCM format and standard format
+      title = data.notification?.title || data.title || title;
+      body = data.notification?.body || data.body || body;
+    }
+  } catch (e) {
+    console.error('[Service Worker] Error parsing push data:', e);
+    if (event.data) {
+      body = event.data.text();
+    }
+  }
+  
+  const options = {
+    body: body,
+    icon: '/pwa-192x192.png',
+    badge: '/pwa-192x192.png',
+    tag: data.data?.type || data.type || 'general',
+    data: data.data || data,
+    requireInteraction: true,
+    vibrate: [200, 100, 200]
+  };
+  
+  event.waitUntil(
+    self.registration.showNotification(title, options)
+  );
+});
+
 // Handle notification click
 self.addEventListener('notificationclick', (event) => {
   console.log('[Service Worker] Notification click:', event);
@@ -51,10 +91,15 @@ self.addEventListener('notificationclick', (event) => {
   
   // Get the URL to open from notification data
   const notificationData = event.notification.data || {};
-  let urlPath = notificationData.url || '/dashboard';
+  let urlPath = notificationData.url || notificationData.link || '/dashboard';
+  
+  // Handle FCM link format
+  if (notificationData.fcmOptions?.link) {
+    urlPath = notificationData.fcmOptions.link;
+  }
   
   // Build the full URL
-  const urlToOpen = new URL(urlPath, self.location.origin).href;
+  const urlToOpen = urlPath.startsWith('http') ? urlPath : new URL(urlPath, self.location.origin).href;
   
   console.log('[Service Worker] Opening URL:', urlToOpen);
   
@@ -81,4 +126,14 @@ self.addEventListener('notificationclick', (event) => {
         }
       })
   );
+});
+
+// Log service worker activation
+self.addEventListener('activate', (event) => {
+  console.log('[Service Worker] Activated');
+});
+
+self.addEventListener('install', (event) => {
+  console.log('[Service Worker] Installed');
+  self.skipWaiting();
 });
