@@ -286,7 +286,7 @@ const TYPO_CORRECTIONS = {
   'chek': 'check', 'chck': 'check', 'cehck': 'check', 'cheeck': 'check',
   'se': 'see', 'seee': 'see', 'c': 'see',
   // Where/show
-  'wher': 'where', 'whre': 'where', 'were': 'where', 'wher': 'where',
+  'wher': 'where', 'whre': 'where', 'were': 'where', 'ware': 'where',
   'shwo': 'show', 'shw': 'show', 'shoow': 'show', 'sho': 'show',
   // Available
   'availble': 'available', 'avalable': 'available', 'avail': 'available', 'avlbl': 'available',
