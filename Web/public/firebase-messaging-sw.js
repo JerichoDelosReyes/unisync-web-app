@@ -49,8 +49,14 @@ self.addEventListener('notificationclick', (event) => {
   
   event.notification.close();
   
-  // Get the URL to open
-  const urlToOpen = event.notification.data?.url || '/';
+  // Get the URL to open from notification data
+  const notificationData = event.notification.data || {};
+  let urlPath = notificationData.url || '/dashboard';
+  
+  // Build the full URL
+  const urlToOpen = new URL(urlPath, self.location.origin).href;
+  
+  console.log('[Service Worker] Opening URL:', urlToOpen);
   
   // Open or focus the app
   event.waitUntil(
@@ -60,10 +66,12 @@ self.addEventListener('notificationclick', (event) => {
         for (let i = 0; i < windowClients.length; i++) {
           const client = windowClients[i];
           if (client.url.includes(self.location.origin) && 'focus' in client) {
-            return client.focus().then(client => {
-              if ('navigate' in client) {
-                return client.navigate(urlToOpen);
+            return client.focus().then(focusedClient => {
+              // Navigate to the notification URL
+              if (focusedClient && 'navigate' in focusedClient) {
+                return focusedClient.navigate(urlToOpen);
               }
+              return focusedClient;
             });
           }
         }

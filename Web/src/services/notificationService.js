@@ -185,10 +185,87 @@ export const getUserNotifications = async (userId, options = {}) => {
 };
 
 /**
+ * Show a browser push notification
+ * @param {Object} notification - Notification object
+ */
+const showBrowserPushNotification = async (notification) => {
+  try {
+    // Check if we have permission
+    if (Notification.permission !== 'granted') {
+      return;
+    }
+
+    // Check if the page is currently visible - don't show if user is actively viewing
+    if (document.visibilityState === 'visible') {
+      console.log('Page is visible, skipping browser push notification');
+      return;
+    }
+
+    // Try to use service worker for better PWA support
+    if ('serviceWorker' in navigator && navigator.serviceWorker.controller) {
+      const registration = await navigator.serviceWorker.ready;
+      await registration.showNotification(notification.title || 'UniSync Notification', {
+        body: notification.message || notification.body || '',
+        icon: '/pwa-192x192.png',
+        badge: '/pwa-192x192.png',
+        tag: notification.id, // Prevent duplicate notifications
+        data: {
+          notificationId: notification.id,
+          type: notification.type,
+          relatedId: notification.relatedId,
+          url: getNotificationUrl(notification)
+        },
+        vibrate: [200, 100, 200],
+        requireInteraction: notification.type === 'announcement_urgent'
+      });
+      console.log('Browser push notification shown via service worker:', notification.title);
+    } else {
+      // Fallback to Notification API directly
+      new Notification(notification.title || 'UniSync Notification', {
+        body: notification.message || notification.body || '',
+        icon: '/pwa-192x192.png',
+        tag: notification.id
+      });
+      console.log('Browser push notification shown via Notification API:', notification.title);
+    }
+  } catch (error) {
+    console.error('Error showing browser push notification:', error);
+  }
+};
+
+/**
+ * Get URL for notification click navigation
+ * @param {Object} notification - Notification object
+ * @returns {string} URL to navigate to
+ */
+const getNotificationUrl = (notification) => {
+  switch (notification.type) {
+    case 'announcement':
+    case 'announcement_urgent':
+    case 'new_announcement':
+      return '/announcements';
+    case 'comment':
+    case 'new_comment':
+      return `/announcements?id=${notification.relatedId}`;
+    case 'room_booking':
+    case 'room_booking_confirmed':
+      return '/rooms';
+    case 'schedule':
+      return '/schedule';
+    default:
+      return '/dashboard';
+  }
+};
+
+// Track seen notification IDs per user to detect truly new notifications
+const seenNotificationIds = new Map();
+
+/**
  * Subscribe to real-time notifications for a user
+ * Also triggers browser push notifications for new notifications when page is not visible
  * @param {string} userId - User ID
  * @param {Function} callback - Callback function called with notifications array
- * @param {Object} options - Query options (limit)
+ * @param {Object} options - Query options (limit, enablePush)
  * @returns {Function} Unsubscribe function
  */
 export const subscribeToNotifications = (userId, callback, options = {}) => {
@@ -196,6 +273,15 @@ export const subscribeToNotifications = (userId, callback, options = {}) => {
     callback([]);
     return () => {};
   }
+
+  const { enablePush = true } = options;
+  let isInitialLoad = true;
+
+  // Initialize seen IDs set for this user if not exists
+  if (!seenNotificationIds.has(userId)) {
+    seenNotificationIds.set(userId, new Set());
+  }
+  const seenIds = seenNotificationIds.get(userId);
 
   const notificationsRef = collection(db, NOTIFICATIONS_COLLECTION);
   const q = query(
@@ -216,6 +302,22 @@ export const subscribeToNotifications = (userId, callback, options = {}) => {
       const dateB = b.createdAt || new Date(0);
       return dateB - dateA;
     });
+
+    // Detect truly NEW notifications (not on initial load)
+    if (!isInitialLoad && enablePush) {
+      const newNotifications = notifications.filter(n => !seenIds.has(n.id) && !n.read);
+      
+      // Show browser push for each new notification
+      newNotifications.forEach(notification => {
+        showBrowserPushNotification(notification);
+      });
+    }
+
+    // Update seen IDs with all current notification IDs
+    notifications.forEach(n => seenIds.add(n.id));
+    
+    // Mark initial load as complete
+    isInitialLoad = false;
 
     // Apply limit if specified
     if (options.limit && notifications.length > options.limit) {
