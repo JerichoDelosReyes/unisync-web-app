@@ -20,13 +20,13 @@ export default function ProtectedRoute({
   const { user, userProfile, loading, isEmailVerified, hasMinRole, hasRole } = useAuth()
   const location = useLocation()
 
-  // Show loading state while checking auth
+  // Show simple loading spinner while checking auth
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+      <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900">
         <div className="flex flex-col items-center gap-4">
-          <div className="w-12 h-12 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
-          <p className="text-gray-600 text-sm">Loading...</p>
+          <div className="w-8 h-8 border-4 border-primary/30 border-t-primary rounded-full animate-spin"></div>
+          <p className="text-gray-600 dark:text-gray-400 text-sm">Loading...</p>
         </div>
       </div>
     )
@@ -42,13 +42,13 @@ export default function ProtectedRoute({
     return <Navigate to="/auth" state={{ from: location, message: 'Please verify your email first.' }} replace />
   }
 
-  // No user profile yet - might still be loading or registration incomplete
+  // No user profile yet - show simple loading
   if (!userProfile) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <div className="text-center">
-          <h2 className="text-xl font-semibold text-gray-900 mb-2">Setting up your account...</h2>
-          <p className="text-gray-600">Please wait while we load your profile.</p>
+      <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900">
+        <div className="flex flex-col items-center gap-4">
+          <div className="w-8 h-8 border-4 border-primary/30 border-t-primary rounded-full animate-spin"></div>
+          <p className="text-gray-600 dark:text-gray-400 text-sm">Loading...</p>
         </div>
       </div>
     )

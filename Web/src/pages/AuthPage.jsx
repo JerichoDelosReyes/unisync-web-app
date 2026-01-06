@@ -311,27 +311,25 @@ export default function AuthPage() {
     }
   }
 
-  // Show loading while checking auth state
+  // Show simple loading spinner while checking auth state
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-emerald-700 via-emerald-800 to-emerald-900">
+      <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900">
         <div className="flex flex-col items-center gap-4">
-          <img src={logo} alt="CvSU Logo" className="w-20 h-20 rounded-xl bg-white p-2" />
-          <div className="w-8 h-8 border-3 border-white border-t-transparent rounded-full animate-spin"></div>
-          <p className="text-white/80 text-sm">Loading...</p>
+          <div className="w-8 h-8 border-4 border-primary/30 border-t-primary rounded-full animate-spin"></div>
+          <p className="text-gray-600 dark:text-gray-400 text-sm">Loading...</p>
         </div>
       </div>
     )
   }
 
-  // If user is logged in, don't render login form (redirect will happen in useEffect)
+  // If user is logged in, show simple spinner (redirect will happen in useEffect)
   if (user && isEmailVerified && userProfile) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-emerald-700 via-emerald-800 to-emerald-900">
+      <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900">
         <div className="flex flex-col items-center gap-4">
-          <img src={logo} alt="CvSU Logo" className="w-20 h-20 rounded-xl bg-white p-2" />
-          <div className="w-8 h-8 border-3 border-white border-t-transparent rounded-full animate-spin"></div>
-          <p className="text-white/80 text-sm">Redirecting to dashboard...</p>
+          <div className="w-8 h-8 border-4 border-primary/30 border-t-primary rounded-full animate-spin"></div>
+          <p className="text-gray-600 dark:text-gray-400 text-sm">Loading...</p>
         </div>
       </div>
     )

@@ -351,7 +351,7 @@ export default function Dashboard() {
           <div 
             key={index} 
             onClick={() => navigate(stat.link)}
-            className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-5 hover:shadow-md hover:border-primary/50 dark:hover:border-primary/50 transition-all cursor-pointer"
+            className="bg-white dark:bg-gray-800 rounded-xl border-2 border-gray-200 dark:border-gray-700 p-5 hover:shadow-lg hover:border-primary dark:hover:border-primary transition-all cursor-pointer"
           >
             <div className="flex items-center justify-between">
               <div>
