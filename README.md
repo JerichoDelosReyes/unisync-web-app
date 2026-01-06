@@ -11,7 +11,7 @@
   
   **Unified Campus Management System for CvSU Imus Campus**
   
-  [Live Demo](https://unisync-web-app-ac1fd.web.app) · [Report Bug](https://github.com/JerichoDelosReyes/unisync-web-app/issues) · [Request Feature](https://github.com/JerichoDelosReyes/unisync-web-app/issues)
+  [Live Demo](https://unisync-imus.web.app) · [Report Bug](https://github.com/JerichoDelosReyes/unisync-web-app/issues) · [Request Feature](https://github.com/JerichoDelosReyes/unisync-web-app/issues)
 </div>
 
 ---
