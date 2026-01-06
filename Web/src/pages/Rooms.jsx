@@ -17,6 +17,13 @@ import { doc, setDoc, onSnapshot, collection, getDocs, deleteDoc, addDoc, update
 import { db } from '../config/firebase'
 import { useAuth } from '../contexts/AuthContext'
 import { isRoomCurrentlyVacant } from '../services/roomService'
+import { 
+  getPendingRoomRequests, 
+  approveRoomRequest, 
+  rejectRoomRequest,
+  ROOM_REQUEST_STATUS 
+} from '../services/roomRequestService'
+import QuickRoomFinder, { QuickBookButton } from '../components/ui/QuickRoomFinder'
 
 // Days of the week
 const DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']
@@ -102,6 +109,14 @@ export default function Rooms() {
   const [editingRoom, setEditingRoom] = useState(null) // Room document being edited
   const [roomForm, setRoomForm] = useState({ name: '', building: 'old', floor: '' })
   const [saving, setSaving] = useState(false)
+  
+  // Room request states
+  const [roomRequests, setRoomRequests] = useState([])
+  const [showRoomRequests, setShowRoomRequests] = useState(false)
+  const [processingRequest, setProcessingRequest] = useState(null)
+  
+  // Quick Room Finder state
+  const [showQuickFinder, setShowQuickFinder] = useState(false)
 
   // Check permissions
   const canToggle = userProfile?.role && ['class_rep', 'faculty', 'admin', 'super_admin'].includes(userProfile.role)
@@ -247,6 +262,22 @@ export default function Rooms() {
 
     return () => unsubscribe()
   }, [userProfile, canManageRooms])
+
+  // Load room requests for admins
+  useEffect(() => {
+    if (!canManageRooms) return
+    
+    const loadRoomRequests = async () => {
+      try {
+        const requests = await getPendingRoomRequests()
+        setRoomRequests(requests)
+      } catch (error) {
+        console.error('Error loading room requests:', error)
+      }
+    }
+    
+    loadRoomRequests()
+  }, [canManageRooms])
 
   // Subscribe to schedules for real-time updates when students upload reg forms
   useEffect(() => {
@@ -508,6 +539,51 @@ export default function Rooms() {
     }
   }
 
+  // Approve room request
+  const handleApproveRequest = async (request) => {
+    if (!canManageRooms) return
+    setProcessingRequest(request.id)
+    
+    try {
+      await approveRoomRequest(request.id, {
+        building: request.suggestedBuilding || 'old',
+        floor: request.suggestedFloor || 'General'
+      }, userProfile?.uid)
+      
+      // Refresh requests
+      const requests = await getPendingRoomRequests()
+      setRoomRequests(requests)
+    } catch (error) {
+      console.error('Error approving room request:', error)
+      alert('Error approving request')
+    } finally {
+      setProcessingRequest(null)
+    }
+  }
+
+  // Reject room request
+  const handleRejectRequest = async (request) => {
+    if (!canManageRooms) return
+    
+    const reason = prompt('Enter rejection reason (optional):')
+    if (reason === null) return // User cancelled
+    
+    setProcessingRequest(request.id)
+    
+    try {
+      await rejectRoomRequest(request.id, reason || 'Not approved', userProfile?.uid)
+      
+      // Refresh requests
+      const requests = await getPendingRoomRequests()
+      setRoomRequests(requests)
+    } catch (error) {
+      console.error('Error rejecting room request:', error)
+      alert('Error rejecting request')
+    } finally {
+      setProcessingRequest(null)
+    }
+  }
+
   // Open edit modal
   const openEditRoom = (room) => {
     setEditingRoom(room)
@@ -576,6 +652,28 @@ export default function Rooms() {
                 <span className="hidden sm:inline">Add Room</span>
                 <span className="sm:hidden">Add</span>
               </button>
+            )}
+            
+            {/* Room Requests Button (Admin only) */}
+            {canManageRooms && roomRequests.length > 0 && (
+              <button
+                onClick={() => setShowRoomRequests(true)}
+                className="flex items-center gap-2 px-3 sm:px-4 py-2 bg-amber-500 text-white rounded-lg hover:bg-amber-600 transition-colors font-medium text-sm relative"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+                </svg>
+                <span className="hidden sm:inline">Room Requests</span>
+                <span className="sm:hidden">Requests</span>
+                <span className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 text-white text-xs rounded-full flex items-center justify-center">
+                  {roomRequests.length}
+                </span>
+              </button>
+            )}
+            
+            {/* Quick Room Finder Button (Faculty and above) */}
+            {canToggle && (
+              <QuickBookButton onClick={() => setShowQuickFinder(true)} />
             )}
           </div>
           
@@ -1104,6 +1202,104 @@ export default function Rooms() {
           </div>
         </div>
       )}
+
+      {/* Room Requests Modal */}
+      {showRoomRequests && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xl w-full max-w-lg max-h-[80vh] overflow-hidden">
+            <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center">
+              <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
+                Room Requests ({roomRequests.length})
+              </h2>
+              <button
+                onClick={() => setShowRoomRequests(false)}
+                className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+              >
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+            
+            <div className="p-4 overflow-y-auto max-h-[60vh] space-y-3">
+              {roomRequests.length === 0 ? (
+                <p className="text-gray-500 dark:text-gray-400 text-center py-8">
+                  No pending room requests
+                </p>
+              ) : (
+                roomRequests.map((request) => (
+                  <div 
+                    key={request.id} 
+                    className="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-4 border border-gray-200 dark:border-gray-600"
+                  >
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="flex-1 min-w-0">
+                        <h3 className="font-semibold text-gray-900 dark:text-white text-lg">
+                          {request.roomName}
+                        </h3>
+                        <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                          Requested by: {request.requestedByName || request.requestedByEmail}
+                        </p>
+                        {request.suggestedBuilding && (
+                          <p className="text-sm text-gray-500 dark:text-gray-400">
+                            Suggested: {BUILDING_OPTIONS[request.suggestedBuilding]?.name || request.suggestedBuilding}
+                            {request.suggestedFloor && ` - ${request.suggestedFloor}`}
+                          </p>
+                        )}
+                        <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">
+                          {request.createdAt?.toLocaleDateString?.() || 'Recently'}
+                        </p>
+                      </div>
+                      
+                      <div className="flex gap-2 flex-shrink-0">
+                        <button
+                          onClick={() => handleApproveRequest(request)}
+                          disabled={processingRequest === request.id}
+                          className="p-2 bg-emerald-500 text-white rounded-lg hover:bg-emerald-600 transition-colors disabled:opacity-50"
+                          title="Approve & Create Room"
+                        >
+                          {processingRequest === request.id ? (
+                            <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                          ) : (
+                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                            </svg>
+                          )}
+                        </button>
+                        <button
+                          onClick={() => handleRejectRequest(request)}
+                          disabled={processingRequest === request.id}
+                          className="p-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors disabled:opacity-50"
+                          title="Reject Request"
+                        >
+                          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                          </svg>
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+            
+            <div className="bg-gray-50 dark:bg-gray-900 px-6 py-4 border-t border-gray-200 dark:border-gray-700">
+              <button
+                onClick={() => setShowRoomRequests(false)}
+                className="w-full px-4 py-2 bg-gray-200 hover:bg-gray-300 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300 font-medium rounded-lg transition-colors"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+      
+      {/* Quick Room Finder Modal */}
+      <QuickRoomFinder 
+        isOpen={showQuickFinder} 
+        onClose={() => setShowQuickFinder(false)} 
+      />
     </div>
   )
 }

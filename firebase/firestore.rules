@@ -425,6 +425,64 @@ service cloud.firestore {
     }
     
     // ==========================================
+    // ROOM REQUESTS
+    // ==========================================
+    // When students upload reg forms with rooms not in the system,
+    // a request is created for admins to add the room
+    match /room_requests/{requestId} {
+      // Admins can read all requests
+      allow read: if isAuthenticated() && isAdminOrAbove();
+      
+      // Authenticated users can create room requests
+      allow create: if isAuthenticated()
+        && request.resource.data.requestedBy == request.auth.uid
+        && request.resource.data.status == 'pending'
+        && isReasonableSize();
+      
+      // Only admins can approve/reject requests
+      allow update: if isAuthenticated()
+        && isAdminOrAbove()
+        && isReasonableSize();
+      
+      // Admins can delete requests
+      allow delete: if isAuthenticated() && isAdminOrAbove();
+    }
+    
+    // Allow admins to list all room requests
+    match /room_requests/{document=**} {
+      allow list: if isAuthenticated() && isAdminOrAbove();
+    }
+    
+    // ==========================================
+    // ROOM BOOKINGS (Quick Room Finder)
+    // ==========================================
+    // Faculty and above can request room bookings
+    // Admins approve/reject booking requests
+    match /room_bookings/{bookingId} {
+      // Everyone can read bookings (to see room availability)
+      allow read: if isAuthenticated();
+      
+      // Faculty and above can create booking requests
+      allow create: if isAuthenticated()
+        && isClassRepOrAbove()
+        && request.resource.data.requestedBy == request.auth.uid
+        && request.resource.data.status == 'pending'
+        && isReasonableSize();
+      
+      // Admins can update (approve/reject)
+      // Users can only update their own pending bookings
+      allow update: if isAuthenticated()
+        && (isAdminOrAbove() || 
+            (resource.data.requestedBy == request.auth.uid && resource.data.status == 'pending'))
+        && isReasonableSize();
+      
+      // Admins can delete, or users can delete their own pending bookings
+      allow delete: if isAuthenticated()
+        && (isAdminOrAbove() || 
+            (resource.data.requestedBy == request.auth.uid && resource.data.status == 'pending'));
+    }
+
+    // ==========================================
     // CLASS SECTIONS (Schedule Code Matchmaking)
     // ==========================================
     // This collection links Schedule Codes to Professors

@@ -936,6 +936,7 @@ export const addComment = async (announcementId, content, author, parentId = nul
 
 /**
  * Get comments for an announcement
+ * Fetches latest user profile data to ensure profile pictures are current
  * @param {string} announcementId - Announcement ID
  * @param {boolean} includeAll - Include pending/rejected (for admins)
  */
@@ -953,14 +954,43 @@ export const getComments = async (announcementId, includeAll = false) => {
     const snapshot = await getDocs(q)
     const comments = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }))
     
+    // Fetch latest user profiles to get current profile pictures
+    const uniqueAuthorIds = [...new Set(comments.map(c => c.authorId).filter(Boolean))]
+    const userProfiles = {}
+    
+    // Batch fetch user profiles
+    for (const authorId of uniqueAuthorIds) {
+      try {
+        const userDoc = await getDoc(doc(db, 'users', authorId))
+        if (userDoc.exists()) {
+          userProfiles[authorId] = userDoc.data()
+        }
+      } catch (err) {
+        console.warn(`Could not fetch profile for user ${authorId}:`, err)
+      }
+    }
+    
+    // Update comments with latest profile data
+    const commentsWithCurrentProfiles = comments.map(comment => {
+      const profile = userProfiles[comment.authorId]
+      if (profile) {
+        return {
+          ...comment,
+          authorPhotoURL: profile.photoURL || null,
+          authorName: profile.displayName || `${profile.givenName || ''} ${profile.lastName || ''}`.trim() || comment.authorName
+        }
+      }
+      return comment
+    })
+    
     // Sort by date client-side
-    comments.sort((a, b) => {
+    commentsWithCurrentProfiles.sort((a, b) => {
       const dateA = a.createdAt?.toDate?.() || new Date(0)
       const dateB = b.createdAt?.toDate?.() || new Date(0)
       return dateA - dateB
     })
     
-    return comments
+    return commentsWithCurrentProfiles
   } catch (error) {
     console.error('Error getting comments:', error)
     throw error

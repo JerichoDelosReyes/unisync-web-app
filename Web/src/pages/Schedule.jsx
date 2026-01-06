@@ -15,6 +15,7 @@ import {
 } from '../services/classSectionService'
 import { getSemesterSettings } from '../services/systemSettingsService'
 import { updateRoomStatus, subscribeToRooms, isScheduleSlotVacant, isRoomCurrentlyVacant, addRoomOccupancy, removeUserOccupancies } from '../services/roomService'
+import { findMissingRooms, submitRoomRequest } from '../services/roomRequestService'
 import FacultyScheduleView from '../components/schedule/FacultyScheduleView'
 import ModalOverlay from '../components/ui/ModalOverlay'
 
@@ -1946,6 +1947,38 @@ function StudentScheduleView() {
           )
         
         await Promise.all(roomOccupancyPromises)
+        
+        // Check for rooms that don't exist in the system and create requests for admin
+        try {
+          const roomsFromSchedule = extractedSchedule
+            .filter(entry => entry.room && entry.room !== 'TBA' && entry.room !== 'N/A')
+            .map(entry => entry.room)
+          
+          const missingRooms = await findMissingRooms(roomsFromSchedule)
+          
+          if (missingRooms.length > 0) {
+            console.log('Missing rooms detected:', missingRooms)
+            
+            // Create room requests for each missing room
+            const roomRequestPromises = missingRooms.map(roomName =>
+              submitRoomRequest({
+                roomName,
+                userId: user.uid,
+                userName: userProfile?.displayName || extractedStudentInfo.studentName || 'Unknown',
+                userEmail: user.email,
+                source: 'reg_form'
+              }).catch(err => {
+                console.error(`Error creating room request for ${roomName}:`, err)
+              })
+            )
+            
+            await Promise.all(roomRequestPromises)
+            console.log(`Created ${missingRooms.length} room request(s)`)
+          }
+        } catch (roomRequestError) {
+          console.error('Error checking/creating room requests:', roomRequestError)
+          // Don't fail the upload if room request creation fails
+        }
         
         // Also keep localStorage as backup
         localStorage.setItem('studentSchedule', JSON.stringify(extractedSchedule))
