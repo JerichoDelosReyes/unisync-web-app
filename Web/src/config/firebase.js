@@ -24,8 +24,10 @@ import {
   browserLocalPersistence 
 } from "firebase/auth";
 import { 
-  getFirestore, 
-  enableIndexedDbPersistence 
+  getFirestore,
+  initializeFirestore,
+  persistentLocalCache,
+  persistentMultipleTabManager
 } from "firebase/firestore";
 import { getStorage } from "firebase/storage";
 import { getMessaging, getToken, onMessage } from "firebase/messaging";
@@ -78,19 +80,19 @@ setPersistence(auth, browserLocalPersistence).catch((error) => {
 // ============================================
 // FIRESTORE - Database with offline support
 // ============================================
-const db = getFirestore(app);
-
-// Enable offline persistence for better UX
-// Data is encrypted at rest by IndexedDB
-enableIndexedDbPersistence(db).catch((err) => {
-  if (err.code === 'failed-precondition') {
-    // Multiple tabs open, persistence can only be enabled in one tab at a time
-    console.warn('Firestore persistence unavailable - multiple tabs open');
-  } else if (err.code === 'unimplemented') {
-    // Browser doesn't support persistence
-    console.warn('Firestore persistence not supported in this browser');
-  }
-});
+let db;
+try {
+  // Use new persistence API (replaces deprecated enableIndexedDbPersistence)
+  db = initializeFirestore(app, {
+    localCache: persistentLocalCache({
+      tabManager: persistentMultipleTabManager()
+    })
+  });
+} catch (err) {
+  // Firestore already initialized (e.g., hot reload)
+  db = getFirestore(app);
+  console.warn('Firestore already initialized');
+}
 
 // ============================================
 // FIREBASE STORAGE - File uploads

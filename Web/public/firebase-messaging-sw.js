@@ -31,12 +31,13 @@ messaging.onBackgroundMessage((payload) => {
   const notificationTitle = payload.notification?.title || 'UNISYNC Notification';
   const notificationOptions = {
     body: payload.notification?.body || '',
-    icon: '/icon-192x192.png',
-    badge: '/icon-192x192.png',
+    icon: '/pwa-192x192.png',
+    badge: '/pwa-192x192.png',
     tag: payload.data?.type || 'general',
     data: payload.data,
     requireInteraction: true,
     vibrate: [200, 100, 200],
+    silent: false
   };
 
   return self.registration.showNotification(notificationTitle, notificationOptions);

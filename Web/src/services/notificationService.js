@@ -827,19 +827,32 @@ export const saveFCMToken = async (userId, token) => {
 export const setupForegroundMessageListener = (callback) => {
   if (!messaging) return () => {};
 
-  const unsubscribe = onMessage(messaging, (payload) => {
+  const unsubscribe = onMessage(messaging, async (payload) => {
     console.log('Message received in foreground:', payload);
     
     // Show notification even when app is in foreground
+    // Use service worker notification for Safari compatibility
     if (Notification.permission === 'granted') {
-      new Notification(payload.notification?.title || 'UNISYNC', {
-        body: payload.notification?.body || '',
-        icon: '/icon-192x192.png',
-        badge: '/icon-192x192.png',
-        tag: payload.data?.type || 'general',
-        data: payload.data,
-        requireInteraction: false
-      });
+      try {
+        const registration = await navigator.serviceWorker.ready;
+        await registration.showNotification(payload.notification?.title || 'UNISYNC', {
+          body: payload.notification?.body || '',
+          icon: '/pwa-192x192.png',
+          badge: '/pwa-192x192.png',
+          tag: payload.data?.type || 'general',
+          data: payload.data,
+          requireInteraction: false,
+          silent: false
+        });
+      } catch (err) {
+        // Fallback to native Notification API
+        console.log('Using fallback notification:', err);
+        new Notification(payload.notification?.title || 'UNISYNC', {
+          body: payload.notification?.body || '',
+          icon: '/pwa-192x192.png',
+          tag: payload.data?.type || 'general'
+        });
+      }
     }
     
     // Call custom callback
