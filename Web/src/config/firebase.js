@@ -28,6 +28,7 @@ import {
   enableIndexedDbPersistence 
 } from "firebase/firestore";
 import { getStorage } from "firebase/storage";
+import { getMessaging, getToken, onMessage } from "firebase/messaging";
 import { initializeAppCheck, ReCaptchaV3Provider } from "firebase/app-check";
 
 // Firebase configuration using environment variables (recommended)
@@ -177,4 +178,14 @@ export const getAuthToken = async () => {
   }
 };
 
-export { app, analytics, auth, db, storage };
+// Initialize Firebase Cloud Messaging
+let messaging = null;
+try {
+  if (typeof window !== 'undefined' && 'serviceWorker' in navigator) {
+    messaging = getMessaging(app);
+  }
+} catch (error) {
+  console.log('Firebase Messaging not supported:', error);
+}
+
+export { app, analytics, auth, db, storage, messaging };

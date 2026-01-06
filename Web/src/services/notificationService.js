@@ -4,7 +4,7 @@
  * Manages user notifications for schedule validation and other events.
  */
 
-import { db } from '../config/firebase';
+import { db, messaging } from '../config/firebase';
 import {
   collection,
   doc,
@@ -20,6 +20,7 @@ import {
   serverTimestamp,
   onSnapshot
 } from 'firebase/firestore';
+import { getToken, onMessage } from 'firebase/messaging';
 import { NOTIFICATION_TYPES } from '../constants/scheduleConfig';
 
 const NOTIFICATIONS_COLLECTION = 'notifications';
@@ -608,3 +609,208 @@ export default {
   // Welcome notification
   notifyWelcome
 };
+
+// ============================================
+// PUSH NOTIFICATIONS (PWA)
+// ============================================
+
+// VAPID key - Get this from Firebase Console > Project Settings > Cloud Messaging
+const VAPID_KEY = 'BBd3_uI8pU3s44K3aUxVsCEk-tQU72tWhWNCVHYrtzOYmFOup8sJ4KKDv3FT-7QDA1LvhxxUEeQMMX09zMCpwkM';
+
+/**
+ * Request notification permission from user
+ * @returns {Promise<string>} Permission status
+ */
+export const requestPushNotificationPermission = async () => {
+  try {
+    if (!('Notification' in window)) {
+      console.log('This browser does not support notifications');
+      return 'unsupported';
+    }
+
+    if (!messaging) {
+      console.log('Firebase Messaging not initialized');
+      return 'unavailable';
+    }
+
+    const permission = await Notification.requestPermission();
+    console.log('Notification permission:', permission);
+    
+    return permission;
+  } catch (error) {
+    console.error('Error requesting notification permission:', error);
+    throw error;
+  }
+};
+
+/**
+ * Get FCM token for the current device
+ * @param {string} userId - User's UID
+ * @returns {Promise<string|null>} FCM token or null
+ */
+export const getFCMToken = async (userId) => {
+  try {
+    if (!messaging) {
+      console.log('Messaging not supported');
+      return null;
+    }
+
+    // Register service worker
+    if ('serviceWorker' in navigator) {
+      const registration = await navigator.serviceWorker.register('/firebase-messaging-sw.js');
+      console.log('Service Worker registered:', registration);
+
+      // Get FCM token
+      const token = await getToken(messaging, {
+        vapidKey: VAPID_KEY,
+        serviceWorkerRegistration: registration
+      });
+
+      if (token) {
+        console.log('FCM Token obtained');
+        
+        // Save token to user profile
+        await saveFCMToken(userId, token);
+        
+        return token;
+      } else {
+        console.log('No registration token available');
+        return null;
+      }
+    }
+    
+    return null;
+  } catch (error) {
+    console.error('Error getting FCM token:', error);
+    return null;
+  }
+};
+
+/**
+ * Save FCM token to user's Firestore document
+ * @param {string} userId - User's UID
+ * @param {string} token - FCM token
+ */
+export const saveFCMToken = async (userId, token) => {
+  try {
+    const userRef = doc(db, 'users', userId);
+    const userDoc = await getDoc(userRef);
+    
+    if (!userDoc.exists()) {
+      console.error('User document not found');
+      return;
+    }
+    
+    const deviceId = `web_${Date.now()}`;
+    const existingTokens = userDoc.data().fcmTokens || {};
+    
+    await updateDoc(userRef, {
+      [`fcmTokens.${deviceId}`]: {
+        token: token,
+        lastUpdated: new Date().toISOString(),
+        platform: 'web',
+        userAgent: navigator.userAgent.substring(0, 200)
+      },
+      notificationsEnabled: true,
+      lastTokenUpdate: new Date().toISOString()
+    });
+    
+    console.log('FCM token saved to Firestore');
+  } catch (error) {
+    console.error('Error saving FCM token:', error);
+    throw error;
+  }
+};
+
+/**
+ * Setup foreground message listener
+ * @param {Function} callback - Callback function to handle message
+ * @returns {Function} Unsubscribe function
+ */
+export const setupForegroundMessageListener = (callback) => {
+  if (!messaging) return () => {};
+
+  const unsubscribe = onMessage(messaging, (payload) => {
+    console.log('Message received in foreground:', payload);
+    
+    // Show notification even when app is in foreground
+    if (Notification.permission === 'granted') {
+      new Notification(payload.notification?.title || 'UNISYNC', {
+        body: payload.notification?.body || '',
+        icon: '/icon-192x192.png',
+        badge: '/icon-192x192.png',
+        tag: payload.data?.type || 'general',
+        data: payload.data,
+        requireInteraction: false
+      });
+    }
+    
+    // Call custom callback
+    if (callback) callback(payload);
+  });
+
+  return unsubscribe;
+};
+
+/**
+ * Update user's notification preferences
+ * @param {string} userId - User's UID
+ * @param {object} preferences - Notification preferences
+ */
+export const updatePushNotificationPreferences = async (userId, preferences) => {
+  try {
+    const userRef = doc(db, 'users', userId);
+    
+    await updateDoc(userRef, {
+      notificationPreferences: {
+        announcements: preferences.announcements ?? true,
+        roomBookings: preferences.roomBookings ?? true,
+        facultyRequests: preferences.facultyRequests ?? true,
+        scheduleUpdates: preferences.scheduleUpdates ?? true,
+        systemAlerts: preferences.systemAlerts ?? true,
+        comments: preferences.comments ?? true,
+        reactions: preferences.reactions ?? true,
+        ...preferences
+      },
+      lastPreferencesUpdate: new Date().toISOString()
+    });
+    
+    console.log('Notification preferences updated');
+  } catch (error) {
+    console.error('Error updating notification preferences:', error);
+    throw error;
+  }
+};
+
+/**
+ * Check if notifications are supported and enabled
+ * @returns {object} Notification status
+ */
+export const getPushNotificationStatus = () => {
+  const isSupported = 'Notification' in window && 'serviceWorker' in navigator;
+  const permission = isSupported ? Notification.permission : 'unsupported';
+  const isEnabled = permission === 'granted';
+  const canRequest = permission === 'default';
+  
+  return {
+    isSupported,
+    permission,
+    isEnabled,
+    canRequest,
+    hasMessaging: !!messaging
+  };
+};
+
+/**
+ * Send a test notification
+ */
+export const sendTestPushNotification = () => {
+  if (Notification.permission === 'granted') {
+    new Notification('Test Notification', {
+      body: 'This is a test notification from UNISYNC',
+      icon: '/icon-192x192.png',
+      badge: '/icon-192x192.png'
+    });
+  }
+};
+

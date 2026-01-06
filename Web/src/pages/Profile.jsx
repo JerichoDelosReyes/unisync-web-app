@@ -9,6 +9,7 @@ import {
   ExclamationTriangleIcon,
   UserIcon
 } from '@heroicons/react/24/outline'
+import PushNotificationSettings from '../components/ui/PushNotificationSettings'
 
 const ROLE_DISPLAY_NAMES = {
   super_admin: 'Super Admin',
@@ -754,6 +755,11 @@ export default function Profile() {
             </div>
           )}
         </form>
+      </div>
+
+      {/* Notification Settings Section */}
+      <div className="mt-6">
+        <PushNotificationSettings />
       </div>
     </div>
   )

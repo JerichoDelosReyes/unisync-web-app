@@ -17,6 +17,7 @@ import {
   getAllSchedules 
 } from '../services/scheduleService'
 import { createLog, LOG_CATEGORIES, LOG_ACTIONS } from '../services/logService'
+import PushNotificationSettings from '../components/ui/PushNotificationSettings'
 
 export default function SystemSettings() {
   const { user, userProfile } = useAuth()
@@ -194,6 +195,9 @@ export default function SystemSettings() {
           </div>
         </div>
       </div>
+
+      {/* Push Notification Settings */}
+      <PushNotificationSettings />
 
       {/* Semester Management Section */}
       <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-6">
