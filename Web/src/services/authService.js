@@ -8,8 +8,7 @@ import {
   onAuthStateChanged,
   updateProfile,
   setPersistence,
-  browserLocalPersistence,
-  browserSessionPersistence
+  browserLocalPersistence
 } from 'firebase/auth';
 import {
   doc,
@@ -413,13 +412,13 @@ export const completeRegistration = async (userData) => {
  * Sign in user with Firebase
  * - Validates credentials
  * - Checks email is verified
- * - Sets persistence based on "Remember Me" option
+ * - Always uses LOCAL persistence to keep user signed in across browser sessions
+ * - User must explicitly sign out to log out
  * - Tracks failed login attempts and enforces cooldown
  * @param {string} email - User email
  * @param {string} password - User password
- * @param {boolean} rememberMe - If true, persist session across browser closes
  */
-export const loginUser = async (email, password, rememberMe = false) => {
+export const loginUser = async (email, password) => {
   try {
     // Check if user is locked out
     const lockoutStatus = checkLoginLockout(email);
@@ -432,10 +431,9 @@ export const loginUser = async (email, password, rememberMe = false) => {
       };
     }
 
-    // Set persistence based on Remember Me option
-    // LOCAL = persists even after browser is closed
-    // SESSION = cleared when browser tab is closed
-    await setPersistence(auth, rememberMe ? browserLocalPersistence : browserSessionPersistence);
+    // Always use LOCAL persistence - user stays signed in even after browser close/refresh
+    // User must explicitly sign out to log out
+    await setPersistence(auth, browserLocalPersistence);
 
     // Sign in with Firebase Auth
     const userCredential = await signInWithEmailAndPassword(auth, email, password);

@@ -271,19 +271,19 @@ export default function Dashboard() {
     )
   }
 
-  // Dynamic stats based on real data
+  // Dynamic stats based on real data with navigation links
   const studentStats = [
-    { label: 'Total Announcements', value: announcements.length.toString(), icon: StatIcons.announcement, color: 'bg-blue-50 text-blue-600' },
-    { label: 'Today\'s Posts', value: todayAnnouncements.length.toString(), icon: StatIcons.calendar, color: 'bg-green-50 text-green-600' },
-    { label: 'My Organizations', value: userOrgsCount.toString(), icon: StatIcons.users, color: 'bg-purple-50 text-purple-600' },
-    { label: 'Important', value: urgentAnnouncements.length.toString(), icon: StatIcons.bolt, color: 'bg-orange-50 text-orange-600' }
+    { label: 'Total Announcements', value: announcements.length.toString(), icon: StatIcons.announcement, color: 'bg-blue-50 text-blue-600', link: '/announcements' },
+    { label: 'Today\'s Posts', value: todayAnnouncements.length.toString(), icon: StatIcons.calendar, color: 'bg-green-50 text-green-600', link: '/announcements' },
+    { label: 'My Organizations', value: userOrgsCount.toString(), icon: StatIcons.users, color: 'bg-purple-50 text-purple-600', link: '/organizations' },
+    { label: 'Important', value: urgentAnnouncements.length.toString(), icon: StatIcons.bolt, color: 'bg-orange-50 text-orange-600', link: '/announcements' }
   ]
 
   const adminStats = [
-    { label: 'Pending Moderation', value: pendingCount.toString(), icon: StatIcons.warning, color: 'bg-yellow-50 text-yellow-600' },
-    { label: 'Total Announcements', value: announcements.length.toString(), icon: StatIcons.announcement, color: 'bg-blue-50 text-blue-600' },
-    { label: 'Today\'s Posts', value: todayAnnouncements.length.toString(), icon: StatIcons.calendar, color: 'bg-green-50 text-green-600' },
-    { label: 'Urgent/High Priority', value: urgentAnnouncements.length.toString(), icon: StatIcons.priority, color: 'bg-red-50 text-red-600' }
+    { label: 'Pending Moderation', value: pendingCount.toString(), icon: StatIcons.warning, color: 'bg-yellow-50 text-yellow-600', link: '/moderation' },
+    { label: 'Total Announcements', value: announcements.length.toString(), icon: StatIcons.announcement, color: 'bg-blue-50 text-blue-600', link: '/announcements' },
+    { label: 'Today\'s Posts', value: todayAnnouncements.length.toString(), icon: StatIcons.calendar, color: 'bg-green-50 text-green-600', link: '/announcements' },
+    { label: 'Urgent/High Priority', value: urgentAnnouncements.length.toString(), icon: StatIcons.priority, color: 'bg-red-50 text-red-600', link: '/announcements' }
   ]
 
   const stats = hasMinRole(ROLES.ADMIN) ? adminStats : studentStats
@@ -345,10 +345,14 @@ export default function Dashboard() {
         )}
       </div>
 
-      {/* Stats Cards */}
+      {/* Stats Cards - Clickable */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {stats.map((stat, index) => (
-          <div key={index} className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-5 hover:shadow-md transition-shadow">
+          <div 
+            key={index} 
+            onClick={() => navigate(stat.link)}
+            className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-5 hover:shadow-md hover:border-primary/50 dark:hover:border-primary/50 transition-all cursor-pointer"
+          >
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-gray-500 dark:text-gray-400">{stat.label}</p>

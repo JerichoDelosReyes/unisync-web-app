@@ -23,6 +23,7 @@ import {
   getReactionCounts,
   addComment,
   getComments,
+  deleteComment,
   ANNOUNCEMENT_STATUS,
   PRIORITY_LEVELS
 } from '../services/announcementService'
@@ -113,6 +114,11 @@ export default function Announcements() {
   const [commentText, setCommentText] = useState('')
   const [submittingComment, setSubmittingComment] = useState(false)
   const [replyingTo, setReplyingTo] = useState(null) // { id, authorName } of comment being replied to
+  const [deleteCommentConfirm, setDeleteCommentConfirm] = useState({ open: false, comment: null })
+  const [deletingComment, setDeletingComment] = useState(false)
+  
+  // Date filter state
+  const [dateFilter, setDateFilter] = useState('all') // 'all', 'today', 'week', 'month'
   
   // Create form state
   const [formData, setFormData] = useState({
@@ -925,6 +931,62 @@ export default function Announcements() {
     }
   }
 
+  // Handle deleting a comment
+  const handleDeleteComment = async () => {
+    if (!deleteCommentConfirm.comment || !selectedAnnouncement) return
+    
+    try {
+      setDeletingComment(true)
+      await deleteComment(selectedAnnouncement.id, deleteCommentConfirm.comment.id)
+      
+      // Remove comment and its replies from state
+      setComments(prev => prev.filter(c => 
+        c.id !== deleteCommentConfirm.comment.id && c.parentId !== deleteCommentConfirm.comment.id
+      ))
+      
+      showToast('Comment deleted successfully', 'success')
+      setDeleteCommentConfirm({ open: false, comment: null })
+    } catch (err) {
+      console.error('Error deleting comment:', err)
+      showToast('Failed to delete comment', 'error')
+    } finally {
+      setDeletingComment(false)
+    }
+  }
+
+  // Check if user can delete a comment (author or admin)
+  const canDeleteComment = (comment) => {
+    if (!user || !comment) return false
+    return comment.authorId === user.uid || canModerate
+  }
+
+  // Filter announcements by date
+  const filterByDate = (announcements) => {
+    if (dateFilter === 'all') return announcements
+    
+    const now = new Date()
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate())
+    
+    return announcements.filter(a => {
+      const createdAt = a.createdAt?.toDate?.() || (a.createdAt?.seconds ? new Date(a.createdAt.seconds * 1000) : new Date(0))
+      
+      switch (dateFilter) {
+        case 'today':
+          return createdAt >= today
+        case 'week':
+          const weekAgo = new Date(today)
+          weekAgo.setDate(weekAgo.getDate() - 7)
+          return createdAt >= weekAgo
+        case 'month':
+          const monthAgo = new Date(today)
+          monthAgo.setMonth(monthAgo.getMonth() - 1)
+          return createdAt >= monthAgo
+        default:
+          return true
+      }
+    })
+  }
+
   // Handle toggling a reaction
   const handleToggleReaction = async (announcementId, reactionType) => {
     try {
@@ -1186,34 +1248,59 @@ export default function Announcements() {
         ))}
       </div>
 
-      {/* Search Bar */}
-      <div className="max-w-2xl mx-auto w-full">
-        <div className="relative">
-          <svg 
-            className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" 
-            fill="none" 
-            stroke="currentColor" 
-            viewBox="0 0 24 24"
-          >
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-          </svg>
-          <input
-            type="text"
-            placeholder="Search announcements..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full pl-10 pr-4 py-2.5 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-xl text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all"
-          />
-          {searchQuery && (
-            <button
-              onClick={() => setSearchQuery('')}
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+      {/* Search Bar and Date Filter */}
+      <div className="max-w-3xl mx-auto w-full">
+        <div className="flex flex-col sm:flex-row gap-3">
+          {/* Search Input */}
+          <div className="relative flex-1">
+            <svg 
+              className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" 
+              fill="none" 
+              stroke="currentColor" 
+              viewBox="0 0 24 24"
             >
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-              </svg>
-            </button>
-          )}
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+            </svg>
+            <input
+              type="text"
+              placeholder="Search announcements..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full pl-10 pr-4 py-2.5 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-xl text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all"
+            />
+            {searchQuery && (
+              <button
+                onClick={() => setSearchQuery('')}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            )}
+          </div>
+          
+          {/* Date Filter Dropdown */}
+          <div className="relative">
+            <select
+              value={dateFilter}
+              onChange={(e) => setDateFilter(e.target.value)}
+              className="appearance-none w-full sm:w-44 pl-4 pr-10 py-2.5 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-xl text-gray-900 dark:text-white focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all cursor-pointer"
+            >
+              <option value="all">All Time</option>
+              <option value="today">Today</option>
+              <option value="week">This Week</option>
+              <option value="month">This Month</option>
+            </select>
+            <svg 
+              className="absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 pointer-events-none" 
+              fill="none" 
+              stroke="currentColor" 
+              viewBox="0 0 24 24"
+            >
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+            </svg>
+          </div>
         </div>
       </div>
 
@@ -1250,6 +1337,9 @@ export default function Announcements() {
               filtered = announcements.filter(a => !a.targetTags || a.targetTags.length === 0)
             }
             
+            // Apply date filter
+            filtered = filterByDate(filtered)
+            
             // Apply search filter
             if (searchQuery.trim()) {
               const query = searchQuery.toLowerCase().trim()
@@ -1264,7 +1354,7 @@ export default function Announcements() {
             
             if (filtered.length === 0) {
               return (
-                <div className="bg-gradient-to-br from-white to-gray-50 dark:from-gray-800 dark:to-gray-900 rounded-2xl border-2 border-dashed border-gray-300 dark:border-gray-600 p-16 text-center max-w-2xl mx-auto">
+                <div className="bg-gradient-to-br from-white to-gray-50 dark:from-gray-800 dark:to-gray-900 rounded-2xl border-2 border-dashed border-gray-300 dark:border-gray-600 p-16 text-center max-w-3xl mx-auto">
                   <div className="w-20 h-20 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center mx-auto mb-4">
                     <svg className="w-10 h-10 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       {searchQuery ? (
@@ -1281,7 +1371,7 @@ export default function Announcements() {
             }
             
             return (
-              <div className="space-y-4 w-full max-w-2xl mx-auto">
+              <div className="space-y-4 w-full max-w-3xl mx-auto">
                 {filtered.map((announcement, idx) => (
                   <div
                     key={announcement.id}
@@ -1639,7 +1729,7 @@ export default function Announcements() {
               )
             }
             return (
-              <div className="space-y-4 w-full max-w-2xl mx-auto">
+              <div className="space-y-4 w-full max-w-3xl mx-auto">
                 {filteredOrgAnnouncements.map((announcement, idx) => (
                   <div
                     key={announcement.id}
@@ -1718,7 +1808,7 @@ export default function Announcements() {
           setAnnouncementMode('classrep')
           setSelectedAnnouncementOrg(null)
         }}>
-          <div className="bg-white dark:bg-gray-800 rounded-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto shadow-2xl mx-4">
+          <div className="bg-white dark:bg-gray-800 rounded-2xl max-w-3xl w-full max-h-[90vh] overflow-y-auto shadow-2xl mx-4">
             {/* Modal Header */}
             <div className="sticky top-0 bg-green-600 text-white px-6 py-4 flex items-center justify-between z-10 rounded-t-2xl">
               <h2 className="text-xl font-bold">Create Announcement</h2>
@@ -2292,10 +2382,10 @@ export default function Announcements() {
           onClick={() => setSelectedAnnouncement(null)}
         >
           <div 
-            className="relative bg-white dark:bg-gray-800 rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto mx-4"
+            className="relative bg-white dark:bg-gray-800 rounded-2xl shadow-2xl w-full max-w-3xl max-h-[90vh] overflow-y-auto mx-4"
             onClick={(e) => e.stopPropagation()}
           >
-            {/* Header - Compact Facebook Style */}
+            {/* Header - Compact Facebook Style */}}
             <div className="sticky top-0 bg-green-600 text-white px-4 py-3 flex items-center justify-between z-10">
               <span className={`px-3 py-1 text-xs font-bold rounded-full uppercase tracking-wide ${
                 selectedAnnouncement.priority === PRIORITY_LEVELS.URGENT ? 'bg-red-500' :
@@ -2536,6 +2626,14 @@ export default function Announcements() {
                               >
                                 Reply
                               </button>
+                              {canDeleteComment(comment) && (
+                                <button
+                                  onClick={() => setDeleteCommentConfirm({ open: true, comment })}
+                                  className="text-xs text-red-500 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300 font-medium"
+                                >
+                                  Delete
+                                </button>
+                              )}
                             </div>
                           </div>
                         </div>
@@ -2560,7 +2658,17 @@ export default function Announcements() {
                                 </div>
                                 <p className="text-xs text-gray-700 dark:text-gray-300 mt-0.5">{reply.content}</p>
                               </div>
-                              <p className="text-[10px] text-gray-500 dark:text-gray-400 mt-1">{formatDate(reply.createdAt)}</p>
+                              <div className="flex items-center gap-3 mt-1">
+                                <p className="text-[10px] text-gray-500 dark:text-gray-400">{formatDate(reply.createdAt)}</p>
+                                {canDeleteComment(reply) && (
+                                  <button
+                                    onClick={() => setDeleteCommentConfirm({ open: true, comment: reply })}
+                                    className="text-[10px] text-red-500 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300 font-medium"
+                                  >
+                                    Delete
+                                  </button>
+                                )}
+                              </div>
                             </div>
                           </div>
                         ))}
@@ -2698,7 +2806,7 @@ export default function Announcements() {
           onClick={() => setEditModal({ open: false, announcement: null })}
         >
           <div 
-            className="relative bg-white dark:bg-gray-800 rounded-xl shadow-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto mx-4"
+            className="relative bg-white dark:bg-gray-800 rounded-xl shadow-xl w-full max-w-3xl max-h-[90vh] overflow-y-auto mx-4"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="sticky top-0 bg-white dark:bg-gray-800 border-b border-gray-100 dark:border-gray-700 px-4 py-3 flex items-center justify-between z-10">
@@ -2878,6 +2986,70 @@ export default function Announcements() {
                 className="flex-1 px-4 py-3 text-sm font-bold text-white bg-red-600 rounded-lg hover:bg-red-700 transition-all disabled:opacity-50"
               >
                 {deleting ? (
+                  <span className="flex items-center justify-center gap-2">
+                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                    Deleting...
+                  </span>
+                ) : (
+                  'Delete'
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Comment Confirmation Modal */}
+      {deleteCommentConfirm.open && deleteCommentConfirm.comment && (
+        <div 
+          className="z-[10000] flex items-center justify-center bg-black/40 backdrop-blur-sm"
+          style={{
+            position: 'fixed',
+            top: '-50px',
+            left: 0,
+            right: 0,
+            bottom: '-50px',
+            paddingTop: '50px',
+            paddingBottom: '50px',
+            margin: 0,
+          }}
+          onClick={() => setDeleteCommentConfirm({ open: false, comment: null })}
+        >
+          <div 
+            className="relative bg-white dark:bg-gray-800 rounded-2xl shadow-2xl w-full max-w-md p-8 mx-4"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center gap-4 mb-6">
+              <div className="w-14 h-14 rounded-full bg-red-100 dark:bg-red-900/30 flex items-center justify-center flex-shrink-0">
+                <svg className="w-7 h-7 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                </svg>
+              </div>
+              <div>
+                <h3 className="text-xl font-bold text-gray-900 dark:text-white">Delete Comment?</h3>
+                <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">This action cannot be undone.</p>
+              </div>
+            </div>
+            
+            <div className="bg-gray-50 dark:bg-gray-700 rounded-lg p-4 mb-6 border-l-4 border-red-500">
+              <p className="text-sm text-gray-700 dark:text-gray-300 line-clamp-3">{deleteCommentConfirm.comment.content}</p>
+              <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">by {deleteCommentConfirm.comment.authorName}</p>
+            </div>
+            
+            <div className="flex gap-3">
+              <button
+                onClick={() => setDeleteCommentConfirm({ open: false, comment: null })}
+                disabled={deletingComment}
+                className="flex-1 px-4 py-3 text-sm font-bold text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-all disabled:opacity-50"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleDeleteComment}
+                disabled={deletingComment}
+                className="flex-1 px-4 py-3 text-sm font-bold text-white bg-red-600 rounded-lg hover:bg-red-700 transition-all disabled:opacity-50"
+              >
+                {deletingComment ? (
                   <span className="flex items-center justify-center gap-2">
                     <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
                     Deleting...
