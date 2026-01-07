@@ -47,7 +47,7 @@ const dayAbbreviations = {
 }
 
 const timeSlots = [
-  '7:00', '8:00', '9:00', '10:00', '11:00', '12:00',
+  '5:00', '6:00', '7:00', '8:00', '9:00', '10:00', '11:00', '12:00',
   '13:00', '14:00', '15:00', '16:00', '17:00', '18:00', '19:00', '20:00'
 ]
 
@@ -116,7 +116,7 @@ const normalizeRoomName = (room) => {
 // Helper function to convert time string to row index
 const getTimeIndex = (time) => {
   const hour = parseInt(time.split(':')[0])
-  return hour - 7 // 7:00 is index 0
+  return hour - 5 // 5:00 is index 0
 }
 
 // Helper function to calculate duration in hours
@@ -2220,34 +2220,12 @@ function StudentScheduleView() {
         <EmptyState onUploadClick={() => setIsModalOpen(true)} />
       ) : (
         <>
-          {/* Controls: Week Navigation + View Toggle */}
+          {/* Controls: Class Count + View Toggle */}
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <div className="flex items-center gap-2">
-              <button
-                onClick={goToPreviousWeek}
-                className="p-2 rounded-lg border border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
-              >
-                <svg className="w-5 h-5 text-gray-600 dark:text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-                </svg>
-              </button>
-              <button
-                onClick={goToCurrentWeek}
-                className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors"
-              >
-                This Week
-              </button>
-              <button
-                onClick={goToNextWeek}
-                className="p-2 rounded-lg border border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
-              >
-                <svg className="w-5 h-5 text-gray-600 dark:text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                </svg>
-              </button>
-              <span className="ml-2 text-sm text-gray-500 dark:text-gray-400">
-                {scheduleData.length} class{scheduleData.length !== 1 ? 'es' : ''}
-              </span>
+              <div className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg">
+                <span className="text-primary font-bold">{scheduleData.length}</span> class{scheduleData.length !== 1 ? 'es' : ''} this semester
+              </div>
             </div>
             
             {/* View Toggle */}

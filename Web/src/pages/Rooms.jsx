@@ -1088,7 +1088,7 @@ export default function Rooms() {
                   <div className="relative bg-gray-100 dark:bg-gray-700 rounded-lg h-12 overflow-hidden">
                     {/* Time markers */}
                     <div className="absolute inset-0 flex">
-                      {['7AM', '9AM', '11AM', '1PM', '3PM', '5PM', '7PM', '9PM'].map((time, idx) => (
+                      {['5AM', '7AM', '9AM', '11AM', '1PM', '3PM', '5PM', '7PM'].map((time, idx) => (
                         <div key={time} className="flex-1 border-l border-gray-300 dark:border-gray-600 first:border-l-0">
                           <span className="text-[9px] text-gray-400 dark:text-gray-500 ml-1">{time}</span>
                         </div>
@@ -1098,8 +1098,8 @@ export default function Rooms() {
                     {getRoomScheduleForDay(selectedRoom, selectedDay).map((schedule, idx) => {
                       const startHour = parseInt(schedule.startTime.split(':')[0]) + parseInt(schedule.startTime.split(':')[1]) / 60
                       const endHour = parseInt(schedule.endTime.split(':')[0]) + parseInt(schedule.endTime.split(':')[1]) / 60
-                      const left = ((startHour - 7) / 14) * 100
-                      const width = ((endHour - startHour) / 14) * 100
+                      const left = ((startHour - 5) / 15) * 100
+                      const width = ((endHour - startHour) / 15) * 100
                       
                       return (
                         <div

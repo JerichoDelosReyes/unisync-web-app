@@ -1,5 +1,8 @@
-import { NavLink, useLocation } from 'react-router-dom'
+import { NavLink, useLocation, useNavigate } from 'react-router-dom'
 import { useAuth, ROLES, ROLE_DISPLAY_NAMES } from '../../contexts/AuthContext'
+import { useTheme } from '../../contexts/ThemeContext'
+import { logoutUser } from '../../services/authService'
+import { useState, useRef, useEffect } from 'react'
 import logo from '../../assets/cvsu-logo.png'
 
 /**
@@ -138,8 +141,39 @@ const navigationItems = [
 ]
 
 export default function Sidebar({ isOpen, onClose }) {
-  const { userProfile, hasMinRole } = useAuth()
+  const { userProfile, user, hasMinRole } = useAuth()
+  const { isDark, toggleTheme } = useTheme()
   const location = useLocation()
+  const navigate = useNavigate()
+  const [showUserMenu, setShowUserMenu] = useState(false)
+  const userMenuRef = useRef(null)
+
+  const handleLogoClick = () => {
+    navigate('/dashboard')
+    onClose()
+  }
+
+  const handleLogout = async () => {
+    try {
+      await logoutUser()
+      navigate('/auth')
+      setShowUserMenu(false)
+      onClose()
+    } catch (error) {
+      console.error('Logout error:', error)
+    }
+  }
+
+  // Close menu when clicking outside
+  useEffect(() => {
+    function handleClickOutside(event) {
+      if (userMenuRef.current && !userMenuRef.current.contains(event.target)) {
+        setShowUserMenu(false)
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => document.removeEventListener('mousedown', handleClickOutside)
+  }, [])
 
   // Check if user can manage organizations (is adviser or any officer)
   const canManageOrgs = () => {
@@ -213,14 +247,17 @@ export default function Sidebar({ isOpen, onClose }) {
         `}
       >
         <div className="flex flex-col h-full">
-          {/* Logo & Brand */}
-          <div className="flex items-center gap-3 px-6 py-5 border-b border-gray-200 dark:border-gray-700">
+          {/* Logo & Brand - Clickable to Dashboard */}
+          <button
+            onClick={handleLogoClick}
+            className="flex items-center gap-3 px-6 py-5 border-b border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors w-full text-left"
+          >
             <img src={logo} alt="CvSU" className="h-10 w-auto" />
             <div>
               <h1 className="text-lg font-bold text-primary">UNISYNC</h1>
               <p className="text-[10px] text-gray-500 dark:text-gray-400 leading-tight">CvSU Imus Campus</p>
             </div>
-          </div>
+          </button>
 
           {/* Navigation */}
           <nav className="flex-1 px-3 py-4 overflow-y-auto">
@@ -248,16 +285,19 @@ export default function Sidebar({ isOpen, onClose }) {
           </nav>
 
           {/* User Info at Bottom */}
-          <div className="px-4 py-4 border-t border-gray-200 dark:border-gray-700">
-            <div className="flex items-center gap-3">
+          <div className="px-4 py-4 border-t border-gray-200 dark:border-gray-700 relative" ref={userMenuRef}>
+            <button
+              onClick={() => setShowUserMenu(!showUserMenu)}
+              className="w-full flex items-center gap-3 p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors text-left"
+            >
               {userProfile?.photoURL ? (
                 <img 
                   src={userProfile.photoURL} 
                   alt={userProfile?.displayName || 'User'} 
-                  className="w-10 h-10 rounded-full object-cover"
+                  className="w-10 h-10 rounded-full object-cover flex-shrink-0"
                 />
               ) : (
-                <div className="w-10 h-10 rounded-full bg-primary/10 dark:bg-primary/20 flex items-center justify-center">
+                <div className="w-10 h-10 rounded-full bg-primary/10 dark:bg-primary/20 flex items-center justify-center flex-shrink-0">
                   <span className="text-primary font-semibold text-sm">
                     {userProfile?.givenName?.[0]}{userProfile?.lastName?.[0]}
                   </span>
@@ -271,7 +311,75 @@ export default function Sidebar({ isOpen, onClose }) {
                   {ROLE_DISPLAY_NAMES[userProfile?.role] || 'Student'}
                 </p>
               </div>
-            </div>
+            </button>
+
+            {/* User Menu Dropdown */}
+            {showUserMenu && (
+              <div className="absolute bottom-full left-4 right-4 mb-2 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 py-1 z-50">
+                {/* User Info Header */}
+                <div className="px-4 py-3 border-b border-gray-100 dark:border-gray-700">
+                  <p className="text-sm font-semibold text-gray-900 dark:text-white">
+                    {userProfile?.displayName}
+                  </p>
+                  <p className="text-xs text-gray-500 dark:text-gray-400 truncate">
+                    {user?.email}
+                  </p>
+                  <span className="inline-block mt-2 px-2 py-0.5 text-[10px] font-medium bg-primary/10 dark:bg-primary/20 text-primary rounded-full">
+                    {ROLE_DISPLAY_NAMES[userProfile?.role] || 'Student'}
+                  </span>
+                </div>
+
+                {/* Menu items */}
+                <button
+                  onClick={() => {
+                    setShowUserMenu(false)
+                    navigate('/profile')
+                    onClose()
+                  }}
+                  className="w-full px-4 py-2 text-left text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 flex items-center gap-2"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                  </svg>
+                  My Profile
+                </button>
+
+                {/* Theme Toggle */}
+                <button
+                  onClick={toggleTheme}
+                  className="w-full px-4 py-2 flex items-center justify-between text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+                >
+                  <div className="flex items-center gap-2">
+                    {isDark ? (
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <circle cx="12" cy="12" r="4" strokeWidth={2} />
+                        <path strokeLinecap="round" strokeWidth={2} d="M12 2v2m0 16v2M4.93 4.93l1.41 1.41m11.32 11.32l1.41 1.41M2 12h2m16 0h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41" />
+                      </svg>
+                    ) : (
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
+                      </svg>
+                    )}
+                    <span>{isDark ? 'Light Mode' : 'Dark Mode'}</span>
+                  </div>
+                  {/* Theme Toggle Switch */}
+                  <div className={`relative w-11 h-6 rounded-full transition-colors duration-300 ${isDark ? 'bg-primary' : 'bg-gray-300 dark:bg-gray-600'}`}>
+                    <div className={`absolute top-1 w-4 h-4 bg-white rounded-full shadow-sm transition-transform duration-300 ${isDark ? 'translate-x-6' : 'translate-x-1'}`} />
+                  </div>
+                </button>
+
+                {/* Logout */}
+                <button
+                  onClick={handleLogout}
+                  className="w-full px-4 py-2 text-left text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 flex items-center gap-2 border-t border-gray-100 dark:border-gray-700"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                  </svg>
+                  Sign out
+                </button>
+              </div>
+            )}
           </div>
         </div>
       </aside>

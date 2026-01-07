@@ -293,7 +293,7 @@ const ProfessorClasses = () => {
           setScheduleCode('')
           setError('')
         }}>
-          <div className="bg-white rounded-2xl shadow-xl w-full max-w-md mx-4 overflow-hidden">
+          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl w-full max-w-md mx-4 overflow-hidden">
             <div className="bg-green-600 text-white px-6 py-4 flex items-center justify-between">
               <div>
                 <h3 className="text-lg font-bold">Add New Class</h3>
@@ -310,7 +310,7 @@ const ProfessorClasses = () => {
 
             <form onSubmit={handleAddClass} className="p-6 space-y-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                   Schedule Code
                 </label>
                 <input
@@ -318,17 +318,17 @@ const ProfessorClasses = () => {
                   value={scheduleCode}
                   onChange={(e) => setScheduleCode(e.target.value.replace(/\D/g, '').slice(0, 9))}
                   placeholder="e.g., 202510765"
-                  className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary text-lg tracking-wider font-mono"
+                  className="w-full px-4 py-3 border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white rounded-xl focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary text-lg tracking-wider font-mono"
                   maxLength={9}
                   required
                 />
-                <p className="text-xs text-gray-500 mt-2">
+                <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
                   This is the 9-digit code that appears on student registration forms (e.g., 202510765)
                 </p>
               </div>
 
               {error && (
-                <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm">
+                <div className="bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-400 px-4 py-3 rounded-lg text-sm">
                   {error}
                 </div>
               )}
@@ -341,7 +341,7 @@ const ProfessorClasses = () => {
                     setScheduleCode('')
                     setError('')
                   }}
-                  className="flex-1 px-4 py-3 border border-gray-200 text-gray-700 rounded-xl hover:bg-gray-50 transition-colors"
+                  className="flex-1 px-4 py-3 border border-gray-200 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
                 >
                   Cancel
                 </button>

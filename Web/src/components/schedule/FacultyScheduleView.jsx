@@ -8,14 +8,14 @@ import ProfessorClasses from './ProfessorClasses'
 const days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']
 
 const timeSlots = [
-  '7:00', '8:00', '9:00', '10:00', '11:00', '12:00',
+  '5:00', '6:00', '7:00', '8:00', '9:00', '10:00', '11:00', '12:00',
   '13:00', '14:00', '15:00', '16:00', '17:00', '18:00', '19:00', '20:00'
 ]
 
 // Helper function to convert time string to row index
 const getTimeIndex = (time) => {
   const hour = parseInt(time.split(':')[0])
-  return hour - 7 // 7:00 is index 0
+  return hour - 5 // 5:00 is index 0
 }
 
 // Helper function to calculate duration in hours

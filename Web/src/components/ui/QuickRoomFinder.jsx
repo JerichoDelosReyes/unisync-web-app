@@ -28,11 +28,11 @@ import {
 // Days of the week
 const DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']
 
-// Time slots (7 AM to 9 PM)
+// Time slots (5 AM to 8 PM)
 const TIME_SLOTS = []
-for (let h = 7; h <= 21; h++) {
+for (let h = 5; h <= 20; h++) {
   TIME_SLOTS.push(`${h.toString().padStart(2, '0')}:00`)
-  if (h < 21) TIME_SLOTS.push(`${h.toString().padStart(2, '0')}:30`)
+  if (h < 20) TIME_SLOTS.push(`${h.toString().padStart(2, '0')}:30`)
 }
 
 // Duration options

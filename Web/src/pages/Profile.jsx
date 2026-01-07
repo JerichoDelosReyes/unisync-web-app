@@ -607,7 +607,8 @@ export default function Profile() {
                       name="studentId"
                       value={formData.studentId}
                       onChange={handleChange}
-                      className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-primary transition-colors bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                      disabled={!!userProfile?.course}
+                      className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-primary transition-colors bg-white dark:bg-gray-700 text-gray-900 dark:text-white disabled:bg-gray-100 dark:disabled:bg-gray-800 disabled:text-gray-500 dark:disabled:text-gray-400 disabled:cursor-not-allowed"
                       placeholder="Enter student ID"
                     />
                   ) : (
@@ -615,45 +616,92 @@ export default function Profile() {
                       {userProfile?.studentId || '-'}
                     </p>
                   )}
+                  {isEditing && userProfile?.course && (
+                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-1 italic">Locked from registration form</p>
+                  )}
                 </div>
 
-                {/* Course - Read-only, populated from registration form */}
+                {/* Course - Disabled if from registration form */}
                 <div>
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                     Course/Program
                     <span className="text-gray-400 dark:text-gray-500 font-normal ml-1">(From Reg Form)</span>
                   </label>
-                  <p className="px-4 py-2 bg-gray-50 dark:bg-gray-700 rounded-lg text-gray-900 dark:text-white">
-                    {userProfile?.course || (
-                      <span className="text-gray-400 dark:text-gray-500 italic">
-                        Upload registration form in Schedule page
-                      </span>
-                    )}
-                  </p>
-                  {!userProfile?.course && (
+                  {isEditing && userProfile?.course ? (
+                    <input
+                      type="text"
+                      name="course"
+                      value={formData.course}
+                      disabled
+                      className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400 cursor-not-allowed"
+                    />
+                  ) : isEditing ? (
+                    <input
+                      type="text"
+                      name="course"
+                      value={formData.course}
+                      onChange={handleChange}
+                      className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-primary transition-colors bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                      placeholder="Course will be set from registration form"
+                    />
+                  ) : (
+                    <p className="px-4 py-2 bg-gray-50 dark:bg-gray-700 rounded-lg text-gray-900 dark:text-white">
+                      {userProfile?.course || (
+                        <span className="text-gray-400 dark:text-gray-500 italic">
+                          Upload registration form in Schedule page
+                        </span>
+                      )}
+                    </p>
+                  )}
+                  {!userProfile?.course && !isEditing && (
                     <p className="text-xs text-amber-600 dark:text-amber-400 mt-1 flex items-center gap-1">
                       <ExclamationTriangleIcon className="w-3.5 h-3.5" /> Go to Schedule page and upload your registration form to set your course.
                     </p>
                   )}
+                  {isEditing && userProfile?.course && (
+                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-1 italic">Locked from registration form</p>
+                  )}
                 </div>
 
-                {/* Year Level - Read-only, populated from registration form */}
+                {/* Year Level - Disabled if from registration form */}
                 <div>
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                     Year Level
                     <span className="text-gray-400 dark:text-gray-500 font-normal ml-1">(From Reg Form)</span>
                   </label>
-                  <p className="px-4 py-2 bg-gray-50 dark:bg-gray-700 rounded-lg text-gray-900 dark:text-white">
-                    {userProfile?.yearLevel || (
-                      <span className="text-gray-400 dark:text-gray-500 italic">
-                        Upload registration form in Schedule page
-                      </span>
-                    )}
-                  </p>
-                  {!userProfile?.yearLevel && (
+                  {isEditing && userProfile?.yearLevel ? (
+                    <input
+                      type="text"
+                      name="yearLevel"
+                      value={formData.yearLevel}
+                      disabled
+                      className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400 cursor-not-allowed"
+                    />
+                  ) : isEditing ? (
+                    <input
+                      type="text"
+                      name="yearLevel"
+                      value={formData.yearLevel}
+                      onChange={handleChange}
+                      className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-primary transition-colors bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                      placeholder="Year level will be set from registration form"
+                    />
+                  ) : (
+                    <p className="px-4 py-2 bg-gray-50 dark:bg-gray-700 rounded-lg text-gray-900 dark:text-white">
+                      {userProfile?.yearLevel || (
+                        <span className="text-gray-400 dark:text-gray-500 italic">
+                          Upload registration form in Schedule page
+                        </span>
+                      )}
+                    </p>
+                  )}
+                  {!userProfile?.yearLevel && !isEditing && (
                     <p className="text-xs text-amber-600 dark:text-amber-400 mt-1 flex items-center gap-1">
                       <ExclamationTriangleIcon className="w-3.5 h-3.5" /> Go to Schedule page and upload your registration form to set your year level.
                     </p>
+                  )}
+                  {isEditing && userProfile?.yearLevel && (
+                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-1 italic">Locked from registration form</p>
                   )}
                 </div>
 
