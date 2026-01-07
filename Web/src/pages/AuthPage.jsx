@@ -337,6 +337,9 @@ export default function AuthPage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-gray-100 dark:from-gray-900 dark:via-gray-900 dark:to-gray-800 flex flex-col lg:flex-row overflow-hidden">
+      {/* Mobile Hero Banner - heading only, non-scrollable */}
+        {/* Removed Mobile Hero Banner */}
+
       {/* Left Panel - Minimalist Hero (hidden on mobile) */}
       <div className="hidden lg:flex lg:w-1/2 xl:w-[55%] bg-gradient-to-br from-emerald-700 via-emerald-800 to-emerald-900 text-white p-12 xl:p-16 flex-col justify-between relative overflow-hidden">
         {/* Animated Background Elements */}
@@ -425,6 +428,11 @@ export default function AuthPage() {
               <span className="text-xl font-bold text-gray-900 dark:text-white">UNISYNC</span>
             </div>
             <p className="text-sm text-gray-500 dark:text-gray-400">CvSU Imus Campus</p>
+            <p className="mt-2 text-lg font-semibold text-gray-900 dark:text-white leading-tight">
+              Gawa ng mga CvSUeño,
+              <br />
+              <span className="text-emerald-600 dark:text-emerald-300">para sa mga CvSUeño.</span>
+            </p>
           </div>
           
           {/* Toast Notification */}
