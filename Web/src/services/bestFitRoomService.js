@@ -18,7 +18,7 @@
  */
 
 import { db } from '../config/firebase'
-import { collection, getDocs, addDoc, updateDoc, doc, getDoc, query, where, orderBy, deleteDoc } from 'firebase/firestore'
+import { collection, getDocs, addDoc, updateDoc, doc, getDoc, query, where } from 'firebase/firestore'
 import { notifyRoomBookingConfirmed } from './notificationService'
 
 /**
