@@ -6,6 +6,8 @@
  * 
  * Room vacancy is now TIME-BASED - when marking a room vacant, it's only vacant
  * during the schedule's time slot (e.g., 9:00-10:30), then auto-reverts to occupied.
+ * 
+ * Vacancy periods include a weekDate to ensure they expire after a week.
  */
 import { db } from '../config/firebase'
 import { collection, query, where, getDocs, updateDoc, doc, onSnapshot, addDoc, arrayUnion, arrayRemove } from 'firebase/firestore'
@@ -16,6 +18,35 @@ import { collection, query, where, getDocs, updateDoc, doc, onSnapshot, addDoc, 
 const getCurrentDay = () => {
   const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']
   return days[new Date().getDay()]
+}
+
+/**
+ * Get the start of the current week (Monday at 00:00:00)
+ * @returns {string} ISO date string of Monday of current week
+ */
+const getWeekStart = () => {
+  const now = new Date()
+  const day = now.getDay()
+  const diff = day === 0 ? -6 : 1 - day // Adjust for Sunday = 0
+  const monday = new Date(now)
+  monday.setDate(now.getDate() + diff)
+  monday.setHours(0, 0, 0, 0)
+  return monday.toISOString().split('T')[0] // Return just the date part YYYY-MM-DD
+}
+
+/**
+ * Check if a vacancy period is from the current week
+ * @param {object} vacancy - Vacancy object with optional weekDate
+ * @returns {boolean} - True if vacancy is from current week
+ */
+const isVacancyFromCurrentWeek = (vacancy) => {
+  if (!vacancy) return false
+  
+  // If no weekDate, consider it expired (old format)
+  if (!vacancy.weekDate) return false
+  
+  const currentWeekStart = getWeekStart()
+  return vacancy.weekDate === currentWeekStart
 }
 
 /**
@@ -108,11 +139,12 @@ export const updateRoomStatus = async (roomName, setVacant, userId, schedule = n
     console.log('Available rooms in database:', Object.keys(roomsMap))
     console.log('Looking for rooms:', roomNames)
     
-    // Create vacancy period from schedule
+    // Create vacancy period from schedule with weekDate for expiration tracking
     const vacancyPeriod = schedule ? {
       day: schedule.day,
       startTime: schedule.startTime,
       endTime: schedule.endTime,
+      weekDate: getWeekStart(), // Track which week this vacancy belongs to
       scheduleId: schedule.id || null,
       subject: schedule.subject || null,
       section: schedule.section || null,
@@ -160,6 +192,9 @@ export const updateRoomStatus = async (roomName, setVacant, userId, schedule = n
       console.warn(`Some rooms not found: ${missingRooms.join(', ')} - only updating found rooms`)
     }
     
+    // Get current week start for comparison
+    const currentWeekStart = getWeekStart()
+    
     // Update all found rooms
     const updatePromises = foundRooms.map(async (roomDoc) => {
       const updateData = {
@@ -168,26 +203,39 @@ export const updateRoomStatus = async (roomName, setVacant, userId, schedule = n
       }
       
       if (vacancyPeriod) {
+        // First, clean up any expired vacancies (from previous weeks)
+        const existingPeriods = (roomDoc.vacancyPeriods || []).filter(p => 
+          p.weekDate === currentWeekStart
+        )
+        
+        const normalizedVacancyStart = normalizeTime(vacancyPeriod.startTime)
+        const normalizedVacancyEnd = normalizeTime(vacancyPeriod.endTime)
+        
         if (setVacant) {
-          // Add vacancy period - first check if this exact period exists
-          const existingPeriods = roomDoc.vacancyPeriods || []
-          const alreadyExists = existingPeriods.some(p => 
-            p.day === vacancyPeriod.day && 
-            p.startTime === vacancyPeriod.startTime && 
-            p.endTime === vacancyPeriod.endTime
-          )
+          // Add vacancy period - first check if this exact period exists (with normalized time)
+          const alreadyExists = existingPeriods.some(p => {
+            const pStart = normalizeTime(p.startTime)
+            const pEnd = normalizeTime(p.endTime)
+            return p.day === vacancyPeriod.day && 
+                   pStart === normalizedVacancyStart && 
+                   pEnd === normalizedVacancyEnd
+          })
           
           if (!alreadyExists) {
             updateData.vacancyPeriods = [...existingPeriods, vacancyPeriod]
+          } else {
+            // Still update to clean expired ones
+            updateData.vacancyPeriods = existingPeriods
           }
         } else {
-          // Remove vacancy period for this time slot
-          const existingPeriods = roomDoc.vacancyPeriods || []
-          updateData.vacancyPeriods = existingPeriods.filter(p => 
-            !(p.day === vacancyPeriod.day && 
-              p.startTime === vacancyPeriod.startTime && 
-              p.endTime === vacancyPeriod.endTime)
-          )
+          // Remove vacancy period for this time slot (using normalized time comparison)
+          updateData.vacancyPeriods = existingPeriods.filter(p => {
+            const pStart = normalizeTime(p.startTime)
+            const pEnd = normalizeTime(p.endTime)
+            return !(p.day === vacancyPeriod.day && 
+                     pStart === normalizedVacancyStart && 
+                     pEnd === normalizedVacancyEnd)
+          })
         }
       }
       
@@ -206,19 +254,43 @@ export const updateRoomStatus = async (roomName, setVacant, userId, schedule = n
 }
 
 /**
+ * Normalize time string for consistent comparison
+ * Handles "7:00" vs "07:00", "7:30" vs "7:30", etc.
+ * @param {string} timeStr - Time string in various formats
+ * @returns {string} Normalized time string "H:MM" or "HH:MM"
+ */
+const normalizeTime = (timeStr) => {
+  if (!timeStr) return ''
+  const parts = timeStr.split(':')
+  const hours = parseInt(parts[0]) || 0
+  const minutes = parseInt(parts[1]) || 0
+  return `${hours}:${minutes.toString().padStart(2, '0')}`
+}
+
+/**
  * Check if a specific schedule's time slot is marked as vacant for a room
+ * Only considers vacancies from the current week (not expired ones)
  * @param {object} room - Room document
  * @param {object} schedule - Schedule with day, startTime, endTime
- * @returns {boolean} - True if this schedule's slot is marked vacant
+ * @returns {boolean} - True if this schedule's slot is marked vacant for current week
  */
 export const isScheduleSlotVacant = (room, schedule) => {
   if (!room || !schedule || !room.vacancyPeriods) return false
   
-  return room.vacancyPeriods.some(p => 
-    p.day === schedule.day && 
-    p.startTime === schedule.startTime && 
-    p.endTime === schedule.endTime
-  )
+  const scheduleStart = normalizeTime(schedule.startTime)
+  const scheduleEnd = normalizeTime(schedule.endTime)
+  
+  return room.vacancyPeriods.some(p => {
+    // Only consider vacancies from current week
+    if (!isVacancyFromCurrentWeek(p)) return false
+    
+    const pStart = normalizeTime(p.startTime)
+    const pEnd = normalizeTime(p.endTime)
+    
+    return p.day === schedule.day && 
+           pStart === scheduleStart && 
+           pEnd === scheduleEnd
+  })
 }
 
 /**
@@ -249,6 +321,7 @@ export const getRoomStatus = async (roomName) => {
 
 /**
  * Subscribe to all rooms for real-time updates
+ * Filters out expired vacancy periods (from previous weeks) client-side
  * @param {function} callback - Function to call with rooms array
  * @returns {function} Unsubscribe function
  */
@@ -256,10 +329,24 @@ export const subscribeToRooms = (callback) => {
   const roomsRef = collection(db, 'rooms')
   
   return onSnapshot(roomsRef, (snapshot) => {
+    const currentWeekStart = getWeekStart()
     const rooms = []
+    
     snapshot.forEach((docSnap) => {
-      rooms.push({ id: docSnap.id, ...docSnap.data() })
+      const data = docSnap.data()
+      
+      // Filter vacancy periods to only include current week
+      const filteredVacancies = (data.vacancyPeriods || []).filter(p => 
+        p.weekDate === currentWeekStart
+      )
+      
+      rooms.push({ 
+        id: docSnap.id, 
+        ...data,
+        vacancyPeriods: filteredVacancies
+      })
     })
+    
     callback(rooms)
   }, (error) => {
     console.error('Error subscribing to rooms:', error)

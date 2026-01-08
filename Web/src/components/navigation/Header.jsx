@@ -161,14 +161,14 @@ export default function Header({ onMenuClick }) {
 
             {/* Notifications Dropdown */}
             {showNotifications && (
-              <div className="absolute right-0 mt-2 w-80 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 z-50">
+              <div className="fixed sm:absolute left-4 right-4 sm:left-auto sm:right-0 top-16 sm:top-auto sm:mt-2 w-auto sm:w-80 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 z-50">
                 {/* Header */}
-                <div className="px-4 py-3 border-b border-gray-100 dark:border-gray-700 flex items-center justify-between">
-                  <h3 className="text-sm font-semibold text-gray-900 dark:text-white">Notifications</h3>
+                <div className="px-4 py-3 border-b border-gray-100 dark:border-gray-700 flex items-center justify-between gap-2">
+                  <h3 className="text-sm font-semibold text-gray-900 dark:text-white flex-shrink-0">Notifications</h3>
                   {unreadCount > 0 && (
                     <button 
                       onClick={markAllAsRead}
-                      className="text-xs text-primary hover:text-primary/80"
+                      className="text-xs text-primary hover:text-primary/80 whitespace-nowrap"
                     >
                       Mark all as read
                     </button>
@@ -218,13 +218,13 @@ export default function Header({ onMenuClick }) {
                           !notification.read ? 'bg-primary/5 dark:bg-primary/10' : ''
                         }`}
                       >
-                        <div className="flex items-start gap-3">
+                        <div className="flex items-start gap-2 sm:gap-3">
                           <div className={`w-2 h-2 mt-2 rounded-full flex-shrink-0 ${
                             !notification.read ? 'bg-primary' : 'bg-transparent'
                           }`}></div>
-                          <div className="flex-1 min-w-0">
-                            <p className="text-sm font-medium text-gray-900 dark:text-white">{notification.title}</p>
-                            <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5 line-clamp-2">{notification.message}</p>
+                          <div className="flex-1 min-w-0 overflow-hidden">
+                            <p className="text-sm font-medium text-gray-900 dark:text-white truncate">{notification.title}</p>
+                            <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5 line-clamp-2 break-words">{notification.message}</p>
                             <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">{formatTimeAgo(notification.createdAt)}</p>
                           </div>
                         </div>

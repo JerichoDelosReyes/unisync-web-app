@@ -450,12 +450,13 @@ export const getAnnouncementsForUser = async (userTags = [], options = {}) => {
         return matchesTargetAudience(userTags, announcement.targetTags)
       })
     
-    // Fetch comments count for each announcement
+    // Fetch comments count for each announcement (only approved comments)
     announcements = await Promise.all(
       announcements.map(async (announcement) => {
         try {
           const commentsRef = collection(db, COLLECTION_NAME, announcement.id, 'comments')
-          const commentsSnapshot = await getDocs(commentsRef)
+          const approvedQuery = query(commentsRef, where('status', '==', COMMENT_STATUS.APPROVED))
+          const commentsSnapshot = await getDocs(approvedQuery)
           return {
             ...announcement,
             comments: commentsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }))
@@ -1113,16 +1114,32 @@ export const rejectComment = async (announcementId, commentId, reason = '') => {
 }
 
 /**
- * Delete a comment
+ * Delete a comment and all its replies
  */
 export const deleteComment = async (announcementId, commentId) => {
   try {
+    const commentsRef = collection(db, COLLECTION_NAME, announcementId, 'comments')
+    
+    // Find all replies to this comment
+    const repliesQuery = query(commentsRef, where('parentId', '==', commentId))
+    const repliesSnapshot = await getDocs(repliesQuery)
+    
+    // Count total comments to delete (parent + replies)
+    const totalToDelete = 1 + repliesSnapshot.docs.length
+    
+    // Delete all replies first
+    const deleteRepliesPromises = repliesSnapshot.docs.map(replyDoc => 
+      deleteDoc(doc(db, COLLECTION_NAME, announcementId, 'comments', replyDoc.id))
+    )
+    await Promise.all(deleteRepliesPromises)
+    
+    // Delete the parent comment
     const commentRef = doc(db, COLLECTION_NAME, announcementId, 'comments', commentId)
     await deleteDoc(commentRef)
     
-    // Decrement comment count
+    // Decrement comment count by total deleted (parent + replies)
     await updateDoc(doc(db, COLLECTION_NAME, announcementId), {
-      commentCount: increment(-1)
+      commentCount: increment(-totalToDelete)
     })
   } catch (error) {
     console.error('Error deleting comment:', error)
@@ -1192,12 +1209,13 @@ export const subscribeToAnnouncements = (userTags = [], callback, options = {}) 
           return matchesTargetAudience(userTags, announcement.targetTags)
         })
       
-      // Fetch comments count for each announcement
+      // Fetch comments count for each announcement (only approved comments)
       announcements = await Promise.all(
         announcements.map(async (announcement) => {
           try {
             const commentsRef = collection(db, COLLECTION_NAME, announcement.id, 'comments')
-            const commentsSnapshot = await getDocs(commentsRef)
+            const approvedQuery = query(commentsRef, where('status', '==', COMMENT_STATUS.APPROVED))
+            const commentsSnapshot = await getDocs(approvedQuery)
             return {
               ...announcement,
               comments: commentsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }))

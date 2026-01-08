@@ -18,7 +18,7 @@
  */
 
 import { db } from '../config/firebase'
-import { collection, getDocs, addDoc, updateDoc, doc, getDoc } from 'firebase/firestore'
+import { collection, getDocs, addDoc, updateDoc, doc, getDoc, query, where, orderBy, deleteDoc } from 'firebase/firestore'
 import { notifyRoomBookingConfirmed } from './notificationService'
 
 /**
@@ -593,4 +593,84 @@ export const formatTimeDisplay = (time24) => {
   const ampm = h >= 12 ? 'PM' : 'AM'
   const displayHour = h > 12 ? h - 12 : h === 0 ? 12 : h
   return `${displayHour}:${minutes} ${ampm}`
+}
+
+/**
+ * Get all bookings for a specific user
+ * @param {string} userId - User ID to fetch bookings for
+ * @returns {Promise<object[]>} Array of booking documents
+ */
+export const getUserBookings = async (userId) => {
+  try {
+    const bookingsRef = collection(db, 'room_bookings')
+    const q = query(
+      bookingsRef, 
+      where('bookedBy', '==', userId),
+      where('status', '==', 'confirmed')
+    )
+    const snapshot = await getDocs(q)
+    
+    const bookings = snapshot.docs.map(doc => ({
+      id: doc.id,
+      ...doc.data()
+    }))
+    
+    // Sort by createdAt descending (most recent first)
+    bookings.sort((a, b) => {
+      const dateA = new Date(a.createdAt || 0)
+      const dateB = new Date(b.createdAt || 0)
+      return dateB - dateA
+    })
+    
+    return bookings
+  } catch (error) {
+    console.error('Error fetching user bookings:', error)
+    throw error
+  }
+}
+
+/**
+ * Cancel a room booking
+ * @param {string} bookingId - Booking document ID
+ * @param {string} roomId - Room document ID to update occupancy
+ * @param {object} bookingDetails - Details of the booking (day, startTime, endTime)
+ * @returns {Promise<void>}
+ */
+export const cancelBooking = async (bookingId, roomId, bookingDetails) => {
+  try {
+    const { day, startTime, endTime } = bookingDetails
+    
+    // Update booking status to cancelled
+    const bookingRef = doc(db, 'room_bookings', bookingId)
+    await updateDoc(bookingRef, {
+      status: 'cancelled',
+      cancelledAt: new Date().toISOString()
+    })
+    
+    // Remove from room's occupancy periods
+    if (roomId) {
+      const roomRef = doc(db, 'rooms', roomId)
+      const roomSnapshot = await getDoc(roomRef)
+      
+      if (roomSnapshot.exists()) {
+        const currentOccupancy = roomSnapshot.data().occupancyPeriods || []
+        
+        // Filter out the cancelled booking's occupancy period
+        const updatedOccupancy = currentOccupancy.filter(period => {
+          // Match by day, startTime, and endTime
+          return !(period.day === day && period.startTime === startTime && period.endTime === endTime)
+        })
+        
+        await updateDoc(roomRef, {
+          occupancyPeriods: updatedOccupancy,
+          lastUpdated: new Date().toISOString()
+        })
+      }
+    }
+    
+    console.log('Booking cancelled successfully:', bookingId)
+  } catch (error) {
+    console.error('Error cancelling booking:', error)
+    throw error
+  }
 }

@@ -24,6 +24,11 @@ import {
   ROOM_REQUEST_STATUS 
 } from '../services/roomRequestService'
 import QuickRoomFinder, { QuickBookButton } from '../components/ui/QuickRoomFinder'
+import { 
+  getUserBookings, 
+  cancelBooking, 
+  formatTimeDisplay 
+} from '../services/bestFitRoomService'
 
 // Days of the week
 const DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']
@@ -117,10 +122,17 @@ export default function Rooms() {
   
   // Quick Room Finder state
   const [showQuickFinder, setShowQuickFinder] = useState(false)
+  
+  // My Bookings state (for faculty and class_rep)
+  const [myBookings, setMyBookings] = useState([])
+  const [loadingBookings, setLoadingBookings] = useState(false)
+  const [cancellingBooking, setCancellingBooking] = useState(null)
+  const [showMyBookings, setShowMyBookings] = useState(false)
 
   // Check permissions
   const canToggle = userProfile?.role && ['class_rep', 'faculty', 'admin', 'super_admin'].includes(userProfile.role)
   const canManageRooms = userProfile?.role && ['admin', 'super_admin'].includes(userProfile.role)
+  const canViewBookings = userProfile?.role && ['class_rep', 'faculty', 'admin', 'super_admin'].includes(userProfile.role)
 
   // Refresh time every minute for real-time vacancy status
   useEffect(() => {
@@ -278,6 +290,25 @@ export default function Rooms() {
     
     loadRoomRequests()
   }, [canManageRooms])
+
+  // Load user bookings for faculty and class reps
+  useEffect(() => {
+    if (!canViewBookings || !userProfile?.uid) return
+    
+    const loadMyBookings = async () => {
+      setLoadingBookings(true)
+      try {
+        const bookings = await getUserBookings(userProfile.uid)
+        setMyBookings(bookings)
+      } catch (error) {
+        console.error('Error loading user bookings:', error)
+      } finally {
+        setLoadingBookings(false)
+      }
+    }
+    
+    loadMyBookings()
+  }, [canViewBookings, userProfile?.uid])
 
   // Subscribe to schedules for real-time updates when students upload reg forms
   useEffect(() => {
@@ -638,6 +669,32 @@ export default function Rooms() {
     }
   }
 
+  // Cancel a booking
+  const handleCancelBooking = async (booking) => {
+    if (!confirm(`Are you sure you want to cancel your booking for ${booking.roomName} on ${booking.day} ${formatTimeDisplay(booking.startTime)} - ${formatTimeDisplay(booking.endTime)}?`)) {
+      return
+    }
+    
+    setCancellingBooking(booking.id)
+    
+    try {
+      await cancelBooking(booking.id, booking.roomId, {
+        day: booking.day,
+        startTime: booking.startTime,
+        endTime: booking.endTime
+      })
+      
+      // Refresh bookings
+      const bookings = await getUserBookings(userProfile.uid)
+      setMyBookings(bookings)
+    } catch (error) {
+      console.error('Error cancelling booking:', error)
+      alert('Error cancelling booking')
+    } finally {
+      setCancellingBooking(null)
+    }
+  }
+
   // Open edit modal
   const openEditRoom = (room) => {
     setEditingRoom(room)
@@ -728,6 +785,25 @@ export default function Rooms() {
             {/* Quick Room Finder Button (Faculty and above) */}
             {canToggle && (
               <QuickBookButton onClick={() => setShowQuickFinder(true)} />
+            )}
+            
+            {/* My Bookings Button (Faculty and Class Reps) */}
+            {canViewBookings && (
+              <button
+                onClick={() => setShowMyBookings(true)}
+                className="flex items-center gap-2 px-3 sm:px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors font-medium text-sm relative"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                </svg>
+                <span className="hidden sm:inline">My Bookings</span>
+                <span className="sm:hidden">Bookings</span>
+                {myBookings.length > 0 && (
+                  <span className="absolute -top-1 -right-1 w-5 h-5 bg-green-500 text-white text-xs rounded-full flex items-center justify-center">
+                    {myBookings.length}
+                  </span>
+                )}
+              </button>
             )}
           </div>
           
@@ -1377,8 +1453,186 @@ export default function Rooms() {
       {/* Quick Room Finder Modal */}
       <QuickRoomFinder 
         isOpen={showQuickFinder} 
-        onClose={() => setShowQuickFinder(false)} 
+        onClose={() => {
+          setShowQuickFinder(false)
+          // Refresh bookings after closing (in case a new booking was made)
+          if (canViewBookings && userProfile?.uid) {
+            getUserBookings(userProfile.uid).then(setMyBookings).catch(console.error)
+          }
+        }} 
       />
+
+      {/* My Bookings Modal */}
+      {showMyBookings && (
+        <div 
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm"
+          style={{ 
+            position: 'fixed',
+            top: '-50px',
+            left: 0,
+            right: 0,
+            bottom: '-50px',
+            paddingTop: '50px',
+            paddingBottom: '50px'
+          }}
+          onClick={() => setShowMyBookings(false)}
+        >
+          <div 
+            className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-hidden"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Modal Header */}
+            <div className="bg-gradient-to-r from-primary to-emerald-600 text-white px-6 py-4 flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 bg-white/20 rounded-lg flex items-center justify-center">
+                  <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                  </svg>
+                </div>
+                <div>
+                  <h2 className="text-lg font-bold">My Room Bookings</h2>
+                  <p className="text-white/80 text-sm">{myBookings.length} active booking{myBookings.length !== 1 ? 's' : ''}</p>
+                </div>
+              </div>
+              <button 
+                onClick={() => setShowMyBookings(false)}
+                className="p-2 hover:bg-white/20 rounded-lg transition-colors"
+              >
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+
+            {/* Bookings List */}
+            <div className="p-6 overflow-y-auto max-h-[calc(90vh-140px)]">
+              {loadingBookings ? (
+                <div className="flex items-center justify-center py-12">
+                  <div className="animate-spin rounded-full h-8 w-8 border-4 border-emerald-500 border-t-transparent"></div>
+                </div>
+              ) : myBookings.length === 0 ? (
+                <div className="text-center py-12">
+                  <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-gray-100 dark:bg-gray-700 flex items-center justify-center">
+                    <svg className="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                    </svg>
+                  </div>
+                  <h3 className="text-lg font-semibold text-gray-900 dark:text-white">No Bookings Yet</h3>
+                  <p className="text-gray-500 dark:text-gray-400 mt-1">
+                    Use the Quick Book feature to reserve a room.
+                  </p>
+                  <button
+                    onClick={() => {
+                      setShowMyBookings(false)
+                      setShowQuickFinder(true)
+                    }}
+                    className="mt-4 px-4 py-2 bg-emerald-500 text-white rounded-lg hover:bg-emerald-600 transition-colors font-medium text-sm"
+                  >
+                    ⚡ Quick Book Room
+                  </button>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {myBookings.map((booking) => (
+                    <div 
+                      key={booking.id}
+                      className="bg-gradient-to-r from-emerald-50 to-emerald-100/50 dark:from-emerald-900/20 dark:to-emerald-800/10 border border-emerald-200 dark:border-emerald-800 rounded-xl p-4"
+                    >
+                      <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3">
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2 mb-2">
+                            <span className="px-2 py-0.5 bg-green-500 text-white text-[10px] font-bold uppercase rounded">
+                              Confirmed
+                            </span>
+                            {booking.bookingMethod === 'best_fit_algorithm' && (
+                              <span className="px-2 py-0.5 bg-emerald-100 dark:bg-emerald-900/50 text-emerald-700 dark:text-emerald-300 text-[10px] font-bold uppercase rounded">
+                                ⚡ Quick Book
+                              </span>
+                            )}
+                          </div>
+                          <h4 className="text-xl font-bold text-gray-900 dark:text-white">{booking.roomName}</h4>
+                          <div className="flex flex-wrap items-center gap-2 mt-2 text-sm text-gray-600 dark:text-gray-400">
+                            <span className="flex items-center gap-1">
+                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                              </svg>
+                              {booking.day}
+                            </span>
+                            <span>•</span>
+                            <span className="flex items-center gap-1">
+                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                              </svg>
+                              {formatTimeDisplay(booking.startTime)} - {formatTimeDisplay(booking.endTime)}
+                            </span>
+                          </div>
+                          <div className="flex flex-wrap items-center gap-2 mt-2">
+                            {booking.roomBuilding && (
+                              <span className="px-2 py-1 bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 text-xs font-medium rounded">
+                                {booking.roomBuilding === 'old' ? 'Old Building' : booking.roomBuilding === 'new' ? 'New Building' : booking.roomBuilding}
+                              </span>
+                            )}
+                            {booking.requiredCapacity && (
+                              <span className="px-2 py-1 bg-purple-100 dark:bg-purple-900/50 text-purple-700 dark:text-purple-300 text-xs font-medium rounded">
+                                {booking.requiredCapacity} students
+                              </span>
+                            )}
+                            {booking.purpose && (
+                              <span className="px-2 py-1 bg-amber-100 dark:bg-amber-900/50 text-amber-700 dark:text-amber-300 text-xs font-medium rounded">
+                                {booking.purpose}
+                              </span>
+                            )}
+                          </div>
+                          {booking.createdAt && (
+                            <p className="text-xs text-gray-400 dark:text-gray-500 mt-2">
+                              Booked on {new Date(booking.createdAt).toLocaleDateString('en-US', { 
+                                month: 'short', 
+                                day: 'numeric', 
+                                year: 'numeric',
+                                hour: 'numeric',
+                                minute: '2-digit'
+                              })}
+                            </p>
+                          )}
+                        </div>
+                        <button
+                          onClick={() => handleCancelBooking(booking)}
+                          disabled={cancellingBooking === booking.id}
+                          className="w-full sm:w-auto px-4 py-2 bg-red-100 hover:bg-red-200 dark:bg-red-900/30 dark:hover:bg-red-900/50 text-red-600 dark:text-red-400 font-medium rounded-lg transition-colors disabled:opacity-50 flex items-center justify-center gap-2 flex-shrink-0"
+                        >
+                          {cancellingBooking === booking.id ? (
+                            <>
+                              <div className="w-4 h-4 border-2 border-red-500 border-t-transparent rounded-full animate-spin"></div>
+                              Cancelling...
+                            </>
+                          ) : (
+                            <>
+                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                              </svg>
+                              Cancel
+                            </>
+                          )}
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Modal Footer */}
+            <div className="bg-gray-50 dark:bg-gray-900 px-6 py-4 border-t border-gray-200 dark:border-gray-700">
+              <button
+                onClick={() => setShowMyBookings(false)}
+                className="w-full px-4 py-2 bg-gray-200 hover:bg-gray-300 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300 font-medium rounded-lg transition-colors"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

@@ -525,25 +525,10 @@ export default function Profile() {
                       className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-primary transition-colors bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
                     >
                       <option value="">Select position</option>
-                      <option value="Instructor I">Instructor I</option>
-                      <option value="Instructor II">Instructor II</option>
-                      <option value="Instructor III">Instructor III</option>
-                      <option value="Assistant Professor I">Assistant Professor I</option>
-                      <option value="Assistant Professor II">Assistant Professor II</option>
-                      <option value="Assistant Professor III">Assistant Professor III</option>
-                      <option value="Assistant Professor IV">Assistant Professor IV</option>
-                      <option value="Associate Professor I">Associate Professor I</option>
-                      <option value="Associate Professor II">Associate Professor II</option>
-                      <option value="Associate Professor III">Associate Professor III</option>
-                      <option value="Associate Professor IV">Associate Professor IV</option>
-                      <option value="Associate Professor V">Associate Professor V</option>
-                      <option value="Professor I">Professor I</option>
-                      <option value="Professor II">Professor II</option>
-                      <option value="Professor III">Professor III</option>
-                      <option value="Professor IV">Professor IV</option>
-                      <option value="Professor V">Professor V</option>
-                      <option value="Professor VI">Professor VI</option>
-                      <option value="University Professor">University Professor</option>
+                      <option value="Faculty Head">Faculty Head</option>
+                      <option value="Instructor 1">Instructor 1</option>
+                      <option value="Instructor 2">Instructor 2</option>
+                      <option value="Instructor 3">Instructor 3</option>
                     </select>
                   ) : (
                     <p className="px-4 py-2 bg-gray-50 dark:bg-gray-700 rounded-lg text-gray-900 dark:text-white">

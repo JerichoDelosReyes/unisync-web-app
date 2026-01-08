@@ -330,7 +330,7 @@ export default function QuickRoomFinder({ isOpen, onClose }) {
                   Room Requirements
                 </h3>
                 
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   {/* Day Selection */}
                   <div>
                     <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
@@ -499,19 +499,19 @@ export default function QuickRoomFinder({ isOpen, onClose }) {
                       {results.bestMatch && (
                         <div className="mb-4">
                           <div className={`border-2 rounded-xl p-4 ${getFitColors(results.bestMatch.fitQuality)}`}>
-                            <div className="flex items-start justify-between">
-                              <div>
+                            <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3">
+                              <div className="flex-1 min-w-0">
                                 <div className="flex items-center gap-2 mb-1">
                                   <span className="text-xs font-bold uppercase tracking-wider">
                                     {results.bestMatch.fitQuality?.badge}
                                   </span>
                                 </div>
                                 <h4 className="text-xl font-bold">{results.bestMatch.name}</h4>
-                                <div className="flex items-center gap-3 mt-1 text-sm opacity-80">
+                                <div className="flex flex-wrap items-center gap-x-3 gap-y-1 mt-1 text-sm opacity-80">
                                   <span>{getBuildingName(results.bestMatch.building)}</span>
-                                  <span>•</span>
+                                  <span className="hidden sm:inline">•</span>
                                   <span>{results.bestMatch.floor}</span>
-                                  <span>•</span>
+                                  <span className="hidden sm:inline">•</span>
                                   <span>Capacity: {results.bestMatch.capacity}</span>
                                 </div>
                                 <p className="text-sm mt-2 opacity-80">
@@ -521,7 +521,7 @@ export default function QuickRoomFinder({ isOpen, onClose }) {
                               <button
                                 onClick={() => handleBookRoom(results.bestMatch)}
                                 disabled={booking}
-                                className="px-4 py-2 bg-white/90 dark:bg-gray-800 text-gray-900 dark:text-white font-semibold rounded-lg hover:bg-white dark:hover:bg-gray-700 transition-colors disabled:opacity-50 shadow-sm"
+                                className="w-full sm:w-auto px-4 py-2 bg-white/90 dark:bg-gray-800 text-gray-900 dark:text-white font-semibold rounded-lg hover:bg-white dark:hover:bg-gray-700 transition-colors disabled:opacity-50 shadow-sm flex-shrink-0"
                               >
                                 {booking ? 'Booking...' : 'Book Now'}
                               </button>

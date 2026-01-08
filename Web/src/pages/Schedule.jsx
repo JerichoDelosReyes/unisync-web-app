@@ -1579,6 +1579,8 @@ function StudentScheduleView() {
   const [isSaving, setIsSaving] = useState(false)
   const [viewMode, setViewMode] = useState('grid') // 'grid' or 'list'
   const [errorModal, setErrorModal] = useState({ isOpen: false, title: '', message: '', details: '' })
+  // Clear schedule confirmation modal state
+  const [showClearConfirm, setShowClearConfirm] = useState(false)
   // Rooms state for real-time room status
   const [roomsMap, setRoomsMap] = useState({})
 
@@ -1999,42 +2001,51 @@ function StudentScheduleView() {
   }
 
   // Clear schedule
-  const handleClearSchedule = async () => {
+  const handleClearSchedule = () => {
+    if (!user) return
+    setShowClearConfirm(true)
+  }
+  
+  // Confirm clear schedule
+  const confirmClearSchedule = async () => {
     if (!user) return
     
-    if (confirm('Are you sure you want to clear your schedule?')) {
-      setIsSaving(true)
-      try {
-        // First, remove student from all class sections they were enrolled in
-        const removePromises = scheduleData
-          .filter(entry => entry.scheduleCode)
-          .map(entry => 
-            removeStudentFromClassSection(entry.scheduleCode, user.uid).catch(err => {
-              console.error(`Error removing from schedule code ${entry.scheduleCode}:`, err)
-            })
-          )
-        await Promise.all(removePromises)
-        
-        // Remove room occupancies added by this user
-        await removeUserOccupancies(user.uid)
-        
-        await deleteStudentSchedule(user.uid)
-        setScheduleData([])
-        setStudentInfo({
-          semester: '',
-          schoolYear: '',
-          course: '',
-          yearLevel: '',
-          section: ''
-        })
-        localStorage.removeItem('studentSchedule')
-        localStorage.removeItem('studentInfo')
-      } catch (error) {
-        console.error('Error clearing schedule:', error)
-        alert('Failed to clear schedule. Please try again.')
-      } finally {
-        setIsSaving(false)
-      }
+    setShowClearConfirm(false)
+    setIsSaving(true)
+    try {
+      // First, remove student from all class sections they were enrolled in
+      const removePromises = scheduleData
+        .filter(entry => entry.scheduleCode)
+        .map(entry => 
+          removeStudentFromClassSection(entry.scheduleCode, user.uid).catch(err => {
+            console.error(`Error removing from schedule code ${entry.scheduleCode}:`, err)
+          })
+        )
+      await Promise.all(removePromises)
+      
+      // Remove room occupancies added by this user
+      await removeUserOccupancies(user.uid)
+      
+      await deleteStudentSchedule(user.uid)
+      setScheduleData([])
+      setStudentInfo({
+        semester: '',
+        schoolYear: '',
+        course: '',
+        yearLevel: '',
+        section: ''
+      })
+      localStorage.removeItem('studentSchedule')
+      localStorage.removeItem('studentInfo')
+    } catch (error) {
+      console.error('Error clearing schedule:', error)
+      setErrorModal({
+        isOpen: true,
+        title: 'Error',
+        message: 'Failed to clear schedule. Please try again.'
+      })
+    } finally {
+      setIsSaving(false)
     }
   }
 
@@ -2479,6 +2490,83 @@ function StudentScheduleView() {
                 </svg>
                 Upload Different Form
               </button>
+            </div>
+          </div>
+        </ModalOverlay>
+      )}
+
+      {/* Clear Schedule Confirmation Modal */}
+      {showClearConfirm && (
+        <ModalOverlay onClose={() => setShowClearConfirm(false)}>
+          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-w-md w-full mx-4 overflow-hidden animate-in fade-in zoom-in duration-200">
+            {/* Header with warning icon */}
+            <div className="bg-gradient-to-r from-red-500 to-red-600 px-6 py-6 text-center">
+              <div className="w-16 h-16 bg-white/20 rounded-full flex items-center justify-center mx-auto mb-3">
+                <svg className="w-10 h-10 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                </svg>
+              </div>
+              <h3 className="text-xl font-bold text-white">Clear Schedule?</h3>
+            </div>
+            
+            {/* Content */}
+            <div className="px-6 py-6">
+              <p className="text-gray-600 dark:text-gray-300 text-center mb-4">
+                Are you sure you want to clear your entire schedule? This action will:
+              </p>
+              
+              {/* Warning items */}
+              <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xl p-4 mb-6">
+                <ul className="space-y-2 text-sm text-red-700 dark:text-red-300">
+                  <li className="flex items-start gap-2">
+                    <svg className="w-5 h-5 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                    </svg>
+                    <span>Remove all your class schedules</span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <svg className="w-5 h-5 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                    </svg>
+                    <span>Unenroll you from all class sections</span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <svg className="w-5 h-5 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                    </svg>
+                    <span>This action cannot be undone</span>
+                  </li>
+                </ul>
+              </div>
+              
+              {/* Buttons */}
+              <div className="flex gap-3">
+                <button
+                  onClick={() => setShowClearConfirm(false)}
+                  className="flex-1 px-4 py-3 bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300 rounded-xl transition-colors font-medium"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={confirmClearSchedule}
+                  disabled={isSaving}
+                  className="flex-1 px-4 py-3 bg-red-500 hover:bg-red-600 text-white rounded-xl transition-colors font-medium flex items-center justify-center gap-2 disabled:opacity-50"
+                >
+                  {isSaving ? (
+                    <>
+                      <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                      Clearing...
+                    </>
+                  ) : (
+                    <>
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                      </svg>
+                      Yes, Clear Schedule
+                    </>
+                  )}
+                </button>
+              </div>
             </div>
           </div>
         </ModalOverlay>
