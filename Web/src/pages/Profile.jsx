@@ -361,7 +361,6 @@ export default function Profile() {
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                 Given Name
-                {userProfile?.course && <span className="text-gray-400 dark:text-gray-500 font-normal ml-1">(From Reg Form)</span>}
               </label>
               {isEditing ? (
                 <input
@@ -369,8 +368,7 @@ export default function Profile() {
                   name="givenName"
                   value={formData.givenName}
                   onChange={handleChange}
-                  disabled={!!userProfile?.course}
-                  className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-primary transition-colors bg-white dark:bg-gray-700 text-gray-900 dark:text-white disabled:bg-gray-100 dark:disabled:bg-gray-800 disabled:text-gray-500 dark:disabled:text-gray-400 disabled:cursor-not-allowed"
+                  className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-primary transition-colors bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
                   placeholder="Enter given name"
                 />
               ) : (
@@ -378,16 +376,12 @@ export default function Profile() {
                   {userProfile?.givenName || '-'}
                 </p>
               )}
-              {isEditing && userProfile?.course && (
-                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1 italic">Locked from registration form</p>
-              )}
             </div>
 
             {/* Middle Name */}
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                 Middle Name
-                {userProfile?.course && <span className="text-gray-400 dark:text-gray-500 font-normal ml-1">(From Reg Form)</span>}
               </label>
               {isEditing ? (
                 <input
@@ -395,8 +389,7 @@ export default function Profile() {
                   name="middleName"
                   value={formData.middleName}
                   onChange={handleChange}
-                  disabled={!!userProfile?.course}
-                  className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-primary transition-colors bg-white dark:bg-gray-700 text-gray-900 dark:text-white disabled:bg-gray-100 dark:disabled:bg-gray-800 disabled:text-gray-500 dark:disabled:text-gray-400 disabled:cursor-not-allowed"
+                  className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-primary transition-colors bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
                   placeholder="Enter middle name"
                 />
               ) : (
@@ -409,16 +402,12 @@ export default function Profile() {
                   )}
                 </p>
               )}
-              {isEditing && userProfile?.course && (
-                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1 italic">Locked from registration form</p>
-              )}
             </div>
 
             {/* Last Name */}
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                 Last Name
-                {userProfile?.course && <span className="text-gray-400 dark:text-gray-500 font-normal ml-1">(From Reg Form)</span>}
               </label>
               {isEditing ? (
                 <input
@@ -426,17 +415,13 @@ export default function Profile() {
                   name="lastName"
                   value={formData.lastName}
                   onChange={handleChange}
-                  disabled={!!userProfile?.course}
-                  className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-primary transition-colors bg-white dark:bg-gray-700 text-gray-900 dark:text-white disabled:bg-gray-100 dark:disabled:bg-gray-800 disabled:text-gray-500 dark:disabled:text-gray-400 disabled:cursor-not-allowed"
+                  className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-primary transition-colors bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
                   placeholder="Enter last name"
                 />
               ) : (
                 <p className="px-4 py-2 bg-gray-50 dark:bg-gray-700 rounded-lg text-gray-900 dark:text-white">
                   {userProfile?.lastName || '-'}
                 </p>
-              )}
-              {isEditing && userProfile?.course && (
-                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1 italic">Locked from registration form</p>
               )}
             </div>
 
