@@ -319,7 +319,7 @@ export default function Rooms() {
     // Subscribe to student schedules
     const unsubscribeSchedules = onSnapshot(
       collection(db, 'schedules'),
-      (snapshot) => {
+      async (snapshot) => {
         const schedulesByRoom = {}
         const roomLookup = buildRoomLookup()
         
@@ -399,6 +399,9 @@ export default function Rooms() {
               )
               
               if (!isDuplicate) {
+                // Use professor from schedule, or "TBA" if not available
+                let professorName = schedule.professor || 'TBA'
+                
                 schedulesByRoom[roomCode].push({
                   subject: schedule.subject,
                   day: schedule.day,
@@ -406,7 +409,8 @@ export default function Rooms() {
                   endTime: schedule.endTime,
                   section: data.section || schedule.section || '',
                   course: data.course || '',
-                  professor: schedule.professor || '',
+                  professor: professorName,
+                  scheduleCode: schedule.scheduleCode || null, // For professor matchmaking lookup
                   originalRoom: schedule.room // Keep original for reference
                 })
               }
@@ -418,6 +422,36 @@ export default function Rooms() {
         Object.keys(schedulesByRoom).forEach(room => {
           schedulesByRoom[room].sort((a, b) => a.startTime.localeCompare(b.startTime))
         })
+        
+        // Now enrich schedules with professor info from class_sections if available
+        const enrichWithProfessorInfo = async () => {
+          try {
+            const classSecsRef = collection(db, 'class_sections')
+            const classSecsSnap = await getDocs(classSecsRef)
+            const profMap = {} // scheduleCode -> professorName
+            
+            classSecsSnap.forEach(docSnap => {
+              const data = docSnap.data()
+              if (data.scheduleCode && data.professorName) {
+                profMap[data.scheduleCode] = data.professorName
+              }
+            })
+            
+            // Update schedules with professor info
+            Object.keys(schedulesByRoom).forEach(room => {
+              schedulesByRoom[room].forEach(schedule => {
+                if (schedule.scheduleCode && profMap[schedule.scheduleCode]) {
+                  schedule.professor = profMap[schedule.scheduleCode]
+                }
+              })
+            })
+          } catch (error) {
+            console.error('Error enriching professor info:', error)
+            // Continue without enrichment
+          }
+        }
+        
+        await enrichWithProfessorInfo()
         
         // Now fetch and merge room bookings
         const unsubscribeBookings = onSnapshot(
@@ -952,7 +986,7 @@ export default function Rooms() {
                           <p className={`text-xl font-bold ${isOccupied ? 'text-red-700' : 'text-emerald-700'}`}>
                             {room.name}
                           </p>
-                          <p className={`text-xs font-medium mt-1 ${isOccupied ? 'text-red-600' : 'text-emerald-600'}`}>
+                          <p className={`text-[10px] sm:text-xs font-medium mt-1 truncate ${isOccupied ? 'text-red-600' : 'text-emerald-600'}`}>
                             {isUpdating ? (
                               <span className="flex items-center justify-center gap-1">
                                 <svg className="w-3 h-3 animate-spin" fill="none" viewBox="0 0 24 24">
@@ -961,7 +995,7 @@ export default function Rooms() {
                                 </svg>
                                 Updating...
                               </span>
-                            ) : isOccupied ? 'OCCUPIED' : 'VACANT NOW'}
+                            ) : isOccupied ? 'OCCUPIED' : 'VACANT'}
                           </p>
                           
                           {/* Show vacancy time slots */}

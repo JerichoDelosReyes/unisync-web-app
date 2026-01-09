@@ -188,8 +188,8 @@ export default function AuthPage() {
     setSignUpLoading(true)
     
     // Validation
-    if (!givenName || !middleName || !lastName || !signUpEmail || !signUpPassword || !confirmPassword) {
-      showToast('Please fill in all fields', 'warning')
+    if (!givenName || !lastName || !signUpEmail || !signUpPassword || !confirmPassword) {
+      showToast('Please fill in all required fields', 'warning')
       setSignUpLoading(false)
       return
     }
@@ -552,7 +552,7 @@ export default function AuthPage() {
                     />
                   </div>
                   <div className="space-y-1.5">
-                    <label className="text-xs font-medium text-gray-600 dark:text-gray-400">Middle Name</label>
+                    <label className="text-xs font-medium text-gray-600 dark:text-gray-400">Middle Name <span className="text-gray-400 dark:text-gray-500 font-normal">(optional)</span></label>
                     <input
                       type="text"
                       placeholder="Santos"

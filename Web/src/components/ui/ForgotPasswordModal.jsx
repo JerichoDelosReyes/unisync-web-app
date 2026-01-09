@@ -108,6 +108,23 @@ export default function ForgotPasswordModal({ isOpen, onClose }) {
                 </p>
               </div>
 
+              {/* Password Requirements Info */}
+              <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-700 rounded-xl p-4 mb-4 text-left">
+                <p className="text-sm font-medium text-amber-800 dark:text-amber-300 mb-2 flex items-center gap-2">
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                  New Password Requirements:
+                </p>
+                <ul className="text-xs text-amber-700 dark:text-amber-400 space-y-1 ml-6 list-disc">
+                  <li>At least 8 characters long</li>
+                  <li>At least one uppercase letter (A-Z)</li>
+                  <li>At least one lowercase letter (a-z)</li>
+                  <li>At least one number (0-9)</li>
+                  <li>At least one special character (!@#$%^&*)</li>
+                </ul>
+              </div>
+
               {/* Email Form */}
               <form onSubmit={handleEmailSubmit}>
                 <div className="mb-6">
@@ -154,10 +171,28 @@ export default function ForgotPasswordModal({ isOpen, onClose }) {
                   </svg>
                 </div>
                 <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">Check Your Email</h2>
-                <p className="text-gray-600 dark:text-gray-400 mb-6">
+                <p className="text-gray-600 dark:text-gray-400 mb-4">
                   We've sent a password reset link to<br />
                   <span className="font-medium text-primary">{email}</span>
                 </p>
+                
+                {/* Password Requirements Info */}
+                <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-700 rounded-xl p-4 mb-4 text-left">
+                  <p className="text-sm font-medium text-amber-800 dark:text-amber-300 mb-2 flex items-center gap-2">
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    New Password Requirements:
+                  </p>
+                  <ul className="text-xs text-amber-700 dark:text-amber-400 space-y-1 ml-6 list-disc">
+                    <li>At least 8 characters long</li>
+                    <li>At least one uppercase letter (A-Z)</li>
+                    <li>At least one lowercase letter (a-z)</li>
+                    <li>At least one number (0-9)</li>
+                    <li>At least one special character (!@#$%^&*)</li>
+                  </ul>
+                </div>
+                
                 <p className="text-sm text-gray-500 dark:text-gray-400 mb-6">
                   Didn't receive the email? Check your spam folder or try again.
                 </p>

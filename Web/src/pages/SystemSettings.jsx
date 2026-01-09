@@ -410,10 +410,11 @@ export default function SystemSettings() {
       {showResetModal && (
         <div
           className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[100] p-4"
+          style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0 }}
           onClick={closeResetModal}
         >
           <div
-            className="bg-white rounded-2xl shadow-2xl max-w-md w-full overflow-hidden animate-in fade-in zoom-in duration-200"
+            className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-w-md w-full overflow-hidden animate-in fade-in zoom-in duration-200"
             onClick={(e) => e.stopPropagation()}
           >
             {/* Modal Header */}
@@ -436,52 +437,52 @@ export default function SystemSettings() {
               {resetResult ? (
                 <div className={`rounded-lg p-4 ${
                   resetResult.type === 'success' 
-                    ? 'bg-green-50 border border-green-200' 
-                    : 'bg-red-50 border border-red-200'
+                    ? 'bg-green-50 dark:bg-green-900/30 border border-green-200 dark:border-green-700' 
+                    : 'bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-700'
                 }`}>
                   {resetResult.type === 'success' ? (
                     <div className="text-center">
-                      <svg className="w-12 h-12 text-green-600 mx-auto mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <svg className="w-12 h-12 text-green-600 dark:text-green-400 mx-auto mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                       </svg>
-                      <h4 className="text-lg font-semibold text-green-800 mb-2">Reset Complete!</h4>
-                      <p className="text-sm text-green-700">
+                      <h4 className="text-lg font-semibold text-green-800 dark:text-green-300 mb-2">Reset Complete!</h4>
+                      <p className="text-sm text-green-700 dark:text-green-400">
                         Archived {resetResult.archive?.schedulesArchived || 0} schedules.<br />
                         Deleted {resetResult.reset?.schedulesDeleted || 0} schedules.
                       </p>
                     </div>
                   ) : (
                     <div className="text-center">
-                      <svg className="w-12 h-12 text-red-600 mx-auto mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <svg className="w-12 h-12 text-red-600 dark:text-red-400 mx-auto mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                       </svg>
-                      <h4 className="text-lg font-semibold text-red-800 mb-2">Reset Failed</h4>
-                      <p className="text-sm text-red-700">{resetResult.message}</p>
+                      <h4 className="text-lg font-semibold text-red-800 dark:text-red-300 mb-2">Reset Failed</h4>
+                      <p className="text-sm text-red-700 dark:text-red-400">{resetResult.message}</p>
                     </div>
                   )}
                 </div>
               ) : (
                 <>
-                  <div className="bg-gray-50 rounded-lg p-4 mb-4">
+                  <div className="bg-gray-50 dark:bg-gray-700 rounded-lg p-4 mb-4">
                     <div className="grid grid-cols-2 gap-4 text-center">
                       <div>
-                        <p className="text-2xl font-bold text-gray-900">{currentScheduleCount}</p>
-                        <p className="text-xs text-gray-500">Schedules to Archive</p>
+                        <p className="text-2xl font-bold text-gray-900 dark:text-white">{currentScheduleCount}</p>
+                        <p className="text-xs text-gray-500 dark:text-gray-400">Schedules to Archive</p>
                       </div>
                       <div>
-                        <p className="text-sm font-medium text-gray-900">
+                        <p className="text-sm font-medium text-gray-900 dark:text-white">
                           {semesterSettings.currentSemester}<br />
                           {semesterSettings.currentSchoolYear}
                         </p>
-                        <p className="text-xs text-gray-500">Current Period</p>
+                        <p className="text-xs text-gray-500 dark:text-gray-400">Current Period</p>
                       </div>
                     </div>
                   </div>
                   
-                  <p className="text-sm text-gray-600 mb-4">
+                  <p className="text-sm text-gray-600 dark:text-gray-300 mb-4">
                     This will:
                   </p>
-                  <ul className="text-sm text-gray-600 mb-4 space-y-1">
+                  <ul className="text-sm text-gray-600 dark:text-gray-300 mb-4 space-y-1">
                     <li className="flex items-center gap-2">
                       <svg className="w-4 h-4 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
@@ -503,15 +504,15 @@ export default function SystemSettings() {
                   </ul>
                   
                   <div className="mb-4">
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Type <span className="font-bold text-red-600">RESET</span> to confirm
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                      Type <span className="font-bold text-red-600 dark:text-red-400">RESET</span> to confirm
                     </label>
                     <input
                       type="text"
                       value={confirmText}
                       onChange={(e) => setConfirmText(e.target.value)}
                       placeholder="Type RESET"
-                      className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-red-200 focus:border-red-400"
+                      className="w-full px-3 py-2 border border-gray-200 dark:border-gray-600 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-red-200 dark:focus:ring-red-800 focus:border-red-400 dark:focus:border-red-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
                     />
                   </div>
                 </>
@@ -519,10 +520,10 @@ export default function SystemSettings() {
             </div>
             
             {/* Modal Footer */}
-            <div className="px-6 py-4 bg-gray-50 border-t border-gray-100 flex gap-3">
+            <div className="px-6 py-4 bg-gray-50 dark:bg-gray-900 border-t border-gray-100 dark:border-gray-700 flex gap-3">
               <button
                 onClick={closeResetModal}
-                className="flex-1 px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors font-medium"
+                className="flex-1 px-4 py-2 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-200 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors font-medium"
               >
                 {resetResult ? 'Close' : 'Cancel'}
               </button>

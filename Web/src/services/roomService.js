@@ -82,13 +82,27 @@ export const isVacancyActive = (vacancy) => {
 }
 
 /**
- * Check if a room is currently vacant based on its occupancy periods
+ * Check if a room is currently vacant based on its occupancy periods and vacancy overrides
  * Rooms are VACANT by default unless there's an active class schedule (occupancyPeriods)
- * @param {object} room - Room document with occupancyPeriods array
+ * Users can manually mark a time slot as vacant (vacancyPeriods) which overrides occupancy
+ * @param {object} room - Room document with occupancyPeriods and vacancyPeriods arrays
  * @returns {boolean} - True if room is currently vacant (not occupied)
  */
 export const isRoomCurrentlyVacant = (room) => {
   if (!room) return true // Default to vacant if no room data
+  
+  // First check if there's an active vacancy period (user manually marked as vacant)
+  // This takes priority over occupancy periods
+  if (room.vacancyPeriods && Array.isArray(room.vacancyPeriods) && room.vacancyPeriods.length > 0) {
+    const hasActiveVacancy = room.vacancyPeriods.some(vacancy => {
+      // Only consider vacancies from current week
+      if (!isVacancyFromCurrentWeek(vacancy)) return false
+      return isVacancyActive(vacancy)
+    })
+    
+    // If there's an active vacancy period, the room is vacant (override)
+    if (hasActiveVacancy) return true
+  }
   
   // If room has no occupancy periods (no classes scheduled), it's vacant by default
   if (!room.occupancyPeriods || !Array.isArray(room.occupancyPeriods) || room.occupancyPeriods.length === 0) {
@@ -269,16 +283,26 @@ const normalizeTime = (timeStr) => {
 
 /**
  * Check if a specific schedule's time slot is marked as vacant for a room
- * Only considers vacancies from the current week (not expired ones)
+ * Only considers vacancies that are:
+ * 1. From the current week (not expired)
+ * 2. For today's date AND current time is still within the schedule's time slot
+ *    OR for a future day this week
+ * Once the schedule time has passed, the vacancy is automatically "expired"
  * @param {object} room - Room document
  * @param {object} schedule - Schedule with day, startTime, endTime
- * @returns {boolean} - True if this schedule's slot is marked vacant for current week
+ * @returns {boolean} - True if this schedule's slot is marked vacant and still active
  */
 export const isScheduleSlotVacant = (room, schedule) => {
   if (!room || !schedule || !room.vacancyPeriods) return false
   
   const scheduleStart = normalizeTime(schedule.startTime)
   const scheduleEnd = normalizeTime(schedule.endTime)
+  const currentDay = getCurrentDay()
+  
+  // Get current time in minutes
+  const now = new Date()
+  const currentMinutes = now.getHours() * 60 + now.getMinutes()
+  const scheduleEndMinutes = timeToMinutes(schedule.endTime)
   
   return room.vacancyPeriods.some(p => {
     // Only consider vacancies from current week
@@ -287,9 +311,23 @@ export const isScheduleSlotVacant = (room, schedule) => {
     const pStart = normalizeTime(p.startTime)
     const pEnd = normalizeTime(p.endTime)
     
-    return p.day === schedule.day && 
-           pStart === scheduleStart && 
-           pEnd === scheduleEnd
+    // Check if this vacancy matches the schedule
+    const matchesSchedule = p.day === schedule.day && 
+                            pStart === scheduleStart && 
+                            pEnd === scheduleEnd
+    
+    if (!matchesSchedule) return false
+    
+    // If the schedule is for today, check if the time has passed
+    if (schedule.day === currentDay) {
+      // If current time is past the schedule's end time, consider vacancy expired
+      if (currentMinutes >= scheduleEndMinutes) {
+        return false // Vacancy expired - schedule time has ended
+      }
+    }
+    
+    // For future days this week or if time hasn't passed yet, vacancy is still valid
+    return true
   })
 }
 

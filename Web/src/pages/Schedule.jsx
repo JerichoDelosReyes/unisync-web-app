@@ -18,6 +18,7 @@ import { updateRoomStatus, subscribeToRooms, isScheduleSlotVacant, isRoomCurrent
 import { findMissingRooms, submitRoomRequest } from '../services/roomRequestService'
 import FacultyScheduleView from '../components/schedule/FacultyScheduleView'
 import ModalOverlay from '../components/ui/ModalOverlay'
+import { checkProfanity } from '../utils/profanityFilter'
 
 // Set up PDF.js worker using CDN (more reliable for Vite)
 pdfjsLib.GlobalWorkerOptions.workerSrc = `https://unpkg.com/pdfjs-dist@${pdfjsLib.version}/build/pdf.worker.min.mjs`
@@ -1071,9 +1072,25 @@ const ScheduleDetailModal = ({
   const handleSaveSection = async () => {
     if (!onUpdateClassSection || !classSection.trim()) return
     
+    const sectionValue = classSection.trim().toUpperCase()
+    
+    // Validate section format: Must match pattern like BSIT-3A, BSCS-2B, etc.
+    const sectionPattern = /^(BSIT|BSCS|BSIS|BSEMC|BSBA|BSA|BSED|BEED|AB|BS)[- ]?\d[A-Z]$/i
+    if (!sectionPattern.test(sectionValue)) {
+      alert('Invalid section format. Please enter a valid section (e.g., BSIT-3A, BSCS-2B)')
+      return
+    }
+    
+    // Check for profanity
+    const profanityCheck = checkProfanity(sectionValue)
+    if (profanityCheck.hasProfanity) {
+      alert('Invalid input detected. Please enter a valid section name.')
+      return
+    }
+    
     setIsSaving(true)
     try {
-      await onUpdateClassSection(schedule.id, classSection.trim().toUpperCase())
+      await onUpdateClassSection(schedule.id, sectionValue)
       setEditingSection(false)
     } catch (error) {
       console.error('Error updating class section:', error)
