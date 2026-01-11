@@ -1837,7 +1837,7 @@ export default function Announcements() {
               {(canAnnounceAsClassRep && isOrgOfficer) && (
                 <div className="mb-6 p-4 bg-gray-50 dark:bg-gray-700 rounded-xl border border-gray-200 dark:border-gray-600">
                   <p className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">Announce as:</p>
-                  <div className="flex gap-3">
+                  <div className="flex flex-col sm:flex-row gap-3">
                     <button
                       type="button"
                       onClick={() => {
@@ -1850,8 +1850,8 @@ export default function Announcements() {
                           : 'border-gray-200 dark:border-gray-600 hover:border-gray-300 dark:hover:border-gray-500'
                       }`}
                     >
-                      <div className="flex items-center gap-2 justify-center">
-                        <AcademicCapIcon className="w-5 h-5 text-green-600" />
+                      <div className="flex items-center gap-2 justify-center sm:justify-start">
+                        <AcademicCapIcon className="w-5 h-5 text-green-600 flex-shrink-0" />
                         <div className="text-left">
                           <p className="font-semibold text-sm text-gray-900 dark:text-white">Class Representative</p>
                           <p className="text-xs text-gray-500 dark:text-gray-400">Section {userProfile?.section}</p>
@@ -1872,8 +1872,8 @@ export default function Announcements() {
                           : 'border-gray-200 dark:border-gray-600 hover:border-gray-300 dark:hover:border-gray-500'
                       }`}
                     >
-                      <div className="flex items-center gap-2 justify-center">
-                        <BuildingLibraryIcon className="w-5 h-5 text-blue-600" />
+                      <div className="flex items-center gap-2 justify-center sm:justify-start">
+                        <BuildingLibraryIcon className="w-5 h-5 text-blue-600 flex-shrink-0" />
                         <div className="text-left">
                           <p className="font-semibold text-sm text-gray-900 dark:text-white">Organization Officer</p>
                           <p className="text-xs text-gray-500 dark:text-gray-400">

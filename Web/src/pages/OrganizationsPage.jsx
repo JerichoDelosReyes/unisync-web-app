@@ -306,13 +306,15 @@ export default function OrganizationsPage() {
   }, [showAdviserModal, selectedOrg])
 
   // Fetch student list for officer/committee/year rep modal - filtered by org's course
+  // Includes both Students and Class Reps (Class Reps can be tagged as officers too)
   useEffect(() => {
     const fetchStudents = async () => {
       if ((!showOfficerModal && !showCommitteeModal && !showYearRepModal) || !selectedOrg) return
       
       try {
         const users = await getDocuments('users')
-        let students = users.filter(u => u.role === ROLES.STUDENT)
+        // Include both Students and Class Reps - Class Reps can be tagged as officers
+        let students = users.filter(u => u.role === ROLES.STUDENT || u.role === ROLES.CLASS_REP)
         
         // Filter students by course based on selected org
         const orgConfig = ORGANIZATIONS[selectedOrg.code]
@@ -705,11 +707,21 @@ export default function OrganizationsPage() {
     f.email?.toLowerCase().includes(searchTerm.toLowerCase())
   )
   
-  const filteredStudents = studentList.filter(s => 
-    s.displayName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    s.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    s.studentId?.includes(searchTerm)
-  )
+  // Get list of user IDs who are already officers in the selected org
+  const existingOfficerIds = orgOfficers?.officers?.map(o => o.userId) || []
+  
+  // Filter students: match search AND exclude existing officers
+  const filteredStudents = studentList.filter(s => {
+    // Exclude students who are already officers in this org
+    if (existingOfficerIds.includes(s.uid)) return false
+    
+    // Match search term
+    return (
+      s.displayName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      s.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      s.studentId?.includes(searchTerm)
+    )
+  })
 
   // Group organizations by category
   // Non-admin users only see organizations they're assigned to (adviser, president, officer)
@@ -835,39 +847,42 @@ export default function OrganizationsPage() {
           {selectedOrg ? (
             <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
               {/* Org Header */}
-              <div className="p-6 border-b border-gray-200 dark:border-gray-700 flex items-center gap-4">
+              <div className="p-4 sm:p-6 border-b border-gray-200 dark:border-gray-700">
+                <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
                 {/* Organization Logo - use uploaded photo or static logo */}
                 {selectedOrg.photoURL ? (
                   <img 
                     src={selectedOrg.photoURL} 
                     alt={selectedOrg.name}
-                    className="w-20 h-20 object-cover rounded-xl"
+                    className="w-16 h-16 sm:w-20 sm:h-20 object-cover rounded-xl flex-shrink-0"
                   />
                 ) : ORG_LOGOS[selectedOrg.code] ? (
                   <img 
                     src={ORG_LOGOS[selectedOrg.code]} 
                     alt={selectedOrg.name}
-                    className="w-20 h-20 object-contain"
+                    className="w-16 h-16 sm:w-20 sm:h-20 object-contain flex-shrink-0"
                   />
                 ) : (
-                  <div className="w-20 h-20 rounded-xl bg-gray-200 dark:bg-gray-600 flex items-center justify-center">
-                    <span className="text-2xl font-bold text-gray-500 dark:text-gray-400">{selectedOrg.code?.substring(0, 2)}</span>
+                  <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-xl bg-gray-200 dark:bg-gray-600 flex items-center justify-center flex-shrink-0">
+                    <span className="text-xl sm:text-2xl font-bold text-gray-500 dark:text-gray-400">{selectedOrg.code?.substring(0, 2)}</span>
                   </div>
                 )}
-                <div className="flex-1">
-                  <h2 className="text-xl font-bold text-gray-900 dark:text-white">{selectedOrg.name}</h2>
-                  <p className="text-gray-600 dark:text-gray-400">{selectedOrg.fullName}</p>
-                  <div className="flex items-center gap-2 mt-2">
+                <div className="flex-1 min-w-0">
+                  <h2 className="text-lg sm:text-xl font-bold text-gray-900 dark:text-white truncate">{selectedOrg.name}</h2>
+                  <p className="text-sm text-gray-600 dark:text-gray-400 truncate">{selectedOrg.fullName}</p>
+                  <div className="flex flex-wrap items-center gap-2 mt-2">
                     <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
                       ORG_CATEGORIES[selectedOrg.category]?.bgColor || 'bg-gray-100'
                     } ${ORG_CATEGORIES[selectedOrg.category]?.textColor || 'text-gray-800'}`}>
                       {ORG_CATEGORIES[selectedOrg.category]?.label || selectedOrg.category}
                     </span>
                     <span className="text-xs text-gray-500 flex items-center gap-1">
-                      <MegaphoneIcon className="w-3.5 h-3.5" />
+                      <MegaphoneIcon className="w-3.5 h-3.5 flex-shrink-0" />
+                      <span className="truncate">
                       {selectedOrg.audienceType === 'all' 
                         ? 'Announces to all students' 
                         : `Announces to ${selectedOrg.audienceCourse || selectedOrg.audienceDepartment || 'members'}`}
+                      </span>
                     </span>
                     {selectedOrg.isCustom && (
                       <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
@@ -876,8 +891,9 @@ export default function OrganizationsPage() {
                     )}
                   </div>
                 </div>
-                <div className="text-right flex flex-col items-end gap-2">
-                  <div>
+                </div>
+                <div className="flex items-center justify-between sm:justify-end gap-4 mt-3 sm:mt-0 pt-3 sm:pt-0 border-t sm:border-t-0 border-gray-200 dark:border-gray-700">
+                  <div className="text-left sm:text-right">
                     <p className="text-sm text-gray-500 dark:text-gray-400">School Year</p>
                     <p className="font-semibold text-gray-900 dark:text-white">{orgOfficers?.schoolYear || '2025-2026'}</p>
                   </div>
@@ -895,8 +911,8 @@ export default function OrganizationsPage() {
               </div>
 
               {/* Advisers Section */}
-              <div className="p-6 border-b border-gray-200 dark:border-gray-700">
-                <div className="flex items-center justify-between mb-4">
+              <div className="p-4 sm:p-6 border-b border-gray-200 dark:border-gray-700">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
                   <h3 className="font-semibold text-gray-900 dark:text-white flex items-center gap-2">
                     <UserIcon className="w-5 h-5 text-purple-600" />
                     Advisers
@@ -907,7 +923,7 @@ export default function OrganizationsPage() {
                   {isAdmin && (orgOfficers?.advisers?.length || 0) < selectedOrg.maxAdvisers && (
                     <button
                       onClick={() => setShowAdviserModal(true)}
-                      className="px-3 py-1.5 bg-purple-600 text-white text-sm rounded-lg hover:bg-purple-700 transition-colors"
+                      className="px-3 py-1.5 bg-purple-600 text-white text-sm rounded-lg hover:bg-purple-700 transition-colors w-full sm:w-auto"
                     >
                       + Add Adviser
                     </button>
@@ -917,20 +933,20 @@ export default function OrganizationsPage() {
                 {orgOfficers?.advisers?.length > 0 ? (
                   <div className="space-y-2">
                     {orgOfficers.advisers.map(adviser => (
-                      <div key={adviser.userId} className="flex items-center justify-between p-3 bg-purple-50 dark:bg-purple-900/30 rounded-lg">
+                      <div key={adviser.userId} className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3 bg-purple-50 dark:bg-purple-900/30 rounded-lg">
                         <div className="flex items-center gap-3">
-                          <div className="w-10 h-10 bg-purple-200 dark:bg-purple-800 rounded-full flex items-center justify-center text-purple-700 dark:text-purple-300 font-semibold">
+                          <div className="w-10 h-10 bg-purple-200 dark:bg-purple-800 rounded-full flex items-center justify-center text-purple-700 dark:text-purple-300 font-semibold flex-shrink-0">
                             {adviser.displayName?.charAt(0) || '?'}
                           </div>
-                          <div>
-                            <p className="font-medium text-gray-900 dark:text-white">{adviser.displayName}</p>
-                            <p className="text-sm text-gray-500 dark:text-gray-400">{adviser.email}</p>
+                          <div className="min-w-0">
+                            <p className="font-medium text-gray-900 dark:text-white truncate">{adviser.displayName}</p>
+                            <p className="text-sm text-gray-500 dark:text-gray-400 truncate">{adviser.email}</p>
                           </div>
                         </div>
                         {isAdmin && (
                           <button
                             onClick={() => handleRemoveAdviser(adviser.userId)}
-                            className="text-red-600 hover:text-red-700 text-sm"
+                            className="text-red-600 hover:text-red-700 text-sm self-end sm:self-auto"
                           >
                             Remove
                           </button>
@@ -944,8 +960,8 @@ export default function OrganizationsPage() {
               </div>
 
               {/* Officers Section */}
-              <div className="p-6">
-                <div className="flex items-center justify-between mb-4">
+              <div className="p-4 sm:p-6">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
                   <h3 className="font-semibold text-gray-900 dark:text-white flex items-center gap-2">
                     <UserGroupIcon className="w-5 h-5 text-blue-600" />
                     Officers
@@ -956,7 +972,7 @@ export default function OrganizationsPage() {
                   {canTagForSelectedOrg && availablePositions.length > 0 && (
                     <button
                       onClick={() => setShowOfficerModal(true)}
-                      className="px-3 py-1.5 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700 transition-colors"
+                      className="px-3 py-1.5 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700 transition-colors w-full sm:w-auto"
                     >
                       + Tag Officer
                     </button>
@@ -1064,8 +1080,8 @@ export default function OrganizationsPage() {
               </div>
 
               {/* Committees Section */}
-              <div className="p-6 border-t border-gray-200 dark:border-gray-700">
-                <div className="flex items-center justify-between mb-4">
+              <div className="p-4 sm:p-6 border-t border-gray-200 dark:border-gray-700">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
                   <h3 className="font-semibold text-gray-900 dark:text-white flex items-center gap-2">
                     <UserGroupIcon className="w-5 h-5 text-orange-600" />
                     Committees
@@ -1076,7 +1092,7 @@ export default function OrganizationsPage() {
                   {manageableCommitteeIds.length > 0 && (
                     <button
                       onClick={() => setShowCommitteeModal(true)}
-                      className="px-3 py-1.5 bg-orange-600 text-white text-sm rounded-lg hover:bg-orange-700 transition-colors"
+                      className="px-3 py-1.5 bg-orange-600 text-white text-sm rounded-lg hover:bg-orange-700 transition-colors w-full sm:w-auto"
                     >
                       + Add Committee Member
                     </button>
@@ -1134,8 +1150,8 @@ export default function OrganizationsPage() {
               </div>
 
               {/* Year Representatives Section */}
-              <div className="p-6 border-t border-gray-200 dark:border-gray-700">
-                <div className="flex items-center justify-between mb-4">
+              <div className="p-4 sm:p-6 border-t border-gray-200 dark:border-gray-700">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
                   <h3 className="font-semibold text-gray-900 dark:text-white flex items-center gap-2">
                     <UserIcon className="w-5 h-5 text-teal-600" />
                     Year Representatives
@@ -1146,7 +1162,7 @@ export default function OrganizationsPage() {
                   {canManageYearReps && availableYearRepPositions.length > 0 && (
                     <button
                       onClick={() => setShowYearRepModal(true)}
-                      className="px-3 py-1.5 bg-teal-600 text-white text-sm rounded-lg hover:bg-teal-700 transition-colors"
+                      className="px-3 py-1.5 bg-teal-600 text-white text-sm rounded-lg hover:bg-teal-700 transition-colors w-full sm:w-auto"
                     >
                       + Tag Year Rep
                     </button>

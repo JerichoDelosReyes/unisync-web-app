@@ -110,7 +110,7 @@ export default function FacultyOnboardingModal({ isOpen, userProfile, onComplete
   
   return (
     <ModalOverlay closeOnBackdropClick={false}>
-      <div className="bg-white rounded-2xl shadow-2xl max-w-lg w-full overflow-hidden animate-fade-in" onClick={(e) => e.stopPropagation()}>
+      <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-w-lg w-full overflow-hidden animate-fade-in" onClick={(e) => e.stopPropagation()}>
         {/* Header */}
         <div className="bg-green-600 px-6 py-5 text-white">
           <div className="flex items-center gap-3">
@@ -127,22 +127,22 @@ export default function FacultyOnboardingModal({ isOpen, userProfile, onComplete
         </div>
         
         {/* Progress Steps */}
-        <div className="px-6 py-4 border-b border-gray-100">
+        <div className="px-6 py-4 border-b border-gray-100 dark:border-gray-700">
           <div className="flex items-center justify-center gap-4">
-            <div className={`flex items-center gap-2 ${step >= 1 ? 'text-green-600' : 'text-gray-400'}`}>
+            <div className={`flex items-center gap-2 ${step >= 1 ? 'text-green-600 dark:text-green-400' : 'text-gray-400 dark:text-gray-500'}`}>
               <div className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm ${
-                step >= 1 ? 'bg-green-600 text-white' : 'bg-gray-200 text-gray-500'
+                step >= 1 ? 'bg-green-600 text-white' : 'bg-gray-200 dark:bg-gray-700 text-gray-500 dark:text-gray-400'
               }`}>
                 {step > 1 ? '✓' : '1'}
               </div>
               <span className="text-sm font-medium">Department</span>
             </div>
-            <div className="w-12 h-0.5 bg-gray-200">
+            <div className="w-12 h-0.5 bg-gray-200 dark:bg-gray-700">
               <div className={`h-full bg-green-600 transition-all ${step >= 2 ? 'w-full' : 'w-0'}`}></div>
             </div>
-            <div className={`flex items-center gap-2 ${step >= 2 ? 'text-green-600' : 'text-gray-400'}`}>
+            <div className={`flex items-center gap-2 ${step >= 2 ? 'text-green-600 dark:text-green-400' : 'text-gray-400 dark:text-gray-500'}`}>
               <div className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm ${
-                step >= 2 ? 'bg-green-600 text-white' : 'bg-gray-200 text-gray-500'
+                step >= 2 ? 'bg-green-600 text-white' : 'bg-gray-200 dark:bg-gray-700 text-gray-500 dark:text-gray-400'
               }`}>
                 2
               </div>
@@ -154,7 +154,7 @@ export default function FacultyOnboardingModal({ isOpen, userProfile, onComplete
         {/* Content */}
         <div className="px-6 py-6">
           {error && (
-            <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm">
+            <div className="mb-4 p-3 bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-800 rounded-lg text-red-700 dark:text-red-300 text-sm">
               {error}
             </div>
           )}
@@ -163,10 +163,10 @@ export default function FacultyOnboardingModal({ isOpen, userProfile, onComplete
           {step === 1 && (
             <div className="space-y-4">
               <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-2">
+                <label className="block text-sm font-semibold text-gray-700 dark:text-gray-200 mb-2">
                   Select Your Department
                 </label>
-                <p className="text-xs text-gray-500 mb-4">
+                <p className="text-xs text-gray-500 dark:text-gray-400 mb-4">
                   This will determine which organizations you can post announcements to.
                 </p>
                 <div className="space-y-2 max-h-64 overflow-y-auto">
@@ -177,14 +177,14 @@ export default function FacultyOnboardingModal({ isOpen, userProfile, onComplete
                       onClick={() => setSelectedDepartment(dept)}
                       className={`w-full px-4 py-3 text-left rounded-xl border-2 transition-all ${
                         selectedDepartment === dept
-                          ? 'border-green-600 bg-green-50 text-green-700'
-                          : 'border-gray-200 hover:border-green-300 hover:bg-gray-50'
+                          ? 'border-green-600 bg-green-50 dark:bg-green-900/30 text-green-700 dark:text-green-300'
+                          : 'border-gray-200 dark:border-gray-600 hover:border-green-300 dark:hover:border-green-700 hover:bg-gray-50 dark:hover:bg-gray-700'
                       }`}
                     >
                       <div className="flex items-center justify-between">
                         <div>
-                          <p className="font-semibold text-sm">{dept}</p>
-                          <p className="text-xs text-gray-500 mt-0.5">
+                          <p className={`font-semibold text-sm ${selectedDepartment === dept ? 'text-green-700 dark:text-green-300' : 'text-gray-900 dark:text-white'}`}>{dept}</p>
+                          <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
                             Code: {DEPARTMENT_CODES[dept]} 
                             {DEPT_ORG_MAPPING[dept]?.length > 0 && (
                               <span className="ml-2">• Linked Orgs: {DEPT_ORG_MAPPING[dept].join(', ')}</span>
@@ -192,7 +192,7 @@ export default function FacultyOnboardingModal({ isOpen, userProfile, onComplete
                           </p>
                         </div>
                         {selectedDepartment === dept && (
-                          <svg className="w-5 h-5 text-green-600" fill="currentColor" viewBox="0 0 20 20">
+                          <svg className="w-5 h-5 text-green-600 dark:text-green-400" fill="currentColor" viewBox="0 0 20 20">
                             <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
                           </svg>
                         )}
@@ -208,10 +208,10 @@ export default function FacultyOnboardingModal({ isOpen, userProfile, onComplete
           {step === 2 && (
             <div className="space-y-4">
               <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-2">
+                <label className="block text-sm font-semibold text-gray-700 dark:text-gray-200 mb-2">
                   Select Your Linked Organizations
                 </label>
-                <p className="text-xs text-gray-500 mb-4">
+                <p className="text-xs text-gray-500 dark:text-gray-400 mb-4">
                   These are the organizations under <span className="font-semibold">{DEPARTMENT_CODES[selectedDepartment]}</span>. 
                   Select the ones you're affiliated with.
                 </p>
@@ -225,17 +225,17 @@ export default function FacultyOnboardingModal({ isOpen, userProfile, onComplete
                         onClick={() => toggleOrg(org.code)}
                         className={`w-full px-4 py-3 text-left rounded-xl border-2 transition-all ${
                           selectedOrganizations.includes(org.code)
-                            ? 'border-orange-500 bg-orange-50 text-orange-700'
-                            : 'border-gray-200 hover:border-orange-300 hover:bg-gray-50'
+                            ? 'border-orange-500 bg-orange-50 dark:bg-orange-900/30 text-orange-700 dark:text-orange-300'
+                            : 'border-gray-200 dark:border-gray-600 hover:border-orange-300 dark:hover:border-orange-700 hover:bg-gray-50 dark:hover:bg-gray-700'
                         }`}
                       >
                         <div className="flex items-center justify-between">
                           <div>
-                            <p className="font-semibold text-sm">{org.code}</p>
-                            <p className="text-xs text-gray-500">{org.name}</p>
+                            <p className={`font-semibold text-sm ${selectedOrganizations.includes(org.code) ? 'text-orange-700 dark:text-orange-300' : 'text-gray-900 dark:text-white'}`}>{org.code}</p>
+                            <p className="text-xs text-gray-500 dark:text-gray-400">{org.name}</p>
                           </div>
                           {selectedOrganizations.includes(org.code) && (
-                            <svg className="w-5 h-5 text-orange-500" fill="currentColor" viewBox="0 0 20 20">
+                            <svg className="w-5 h-5 text-orange-500 dark:text-orange-400" fill="currentColor" viewBox="0 0 20 20">
                               <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
                             </svg>
                           )}
@@ -244,14 +244,14 @@ export default function FacultyOnboardingModal({ isOpen, userProfile, onComplete
                     ))}
                   </div>
                 ) : (
-                  <div className="p-4 bg-gray-50 rounded-xl text-center">
-                    <p className="text-sm text-gray-600">
+                  <div className="p-4 bg-gray-50 dark:bg-gray-700 rounded-xl text-center">
+                    <p className="text-sm text-gray-600 dark:text-gray-300">
                       No specific organizations are linked to this department.
                     </p>
                   </div>
                 )}
                 
-                <p className="text-xs text-gray-400 mt-3 flex items-center gap-1">
+                <p className="text-xs text-gray-400 dark:text-gray-500 mt-3 flex items-center gap-1">
                   <LightBulbIcon className="w-4 h-4" /> You can skip this if you don't want to be linked to any organization.
                 </p>
               </div>
@@ -260,12 +260,12 @@ export default function FacultyOnboardingModal({ isOpen, userProfile, onComplete
         </div>
         
         {/* Footer */}
-        <div className="px-6 py-4 border-t border-gray-100 bg-gray-50 flex items-center justify-between">
+        <div className="px-6 py-4 border-t border-gray-100 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 flex items-center justify-between">
           {step === 2 ? (
             <button
               type="button"
               onClick={handleBack}
-              className="px-4 py-2 text-gray-600 hover:text-gray-800 font-medium text-sm"
+              className="px-4 py-2 text-gray-600 dark:text-gray-300 hover:text-gray-800 dark:hover:text-white font-medium text-sm"
             >
               ← Back
             </button>
@@ -280,7 +280,7 @@ export default function FacultyOnboardingModal({ isOpen, userProfile, onComplete
             className={`px-6 py-2.5 rounded-xl font-semibold text-sm transition-all ${
               selectedDepartment && !loading
                 ? 'bg-green-600 text-white hover:bg-green-700 shadow-lg shadow-green-600/30'
-                : 'bg-gray-200 text-gray-400 cursor-not-allowed'
+                : 'bg-gray-200 dark:bg-gray-700 text-gray-400 dark:text-gray-500 cursor-not-allowed'
             }`}
           >
             {loading ? (
