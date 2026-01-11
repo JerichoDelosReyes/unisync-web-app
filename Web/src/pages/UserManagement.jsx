@@ -490,36 +490,113 @@ export default function UserManagement() {
     
     try {
       setSavingTags(true)
-      const updatedTags = (tagModalUser.tags || []).filter(tag => tag !== tagToRemove)
       
-      await updateDocument('users', tagModalUser.id, { tags: updatedTags })
+      // Check if this is an organization officer tag (format: org:CODE:POSITION)
+      // Examples: org:CSC:PRESIDENT, org:BITS:VICE_PRESIDENT_FOR_INTERNAL_AFFAIRS
+      const isOfficerTag = tagToRemove.startsWith('org:') && tagToRemove.split(':').length >= 3
       
-      // Log the tag removal
-      await createLog({
-        category: LOG_CATEGORIES.USER_MANAGEMENT,
-        action: LOG_ACTIONS.TAG_REMOVE,
-        performedBy: {
-          uid: userProfile.id,
-          email: userProfile.email,
-          name: `${userProfile.givenName} ${userProfile.lastName}`
-        },
-        targetUser: {
-          uid: tagModalUser.id,
-          email: tagModalUser.email,
-          name: `${tagModalUser.givenName} ${tagModalUser.lastName}`
-        },
-        details: { tag: tagToRemove },
-        description: `Removed tag "${tagToRemove}"`
-      })
-      
-      setUsers(prevUsers => 
-        prevUsers.map(user => 
-          user.id === tagModalUser.id ? { ...user, tags: updatedTags } : user
+      if (isOfficerTag) {
+        // Extract org code from tag (e.g., "org:CSC:PRESIDENT" -> "CSC")
+        const parts = tagToRemove.split(':')
+        const orgCode = parts[1]
+        
+        // Check if user is actually an officer of this org
+        if (tagModalUser.officerOf && tagModalUser.officerOf[orgCode]) {
+          try {
+            // Use the removeOfficer function to properly clean up everything
+            await removeOfficer(orgCode, tagModalUser.id)
+            
+            // Update local state - remove the tag and officerOf entry
+            const updatedTags = (tagModalUser.tags || []).filter(tag => tag !== tagToRemove)
+            const updatedOfficerOf = { ...(tagModalUser.officerOf || {}) }
+            delete updatedOfficerOf[orgCode]
+            
+            // Log the tag removal
+            await createLog({
+              category: LOG_CATEGORIES.USER_MANAGEMENT,
+              action: LOG_ACTIONS.TAG_REMOVE,
+              performedBy: {
+                uid: userProfile.id,
+                email: userProfile.email,
+                name: `${userProfile.givenName} ${userProfile.lastName}`
+              },
+              targetUser: {
+                uid: tagModalUser.id,
+                email: tagModalUser.email,
+                name: `${tagModalUser.givenName} ${tagModalUser.lastName}`
+              },
+              details: { tag: tagToRemove, type: 'officer_removal', orgCode },
+              description: `Removed officer tag "${tagToRemove}" and cleaned up officer data`
+            })
+            
+            setUsers(prevUsers => 
+              prevUsers.map(user => 
+                user.id === tagModalUser.id ? { ...user, tags: updatedTags, officerOf: updatedOfficerOf } : user
+              )
+            )
+            
+            setTagModalUser(prev => ({ ...prev, tags: updatedTags, officerOf: updatedOfficerOf }))
+            showToast(`Officer position removed from ${orgCode}`, 'success')
+          } catch (officerErr) {
+            console.error('❌ Error removing officer:', officerErr)
+            // Fall back to just removing the tag if officer removal fails
+            const updatedTags = (tagModalUser.tags || []).filter(tag => tag !== tagToRemove)
+            await updateDocument('users', tagModalUser.id, { tags: updatedTags })
+            
+            setUsers(prevUsers => 
+              prevUsers.map(user => 
+                user.id === tagModalUser.id ? { ...user, tags: updatedTags } : user
+              )
+            )
+            setTagModalUser(prev => ({ ...prev, tags: updatedTags }))
+            showToast(`Tag removed (officer cleanup may be incomplete)`, 'warning')
+          }
+        } else {
+          // User has the tag but not in officerOf - just remove the tag
+          const updatedTags = (tagModalUser.tags || []).filter(tag => tag !== tagToRemove)
+          await updateDocument('users', tagModalUser.id, { tags: updatedTags })
+          
+          setUsers(prevUsers => 
+            prevUsers.map(user => 
+              user.id === tagModalUser.id ? { ...user, tags: updatedTags } : user
+            )
+          )
+          setTagModalUser(prev => ({ ...prev, tags: updatedTags }))
+          showToast(`Tag "${tagToRemove}" removed`, 'success')
+        }
+      } else {
+        // Regular tag removal (non-officer tags)
+        const updatedTags = (tagModalUser.tags || []).filter(tag => tag !== tagToRemove)
+        
+        await updateDocument('users', tagModalUser.id, { tags: updatedTags })
+        
+        // Log the tag removal
+        await createLog({
+          category: LOG_CATEGORIES.USER_MANAGEMENT,
+          action: LOG_ACTIONS.TAG_REMOVE,
+          performedBy: {
+            uid: userProfile.id,
+            email: userProfile.email,
+            name: `${userProfile.givenName} ${userProfile.lastName}`
+          },
+          targetUser: {
+            uid: tagModalUser.id,
+            email: tagModalUser.email,
+            name: `${tagModalUser.givenName} ${tagModalUser.lastName}`
+          },
+          details: { tag: tagToRemove },
+          description: `Removed tag "${tagToRemove}"`
+        })
+        
+        setUsers(prevUsers => 
+          prevUsers.map(user => 
+            user.id === tagModalUser.id ? { ...user, tags: updatedTags } : user
+          )
         )
-      )
-      
-      setTagModalUser(prev => ({ ...prev, tags: updatedTags }))
-      showToast(`Tag "${tagToRemove}" removed`, 'success')
+        
+        setTagModalUser(prev => ({ ...prev, tags: updatedTags }))
+        showToast(`Tag "${tagToRemove}" removed`, 'success')
+      }
     } catch (err) {
       console.error('❌ Error removing tag:', err)
       showToast('Failed to remove tag', 'error')

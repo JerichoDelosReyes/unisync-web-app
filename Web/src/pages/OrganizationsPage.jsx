@@ -738,10 +738,27 @@ export default function OrganizationsPage() {
     })
   })).filter(cat => cat.orgs.length > 0)
 
+  // Check if user has any access to organizations
+  const hasNoAccess = !isAdmin && (!allowedOrgCodes || allowedOrgCodes.length === 0)
+
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+      </div>
+    )
+  }
+
+  // Show no access message for non-admin users without any org assignments
+  if (hasNoAccess) {
+    return (
+      <div className="flex flex-col items-center justify-center h-64 text-center px-4">
+        <BuildingLibraryIcon className="w-16 h-16 text-gray-400 dark:text-gray-500 mb-4" />
+        <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">No Organization Access</h2>
+        <p className="text-gray-500 dark:text-gray-400 max-w-md">
+          You are not currently assigned to any student organization. 
+          Contact your adviser or an admin if you believe this is an error.
+        </p>
       </div>
     )
   }
@@ -787,8 +804,8 @@ export default function OrganizationsPage() {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Organizations List */}
-        <div className="lg:col-span-1 space-y-4">
+        {/* Organizations List - Hidden on mobile when org is selected */}
+        <div className={`lg:col-span-1 space-y-4 ${selectedOrg ? 'hidden lg:block' : 'block'}`}>
           {orgsByCategory.map(category => (
             <div key={category.key} className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
               <div className={`px-4 py-2 ${category.bgColor} border-b dark:border-gray-700`}>
@@ -830,7 +847,7 @@ export default function OrganizationsPage() {
                         <p className="font-medium text-gray-900 dark:text-white truncate">{org.id}</p>
                         <p className="text-xs text-gray-500 dark:text-gray-400 truncate">{orgConfig?.name || org.name}</p>
                       </div>
-                      <div className="text-right text-xs">
+                      <div className="text-right text-xs flex-shrink-0">
                         <p className="text-purple-600">{adviserCount} adviser{adviserCount !== 1 ? 's' : ''}</p>
                         <p className="text-blue-600">{officerCount} officer{officerCount !== 1 ? 's' : ''}</p>
                       </div>
@@ -842,10 +859,21 @@ export default function OrganizationsPage() {
           ))}
         </div>
 
-        {/* Organization Details */}
-        <div className="lg:col-span-2">
+        {/* Organization Details - Full width on mobile when selected */}
+        <div className={`lg:col-span-2 ${selectedOrg ? 'block' : 'hidden lg:block'}`}>
           {selectedOrg ? (
             <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
+              {/* Back Button - Mobile only */}
+              <button
+                onClick={() => setSelectedOrg(null)}
+                className="lg:hidden w-full px-4 py-3 flex items-center gap-2 text-primary bg-primary/5 border-b border-gray-200 dark:border-gray-700 font-medium text-sm"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                </svg>
+                Back to Organizations
+              </button>
+              
               {/* Org Header */}
               <div className="p-4 sm:p-6 border-b border-gray-200 dark:border-gray-700">
                 <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
@@ -1210,7 +1238,7 @@ export default function OrganizationsPage() {
               </div>
             </div>
           ) : (
-            <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-12 text-center">
+            <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-12 text-center hidden lg:block">
               <BuildingLibraryIcon className="w-16 h-16 text-gray-400 dark:text-gray-500 mx-auto mb-4" />
               <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">Select an Organization</h3>
               <p className="text-gray-500 dark:text-gray-400">

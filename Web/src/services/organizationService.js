@@ -20,6 +20,7 @@ import {
   getDocs, 
   updateDoc, 
   deleteDoc,
+  deleteField,
   query, 
   where, 
   orderBy,
@@ -731,11 +732,21 @@ export const removeOfficer = async (orgCode, userId) => {
     )
     
     const userDocRef = doc(db, 'users', userId)
-    await updateDoc(userDocRef, {
-      officerOf: updatedOfficerOf,
-      tags: updatedTags,
-      updatedAt: serverTimestamp()
-    })
+    
+    // If officerOf is now empty, delete the field entirely
+    if (Object.keys(updatedOfficerOf).length === 0) {
+      await updateDoc(userDocRef, {
+        officerOf: deleteField(),
+        tags: updatedTags,
+        updatedAt: serverTimestamp()
+      })
+    } else {
+      await updateDoc(userDocRef, {
+        officerOf: updatedOfficerOf,
+        tags: updatedTags,
+        updatedAt: serverTimestamp()
+      })
+    }
   }
 }
 
