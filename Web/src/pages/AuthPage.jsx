@@ -144,10 +144,9 @@ export default function AuthPage() {
       return
     }
 
-    // Validate password
-    const passwordValidation = validatePassword(signInPassword)
-    if (!passwordValidation.valid) {
-      showToast(passwordValidation.error, 'warning')
+    // For login, just check if password is provided (don't validate format)
+    if (!signInPassword) {
+      showToast('Password is required', 'warning')
       setSignInLoading(false)
       return
     }
