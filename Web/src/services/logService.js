@@ -23,9 +23,7 @@ import { db } from '../config/firebase'
 // Log categories
 export const LOG_CATEGORIES = {
   AUTH: 'auth',
-  USER_MANAGEMENT: 'user_management',
   ANNOUNCEMENTS: 'announcements',
-  MODERATION: 'moderation',
   SCHEDULE: 'schedule',
   SYSTEM: 'system',
   FACULTY_REQUESTS: 'faculty_requests'
@@ -39,12 +37,6 @@ export const LOG_ACTIONS = {
   LOGIN_FAILED: 'login_failed',
   REGISTER: 'register',
   
-  // User management actions
-  USER_CREATE: 'user_create',
-  ROLE_CHANGE: 'role_change',
-  TAG_ADD: 'tag_add',
-  TAG_REMOVE: 'tag_remove',
-  
   // Announcement actions
   ANNOUNCEMENT_CREATE: 'announcement_create',
   ANNOUNCEMENT_APPROVE: 'announcement_approve',
@@ -52,14 +44,10 @@ export const LOG_ACTIONS = {
   ANNOUNCEMENT_DELETE: 'announcement_delete',
   ANNOUNCEMENT_EDIT: 'announcement_edit',
   
-  // Moderation actions
-  COMMENT_APPROVE: 'comment_approve',
-  COMMENT_REJECT: 'comment_reject',
-  REPORT_RESOLVE: 'report_resolve',
-  
   // Schedule actions
   SCHEDULE_ARCHIVE: 'schedule_archive',
   SCHEDULE_RESET: 'schedule_reset',
+  SCHEDULE_UPLOAD: 'schedule_upload',
   
   // System actions
   SETTINGS_UPDATE: 'settings_update',
@@ -77,20 +65,14 @@ export const ACTION_LABELS = {
   [LOG_ACTIONS.LOGOUT]: 'User Logout',
   [LOG_ACTIONS.LOGIN_FAILED]: 'Login Failed',
   [LOG_ACTIONS.REGISTER]: 'User Registered',
-  [LOG_ACTIONS.USER_CREATE]: 'User Created',
-  [LOG_ACTIONS.ROLE_CHANGE]: 'Role Changed',
-  [LOG_ACTIONS.TAG_ADD]: 'Tag Added',
-  [LOG_ACTIONS.TAG_REMOVE]: 'Tag Removed',
   [LOG_ACTIONS.ANNOUNCEMENT_CREATE]: 'Announcement Created',
   [LOG_ACTIONS.ANNOUNCEMENT_APPROVE]: 'Announcement Approved',
   [LOG_ACTIONS.ANNOUNCEMENT_REJECT]: 'Announcement Rejected',
   [LOG_ACTIONS.ANNOUNCEMENT_DELETE]: 'Announcement Deleted',
   [LOG_ACTIONS.ANNOUNCEMENT_EDIT]: 'Announcement Edited',
-  [LOG_ACTIONS.COMMENT_APPROVE]: 'Comment Approved',
-  [LOG_ACTIONS.COMMENT_REJECT]: 'Comment Rejected',
-  [LOG_ACTIONS.REPORT_RESOLVE]: 'Report Resolved',
   [LOG_ACTIONS.SCHEDULE_ARCHIVE]: 'Schedules Archived',
   [LOG_ACTIONS.SCHEDULE_RESET]: 'Schedules Reset',
+  [LOG_ACTIONS.SCHEDULE_UPLOAD]: 'Registration Form Uploaded',
   [LOG_ACTIONS.SETTINGS_UPDATE]: 'Settings Updated',
   [LOG_ACTIONS.SEMESTER_UPDATE]: 'Semester Updated',
   [LOG_ACTIONS.FACULTY_REQUEST_APPROVE]: 'Faculty Request Approved',
@@ -101,9 +83,7 @@ export const ACTION_LABELS = {
 // Category labels
 export const CATEGORY_LABELS = {
   [LOG_CATEGORIES.AUTH]: 'Authentication',
-  [LOG_CATEGORIES.USER_MANAGEMENT]: 'User Management',
   [LOG_CATEGORIES.ANNOUNCEMENTS]: 'Announcements',
-  [LOG_CATEGORIES.MODERATION]: 'Moderation',
   [LOG_CATEGORIES.SCHEDULE]: 'Schedule',
   [LOG_CATEGORIES.SYSTEM]: 'System',
   [LOG_CATEGORIES.FACULTY_REQUESTS]: 'Faculty Requests'
@@ -111,13 +91,11 @@ export const CATEGORY_LABELS = {
 
 // Category colors for UI
 export const CATEGORY_COLORS = {
-  [LOG_CATEGORIES.AUTH]: 'bg-blue-100 text-blue-800',
-  [LOG_CATEGORIES.USER_MANAGEMENT]: 'bg-purple-100 text-purple-800',
-  [LOG_CATEGORIES.ANNOUNCEMENTS]: 'bg-green-100 text-green-800',
-  [LOG_CATEGORIES.MODERATION]: 'bg-orange-100 text-orange-800',
-  [LOG_CATEGORIES.SCHEDULE]: 'bg-cyan-100 text-cyan-800',
-  [LOG_CATEGORIES.SYSTEM]: 'bg-gray-100 text-gray-800',
-  [LOG_CATEGORIES.FACULTY_REQUESTS]: 'bg-indigo-100 text-indigo-800'
+  [LOG_CATEGORIES.AUTH]: 'bg-blue-100 text-blue-800 dark:bg-blue-900/50 dark:text-blue-300',
+  [LOG_CATEGORIES.ANNOUNCEMENTS]: 'bg-green-100 text-green-800 dark:bg-green-900/50 dark:text-green-300',
+  [LOG_CATEGORIES.SCHEDULE]: 'bg-cyan-100 text-cyan-800 dark:bg-cyan-900/50 dark:text-cyan-300',
+  [LOG_CATEGORIES.SYSTEM]: 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300',
+  [LOG_CATEGORIES.FACULTY_REQUESTS]: 'bg-indigo-100 text-indigo-800 dark:bg-indigo-900/50 dark:text-indigo-300'
 }
 
 /**
@@ -194,10 +172,9 @@ export const getLogs = async (options = {}) => {
       lastDoc
     } = options
 
-    let q = collection(db, 'system_logs')
     const constraints = []
 
-    // Add filters
+    // Add filters - order matters for Firestore
     if (category) {
       constraints.push(where('category', '==', category))
     }
@@ -218,7 +195,7 @@ export const getLogs = async (options = {}) => {
       constraints.push(where('timestamp', '<=', Timestamp.fromDate(endDate)))
     }
 
-    // Always order by timestamp descending
+    // Always order by timestamp descending (after all where clauses)
     constraints.push(orderBy('timestamp', 'desc'))
 
     // Pagination
@@ -228,7 +205,7 @@ export const getLogs = async (options = {}) => {
 
     constraints.push(limit(pageSize + 1)) // Get one extra to check if there are more
 
-    q = query(q, ...constraints)
+    const q = query(collection(db, 'system_logs'), ...constraints)
     const snapshot = await getDocs(q)
 
     const logs = []
@@ -251,7 +228,7 @@ export const getLogs = async (options = {}) => {
     return { logs, lastDoc: newLastDoc, hasMore }
   } catch (error) {
     console.error('Error fetching logs:', error)
-    throw error
+    return { logs: [], lastDoc: null, hasMore: false }
   }
 }
 
@@ -338,51 +315,57 @@ export const subscribeToLogs = (options = {}, callback) => {
     pageSize = 50
   } = options
 
-  const constraints = []
+  try {
+    const constraints = []
 
-  // Add filters
-  if (category) {
-    constraints.push(where('category', '==', category))
-  }
+    // Add filters
+    if (category) {
+      constraints.push(where('category', '==', category))
+    }
 
-  if (action) {
-    constraints.push(where('action', '==', action))
-  }
+    if (action) {
+      constraints.push(where('action', '==', action))
+    }
 
-  if (startDate) {
-    constraints.push(where('timestamp', '>=', Timestamp.fromDate(startDate)))
-  }
+    if (startDate) {
+      constraints.push(where('timestamp', '>=', Timestamp.fromDate(startDate)))
+    }
 
-  if (endDate) {
-    constraints.push(where('timestamp', '<=', Timestamp.fromDate(endDate)))
-  }
+    if (endDate) {
+      constraints.push(where('timestamp', '<=', Timestamp.fromDate(endDate)))
+    }
 
-  // Always order by timestamp descending
-  constraints.push(orderBy('timestamp', 'desc'))
-  constraints.push(limit(pageSize + 1))
+    // Always order by timestamp descending (must be last before limit)
+    constraints.push(orderBy('timestamp', 'desc'))
+    constraints.push(limit(pageSize + 1))
 
-  const q = query(collection(db, 'system_logs'), ...constraints)
+    const q = query(collection(db, 'system_logs'), ...constraints)
 
-  // Return the unsubscribe function
-  return onSnapshot(q, (snapshot) => {
-    const logs = []
-    let hasMore = false
+    // Return the unsubscribe function
+    return onSnapshot(q, (snapshot) => {
+      const logs = []
+      let hasMore = false
 
-    snapshot.docs.forEach((doc, index) => {
-      if (index < pageSize) {
-        logs.push({
-          id: doc.id,
-          ...doc.data(),
-          timestamp: doc.data().timestamp?.toDate?.() || new Date(doc.data().createdAt)
-        })
-      } else {
-        hasMore = true
-      }
+      snapshot.docs.forEach((doc, index) => {
+        if (index < pageSize) {
+          logs.push({
+            id: doc.id,
+            ...doc.data(),
+            timestamp: doc.data().timestamp?.toDate?.() || new Date(doc.data().createdAt)
+          })
+        } else {
+          hasMore = true
+        }
+      })
+
+      callback({ logs, hasMore })
+    }, (error) => {
+      console.error('Error in logs subscription:', error)
+      callback({ logs: [], hasMore: false, error })
     })
-
-    callback({ logs, hasMore })
-  }, (error) => {
-    console.error('Error in logs subscription:', error)
+  } catch (error) {
+    console.error('Error creating logs query:', error)
     callback({ logs: [], hasMore: false, error })
-  })
+    return () => {} // Return dummy unsubscribe
+  }
 }

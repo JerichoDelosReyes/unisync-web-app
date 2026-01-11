@@ -19,6 +19,7 @@ import { findMissingRooms, submitRoomRequest } from '../services/roomRequestServ
 import FacultyScheduleView from '../components/schedule/FacultyScheduleView'
 import ModalOverlay from '../components/ui/ModalOverlay'
 import { checkProfanity } from '../utils/profanityFilter'
+import { createLog, LOG_CATEGORIES, LOG_ACTIONS } from '../services/logService'
 
 // Set up PDF.js worker using CDN (more reliable for Vite)
 pdfjsLib.GlobalWorkerOptions.workerSrc = `https://unpkg.com/pdfjs-dist@${pdfjsLib.version}/build/pdf.worker.min.mjs`
@@ -2004,6 +2005,24 @@ function StudentScheduleView() {
         localStorage.setItem('studentInfo', JSON.stringify(extractedStudentInfo))
         setUploadSuccess(true)
         setTimeout(() => setUploadSuccess(false), 3000)
+        
+        // Log registration form upload
+        await createLog({
+          category: LOG_CATEGORIES.SCHEDULE,
+          action: LOG_ACTIONS.SCHEDULE_UPLOAD,
+          performedBy: { 
+            uid: user.uid, 
+            email: user.email,
+            name: userProfile?.displayName || extractedStudentInfo.studentName
+          },
+          details: {
+            studentId: extractedStudentInfo.studentId,
+            section: extractedStudentInfo.section,
+            course: extractedStudentInfo.course,
+            classCount: extractedSchedule.length
+          },
+          description: `Registration form uploaded by ${extractedStudentInfo.studentName || user.email} (${extractedSchedule.length} classes)`
+        })
       } else {
         alert('Could not extract schedule from the PDF. Please make sure you uploaded a valid registration form.')
       }

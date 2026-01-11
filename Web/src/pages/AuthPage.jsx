@@ -174,7 +174,7 @@ export default function AuthPage() {
       return
     }
     
-    // Login successful
+    // Login successful (logging already done in authService.js)
     showToast('Sign in successful!', 'success')
     setTimeout(() => {
       navigate('/dashboard')
@@ -233,6 +233,7 @@ export default function AuthPage() {
     }
     
     // Success - Show verification waiting modal
+    // Registration log is created automatically in authService
     // Store user data to create Firestore document after verification
     setPendingUserData({
       givenName,

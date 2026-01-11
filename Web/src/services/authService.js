@@ -229,6 +229,25 @@ export const registerUser = async (userData) => {
       };
     }
 
+    // Log user registration (user is authenticated at this point)
+    try {
+      await createLog({
+        category: LOG_CATEGORIES.AUTH,
+        action: LOG_ACTIONS.REGISTER,
+        performedBy: {
+          uid: user.uid,
+          email: email,
+          name: displayName
+        },
+        details: { email, givenName, lastName },
+        description: `User registered: ${displayName} (${email})`
+      });
+      console.log('✅ Registration log created');
+    } catch (logError) {
+      console.error('Failed to create registration log:', logError);
+      // Don't fail registration just because logging failed
+    }
+
     // Keep user signed in so the verification modal can poll for email verification status
     // User will be signed out after verification is complete or modal is closed
 
