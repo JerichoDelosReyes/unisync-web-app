@@ -575,20 +575,24 @@ export const loginUser = async (email, password) => {
     });
 
     // Log successful login
-    await createLog({
-      category: LOG_CATEGORIES.AUTH,
-      action: LOG_ACTIONS.LOGIN,
-      performedBy: {
-        uid: user.uid,
-        email: user.email,
-        name: userData.displayName || `${userData.givenName} ${userData.lastName}`
-      },
-      details: {
-        role: userData.role,
-        rememberMe
-      },
-      description: 'User logged in successfully'
-    });
+    try {
+      await createLog({
+        category: LOG_CATEGORIES.AUTH,
+        action: LOG_ACTIONS.LOGIN,
+        performedBy: {
+          uid: user.uid,
+          email: user.email,
+          name: userData.displayName || `${userData.givenName} ${userData.lastName}`
+        },
+        details: {
+          role: userData.role
+        },
+        description: 'User logged in successfully'
+      });
+    } catch (logError) {
+      console.error('Failed to create login log:', logError);
+      // Don't fail login if logging fails
+    }
 
     // Store current user in localStorage for quick access
     localStorage.setItem('unisync_current_user', JSON.stringify({
