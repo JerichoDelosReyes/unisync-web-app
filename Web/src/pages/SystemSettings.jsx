@@ -196,9 +196,6 @@ export default function SystemSettings() {
         </div>
       </div>
 
-      {/* Push Notification Settings */}
-      <PushNotificationSettings />
-
       {/* Semester Management Section */}
       <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-6">
         <div className="flex items-center gap-3 mb-6">
@@ -405,6 +402,9 @@ export default function SystemSettings() {
           </div>
         </div>
       </div>
+
+      {/* Push Notification Settings */}
+      <PushNotificationSettings />
 
       {/* Reset Confirmation Modal */}
       {showResetModal && (

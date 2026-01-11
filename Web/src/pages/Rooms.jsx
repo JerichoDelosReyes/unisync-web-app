@@ -130,9 +130,9 @@ export default function Rooms() {
   const [showMyBookings, setShowMyBookings] = useState(false)
 
   // Check permissions
-  const canToggle = userProfile?.role && ['class_rep', 'faculty', 'admin', 'super_admin'].includes(userProfile.role)
+  const canToggle = userProfile?.role && ['class_rep', 'faculty'].includes(userProfile.role)
   const canManageRooms = userProfile?.role && ['admin', 'super_admin'].includes(userProfile.role)
-  const canViewBookings = userProfile?.role && ['class_rep', 'faculty', 'admin', 'super_admin'].includes(userProfile.role)
+  const canViewBookings = userProfile?.role && ['class_rep', 'faculty'].includes(userProfile.role)
 
   // Refresh time every minute for real-time vacancy status
   useEffect(() => {
