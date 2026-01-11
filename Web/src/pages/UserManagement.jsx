@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { createPortal } from 'react-dom'
 import { useAuth, ROLES, ROLE_DISPLAY_NAMES, ROLE_HIERARCHY } from '../contexts/AuthContext'
-import { getDocuments, updateDocument, addDocument, deleteDocument } from '../services/dbService'
+import { getDocuments, updateDocument, addDocument, deleteDocument, queryDocuments } from '../services/dbService'
 import { createUserWithEmailAndPassword, sendEmailVerification } from 'firebase/auth'
 import { auth } from '../config/firebase'
 import { ALLOWED_DOMAIN } from '../services/authService'
@@ -220,7 +220,11 @@ export default function UserManagement() {
         setLoading(true)
         setError(null)
         console.log('🔍 Fetching users from Firestore...')
-        const usersData = await getDocuments('users')
+        // Fetch users ordered by createdAt (newest first)
+        const usersData = await queryDocuments('users', [], {
+          orderByField: 'createdAt',
+          orderDirection: 'desc'
+        })
         console.log('✅ Users fetched:', usersData)
         setUsers(usersData)
         setFilteredUsers(usersData)
