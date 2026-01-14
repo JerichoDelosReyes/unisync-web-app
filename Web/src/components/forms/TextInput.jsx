@@ -2,7 +2,7 @@ export default function TextInput({ id, label, placeholder = '', type = 'text', 
   return (
     <div>
       {label && (
-        <label htmlFor={id} className="block text-xs font-medium text-gray-700 mb-1.5">
+        <label htmlFor={id} className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1.5">
           <span className="inline-flex items-center gap-1">
             {type === 'email' && (
               <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20">
@@ -22,14 +22,14 @@ export default function TextInput({ id, label, placeholder = '', type = 'text', 
         value={value}
         onChange={onChange}
         autoComplete="off"
-        className={`block w-full rounded-md shadow-sm text-sm ${
+        className={`block w-full rounded-md shadow-sm text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 ${
           error 
             ? 'border-red-500 focus:border-red-500 focus:ring-red-500' 
-            : 'border-gray-300 focus:border-primary focus:ring-primary'
+            : 'border-gray-300 dark:border-gray-600 focus:border-primary focus:ring-primary'
         }`}
       />
-      {error && <p className="mt-1 text-xs text-red-600">{error}</p>}
-      {hint && !error && <p id={`${id}-hint`} className="mt-1 text-xs text-gray-500">{hint}</p>}
+      {error && <p className="mt-1 text-xs text-red-600 dark:text-red-400">{error}</p>}
+      {hint && !error && <p id={`${id}-hint`} className="mt-1 text-xs text-gray-500 dark:text-gray-400">{hint}</p>}
     </div>
   )
 }

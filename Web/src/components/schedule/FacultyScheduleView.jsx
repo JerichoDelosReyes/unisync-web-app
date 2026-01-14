@@ -179,7 +179,7 @@ const FacultyScheduleDetailModal = ({ schedule, isOpen, onClose, roomsMap = {}, 
         {/* Content */}
         <div className="p-6 overflow-y-auto max-h-[60vh]">
           {/* Time & Room */}
-          <div className="grid grid-cols-2 gap-4 mb-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
             <div className="bg-gray-50 dark:bg-gray-700 rounded-xl p-4">
               <div className="flex items-center gap-2 text-gray-600 dark:text-gray-400 mb-1">
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -200,7 +200,7 @@ const FacultyScheduleDetailModal = ({ schedule, isOpen, onClose, roomsMap = {}, 
               <div className="flex items-center gap-2">
                 <p className="text-gray-900 dark:text-white font-semibold">{schedule.room}</p>
                 {foundRooms.length > 0 && (
-                  <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${
+                  <span className={`inline-flex items-center justify-center px-2.5 py-1 rounded-full text-xs font-semibold whitespace-nowrap flex-shrink-0 ${
                     isCurrentlyVacant ? 'bg-emerald-100 text-emerald-700' : 'bg-red-100 text-red-700'
                   }`}>
                     {isCurrentlyVacant ? 'Vacant Now' : 'Occupied'}

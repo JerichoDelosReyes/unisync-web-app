@@ -1253,7 +1253,7 @@ const ScheduleDetailModal = ({
               
               if (room) {
                 return (
-                  <div className={`px-2 py-1 rounded-full text-xs font-medium ${
+                  <div className={`inline-flex items-center justify-center px-2.5 py-1 rounded-full text-xs font-semibold whitespace-nowrap flex-shrink-0 ${
                     isCurrentlyVacant ? 'bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-300' : 'bg-red-100 dark:bg-red-900/40 text-red-700 dark:text-red-300'
                   }`}>
                     {isCurrentlyVacant ? 'Vacant Now' : 'Occupied'}
