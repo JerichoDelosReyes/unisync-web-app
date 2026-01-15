@@ -127,20 +127,20 @@ export default function VerificationWaitingModal({
         onClick={onClose}
       >
         <div
-          className="relative bg-white rounded-3xl shadow-2xl w-full max-w-2xl overflow-hidden transform transition-all"
+          className="relative bg-white dark:bg-gray-800 rounded-3xl shadow-2xl w-full max-w-2xl overflow-hidden transform transition-all"
           onClick={(e) => e.stopPropagation()}
         >
           
           {isProcessing ? (
             /* Processing State - Success */
             <div className="p-8 text-center">
-              <div className="inline-flex items-center justify-center w-20 h-20 bg-green-100 rounded-full mb-6">
-                <svg className="w-10 h-10 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <div className="inline-flex items-center justify-center w-20 h-20 bg-green-100 dark:bg-green-900/30 rounded-full mb-6">
+                <svg className="w-10 h-10 text-green-500 dark:text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                 </svg>
               </div>
-              <h2 className="text-2xl font-bold text-gray-900 mb-2">Email Verified!</h2>
-              <p className="text-gray-500 mb-6">Creating your account...</p>
+              <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">Email Verified!</h2>
+              <p className="text-gray-500 dark:text-gray-400 mb-6">Creating your account...</p>
               <div className="flex justify-center gap-1">
                 <div className="w-2 h-2 bg-green-500 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
                 <div className="w-2 h-2 bg-green-500 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
@@ -172,7 +172,7 @@ export default function VerificationWaitingModal({
                 {/* Close Button */}
                 <button
                   onClick={onClose}
-                  className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 transition-colors"
+                  className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
                 >
                   <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -181,37 +181,37 @@ export default function VerificationWaitingModal({
 
                 {/* Steps */}
                 <div className="space-y-4 mb-6">
-                  <h4 className="font-semibold text-gray-900">Quick Steps:</h4>
+                  <h4 className="font-semibold text-gray-900 dark:text-white">Quick Steps:</h4>
                   <div className="flex items-center gap-3 text-sm">
                     <span className="flex-shrink-0 w-6 h-6 bg-[#1a5f3a] text-white rounded-lg flex items-center justify-center text-xs font-bold">1</span>
-                    <span className="text-gray-600">Open your email inbox (check spam too)</span>
+                    <span className="text-gray-600 dark:text-gray-300">Open your email inbox (check spam too)</span>
                   </div>
                   <div className="flex items-center gap-3 text-sm">
                     <span className="flex-shrink-0 w-6 h-6 bg-[#1a5f3a] text-white rounded-lg flex items-center justify-center text-xs font-bold">2</span>
-                    <span className="text-gray-600">Click the verification link</span>
+                    <span className="text-gray-600 dark:text-gray-300">Click the verification link</span>
                   </div>
                   <div className="flex items-center gap-3 text-sm">
                     <span className="flex-shrink-0 w-6 h-6 bg-[#1a5f3a] text-white rounded-lg flex items-center justify-center text-xs font-bold">3</span>
-                    <span className="text-gray-600">Come back and click the button below</span>
+                    <span className="text-gray-600 dark:text-gray-300">Come back and click the button below</span>
                   </div>
                 </div>
 
                 {/* Status Animation */}
-                <div className="flex items-center gap-2 mb-6 p-3 bg-amber-50 rounded-xl">
+                <div className="flex items-center gap-2 mb-6 p-3 bg-amber-50 dark:bg-amber-900/30 rounded-xl">
                   <div className="flex gap-1">
                     <div className="w-1.5 h-1.5 bg-amber-500 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
                     <div className="w-1.5 h-1.5 bg-amber-500 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
                     <div className="w-1.5 h-1.5 bg-amber-500 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
                   </div>
-                  <span className="text-amber-700 text-sm font-medium">Waiting for verification...</span>
+                  <span className="text-amber-700 dark:text-amber-300 text-sm font-medium">Waiting for verification...</span>
                 </div>
 
                 {/* Message */}
                 {message && (
                   <div className={`mb-4 text-center text-sm p-3 rounded-xl ${
                     message.includes('sent') || message.includes('success') || message.includes('verified')
-                      ? 'bg-green-50 text-green-700' 
-                      : 'bg-red-50 text-red-700'
+                      ? 'bg-green-50 dark:bg-green-900/30 text-green-700 dark:text-green-300' 
+                      : 'bg-red-50 dark:bg-red-900/30 text-red-700 dark:text-red-300'
                   }`}>
                     {message}
                   </div>
@@ -245,7 +245,7 @@ export default function VerificationWaitingModal({
                   <button
                     onClick={handleResend}
                     disabled={resendLoading || resendCooldown > 0}
-                    className="flex-1 py-3 px-4 border-2 border-gray-200 text-gray-600 rounded-xl font-medium hover:border-[#1a5f3a] hover:text-[#1a5f3a] transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="flex-1 py-3 px-4 border-2 border-gray-200 dark:border-gray-600 text-gray-600 dark:text-gray-300 rounded-xl font-medium hover:border-[#1a5f3a] hover:text-[#1a5f3a] dark:hover:border-primary dark:hover:text-primary transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     {resendLoading ? (
                       'Sending...'
@@ -261,7 +261,7 @@ export default function VerificationWaitingModal({
                 <p className="text-center mt-4">
                   <button
                     onClick={onClose}
-                    className="text-gray-400 text-sm hover:text-gray-600 transition-colors"
+                    className="text-gray-400 text-sm hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
                   >
                     Use a different email →
                   </button>

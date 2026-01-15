@@ -130,7 +130,7 @@ export default function FacultyRequestModal({ user, userProfile, onClose, onSucc
 
   return (
     <ModalOverlay onClose={onClose}>
-      <div className="bg-white rounded-2xl shadow-2xl max-w-lg w-full overflow-hidden animate-in fade-in zoom-in duration-200 max-h-[90vh] flex flex-col" onClick={(e) => e.stopPropagation()}>
+      <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-w-lg w-full overflow-hidden animate-in fade-in zoom-in duration-200 max-h-[90vh] flex flex-col" onClick={(e) => e.stopPropagation()}>
         {/* Header */}
         <div className="bg-primary px-6 py-5 flex-shrink-0">
           <div className="flex items-center gap-3">
@@ -149,21 +149,21 @@ export default function FacultyRequestModal({ user, userProfile, onClose, onSucc
         {/* Form - scrollable */}
         <form onSubmit={handleSubmit} className="p-6 space-y-5 overflow-y-auto flex-1">
           {/* Info Box */}
-          <div className="bg-blue-50 border border-blue-100 rounded-lg p-4">
+          <div className="bg-blue-50 dark:bg-blue-900/30 border border-blue-100 dark:border-blue-800 rounded-lg p-4">
             <div className="flex gap-3">
-              <svg className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className="w-5 h-5 text-blue-600 dark:text-blue-400 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
-              <div className="text-sm text-blue-800">
+              <div className="text-sm text-blue-800 dark:text-blue-300">
                 <p className="font-medium">Verification Required</p>
-                <p className="mt-1 text-blue-700">Upload a clear photo of your official faculty ID. This will be reviewed by an administrator to verify your identity.</p>
+                <p className="mt-1 text-blue-700 dark:text-blue-400">Upload a clear photo of your official faculty ID. This will be reviewed by an administrator to verify your identity.</p>
               </div>
             </div>
           </div>
 
           {/* ID Photo Upload */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
               Faculty ID Photo <span className="text-red-500">*</span>
             </label>
             
@@ -172,7 +172,7 @@ export default function FacultyRequestModal({ user, userProfile, onClose, onSucc
                 <img 
                   src={idPhotoPreview} 
                   alt="ID Preview" 
-                  className="w-full h-48 object-contain bg-gray-100 rounded-lg border border-gray-200"
+                  className="w-full h-48 object-contain bg-gray-100 dark:bg-gray-700 rounded-lg border border-gray-200 dark:border-gray-600"
                 />
                 <button
                   type="button"
@@ -183,7 +183,7 @@ export default function FacultyRequestModal({ user, userProfile, onClose, onSucc
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                   </svg>
                 </button>
-                <p className="text-xs text-green-600 mt-2 flex items-center gap-1">
+                <p className="text-xs text-green-600 dark:text-green-400 mt-2 flex items-center gap-1">
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                   </svg>
@@ -193,13 +193,13 @@ export default function FacultyRequestModal({ user, userProfile, onClose, onSucc
             ) : (
               <div 
                 onClick={() => fileInputRef.current?.click()}
-                className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center cursor-pointer hover:border-primary hover:bg-primary/5 transition-colors"
+                className="border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg p-8 text-center cursor-pointer hover:border-primary hover:bg-primary/5 dark:hover:bg-primary/10 transition-colors"
               >
-                <svg className="w-12 h-12 mx-auto text-gray-400 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg className="w-12 h-12 mx-auto text-gray-400 dark:text-gray-500 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
                 </svg>
-                <p className="text-gray-600 font-medium">Click to upload your Faculty ID</p>
-                <p className="text-xs text-gray-500 mt-1">JPG, PNG up to 5MB</p>
+                <p className="text-gray-600 dark:text-gray-300 font-medium">Click to upload your Faculty ID</p>
+                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">JPG, PNG up to 5MB</p>
               </div>
             )}
             
@@ -210,21 +210,21 @@ export default function FacultyRequestModal({ user, userProfile, onClose, onSucc
               onChange={handleFileChange}
               className="hidden"
             />
-            <p className="text-xs text-gray-500 mt-2">
+            <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
               📷 Make sure the ID photo is clear and all text is readable
             </p>
           </div>
 
           {/* Department */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
               Department <span className="text-red-500">*</span>
             </label>
             <select
               name="department"
               value={formData.department}
               onChange={handleChange}
-              className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-colors"
+              className="w-full px-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-colors bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
             >
               <option value="">Select your department</option>
               {Object.entries(DEPARTMENTS).map(([key, value]) => (
@@ -237,7 +237,7 @@ export default function FacultyRequestModal({ user, userProfile, onClose, onSucc
 
           {/* Reason */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
               Additional Information <span className="text-red-500">*</span>
             </label>
             <textarea
@@ -246,14 +246,14 @@ export default function FacultyRequestModal({ user, userProfile, onClose, onSucc
               onChange={handleChange}
               rows={3}
               placeholder="Please provide any additional information that may help verify your identity (e.g., subjects you teach, years of service)."
-              className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-colors resize-none"
+              className="w-full px-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-colors resize-none bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500"
             />
-            <p className="text-xs text-gray-500 mt-1">{formData.reason.length}/200 characters (minimum 20)</p>
+            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">{formData.reason.length}/200 characters (minimum 20)</p>
           </div>
 
           {/* Error Message */}
           {error && (
-            <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm flex items-start gap-2">
+            <div className="bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-300 px-4 py-3 rounded-lg text-sm flex items-start gap-2">
               <svg className="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
@@ -263,7 +263,7 @@ export default function FacultyRequestModal({ user, userProfile, onClose, onSucc
 
           {/* Upload Progress */}
           {uploadProgress && (
-            <div className="bg-blue-50 border border-blue-200 text-blue-700 px-4 py-3 rounded-lg text-sm flex items-center gap-2">
+            <div className="bg-blue-50 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-800 text-blue-700 dark:text-blue-300 px-4 py-3 rounded-lg text-sm flex items-center gap-2">
               <svg className="w-5 h-5 animate-spin" viewBox="0 0 24 24">
                 <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none"></circle>
                 <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
@@ -278,7 +278,7 @@ export default function FacultyRequestModal({ user, userProfile, onClose, onSucc
               type="button"
               onClick={onClose}
               disabled={isSubmitting}
-              className="flex-1 px-4 py-2.5 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors font-medium disabled:opacity-50"
+              className="flex-1 px-4 py-2.5 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors font-medium disabled:opacity-50"
             >
               Cancel
             </button>

@@ -137,15 +137,22 @@ export default function Dashboard() {
   const [showFacultyRequestModal, setShowFacultyRequestModal] = useState(false)
   const [pendingFacultyRequest, setPendingFacultyRequest] = useState(null)
   const [facultyRequestHistory, setFacultyRequestHistory] = useState([])
-  const [facultyCardDismissed, setFacultyCardDismissed] = useState(() => {
-    // Check localStorage on init
-    return localStorage.getItem('facultyRequestCardDismissed') === 'true'
-  })
+  const [facultyCardDismissed, setFacultyCardDismissed] = useState(false)
 
-  // Function to dismiss faculty request card
+  // Check dismissal state when user changes (tied to user ID)
+  useEffect(() => {
+    if (user?.uid) {
+      const dismissedKey = `facultyRequestCardDismissed_${user.uid}`
+      setFacultyCardDismissed(localStorage.getItem(dismissedKey) === 'true')
+    }
+  }, [user?.uid])
+
+  // Function to dismiss faculty request card (tied to user ID)
   const dismissFacultyCard = () => {
-    localStorage.setItem('facultyRequestCardDismissed', 'true')
-    setFacultyCardDismissed(true)
+    if (user?.uid) {
+      localStorage.setItem(`facultyRequestCardDismissed_${user.uid}`, 'true')
+      setFacultyCardDismissed(true)
+    }
   }
 
   // Check if faculty needs onboarding
