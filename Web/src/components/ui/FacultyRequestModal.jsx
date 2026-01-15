@@ -147,7 +147,7 @@ export default function FacultyRequestModal({ user, userProfile, onClose, onSucc
         </div>
 
         {/* Form - scrollable */}
-        <form onSubmit={handleSubmit} className="p-6 space-y-5 overflow-y-auto flex-1">
+        <form onSubmit={handleSubmit} className="p-6 space-y-5 overflow-y-auto flex-1 bg-white dark:bg-gray-800">
           {/* Info Box */}
           <div className="bg-blue-50 dark:bg-blue-900/30 border border-blue-100 dark:border-blue-800 rounded-lg p-4">
             <div className="flex gap-3">
