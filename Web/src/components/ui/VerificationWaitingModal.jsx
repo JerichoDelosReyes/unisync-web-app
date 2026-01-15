@@ -168,7 +168,7 @@ export default function VerificationWaitingModal({
               </div>
               
               {/* Right Side - Actions */}
-              <div className="p-8 md:w-3/5">
+              <div className="p-8 md:w-3/5 bg-white dark:bg-gray-800">
                 {/* Close Button */}
                 <button
                   onClick={onClose}
